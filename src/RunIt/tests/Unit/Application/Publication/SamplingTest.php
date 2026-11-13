@@ -12,10 +12,12 @@ use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
 use ItPack\RunIt\Application\Publication\ErrorOverrideSamplePolicy;
 use ItPack\RunIt\Application\Publication\ExecutionKindSamplePolicy;
 use ItPack\RunIt\Application\Publication\HeadBasedSamplingPolicy;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RatioSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
@@ -24,6 +26,7 @@ use ItPack\RunIt\Application\Publication\SamplingDropException;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
 use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -33,6 +36,7 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
@@ -49,6 +53,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -86,6 +91,282 @@ use Throwable;
 #[UsesClass(SecurityLimits::class)]
 final class SamplingTest extends Unit
 {
+    public function testVerifiedTerminalSnapshotIsSanitizedBeforeSamplerAndSink(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $executionId = $authority->issueExportId('execution', 'execution', 'business-exec', 'business-exec');
+        $snapshotId = $authority->bindArtifact(
+            'snapshot',
+            'terminal-snapshot',
+            'business-exec',
+            'business-snapshot',
+            'execution-terminal-snapshot',
+        );
+        $snapshot = SecretFieldsSnapshot::create(
+            SnapshotId::fromString('business-snapshot'),
+            ExecutionId::fromString('business-exec'),
+            SnapshotType::fromString('secret-snapshot-type'),
+            1,
+            ['id' => 'business-secret'],
+            new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return 'secret-hash';
+                }
+            },
+            classification: SnapshotClassification::Terminal,
+            contentType: 'secret-content-type',
+            attributes: AttributeCollection::fromArray(['secret-key' => 'secret-attribute']),
+        );
+        self::assertTrue($authority->attest($snapshot, $snapshotId));
+        $policy = new class () implements SamplingPolicyInterface {
+            /** @var list<array<string, mixed>> */
+            public array $seen = [];
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen[] = $artifact->normalize();
+                return true;
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        new PublisherStackFactory()->compose($sink, new DefaultSdkRedactor(), $policy, authority: $authority)
+            ->publish($snapshot)
+        ;
+
+        self::assertCount(1, $policy->seen);
+        self::assertCount(1, $sink->published());
+        self::assertArrayNotHasKey('payload', $policy->seen[0]);
+        self::assertArrayNotHasKey('content_hash', $policy->seen[0]);
+        foreach (['type', 'content_type', 'attributes', 'extra_secret', 'schema_version'] as $field) {
+            self::assertArrayNotHasKey($field, $policy->seen[0]);
+            self::assertArrayNotHasKey($field, $sink->published()[0]->normalize());
+        }
+
+        self::assertSame($executionId, $policy->seen[0]['execution_id']);
+        self::assertSame($snapshotId, $policy->seen[0]['id']);
+        self::assertSame('terminal', $policy->seen[0]['classification']);
+        self::assertSame($snapshot->timestamp(), $policy->seen[0]['created_at']);
+        self::assertSame($snapshot->sequence(), $policy->seen[0]['sequence']);
+        self::assertEquals($policy->seen[0], $sink->published()[0]->normalize());
+        self::assertSame(['id' => 'business-secret'], $snapshot->normalize()['payload']);
+
+        $optOutSink = new InMemoryArtifactPublisher();
+        new PublisherStackFactory()->compose($optOutSink, null, $policy, authority: $authority)
+            ->publish($snapshot)
+        ;
+        self::assertSame(['id' => 'business-secret'], $policy->seen[1]['payload']);
+        self::assertSame('secret-hash', $policy->seen[1]['content_hash']);
+        self::assertSame('secret-snapshot-type', $policy->seen[1]['type']);
+        self::assertSame('secret-content-type', $policy->seen[1]['content_type']);
+        self::assertSame(['secret-key' => 'secret-attribute'], $policy->seen[1]['attributes']);
+        self::assertSame('secret-extra-value', $policy->seen[1]['extra_secret']);
+    }
+
+    public function testVerifiedCustomSnapshotClassificationOmitsUnclassifiedPayload(): void
+    {
+        foreach ([true, false] as $terminal) {
+            $health = $this->createMock(InternalHealthReporterInterface::class);
+            $health->expects(self::never())->method('report');
+            $authority = new ProvenanceAuthority($health);
+            $executionId = $authority->issueExportId('execution', 'execution', 'business-exec', 'business-exec');
+            $snapshotId = $authority->bindArtifact(
+                'snapshot',
+                $terminal ? 'terminal-snapshot' : 'snapshot',
+                'business-exec',
+                'business-snapshot',
+                $terminal ? 'execution-terminal-snapshot' : 'execution-snapshot',
+            );
+            $classification = new readonly class ($terminal) implements SnapshotClassificationInterface {
+                public function __construct(private bool $terminal)
+                {
+                }
+
+                public function label(): string
+                {
+                    return $this->terminal ? 'terminal' : 'checkpoint';
+                }
+
+                public function isTerminal(): bool
+                {
+                    return $this->terminal;
+                }
+            };
+            $snapshot = Snapshot::create(
+                SnapshotId::fromString('business-snapshot'),
+                ExecutionId::fromString('business-exec'),
+                SnapshotType::fromString('snapshot'),
+                1,
+                ['secret' => 'business-secret'],
+                new class () implements HashCalculatorInterface {
+                    public function calculate(string $content): string
+                    {
+                        return 'secret-hash';
+                    }
+                },
+                classification: $classification,
+            );
+            self::assertTrue($authority->attest($snapshot, $snapshotId));
+            $policy = new class () implements SamplingPolicyInterface {
+                /** @var list<array<string, mixed>> */
+                public array $seen = [];
+
+                public function sample(ExecutionArtifactInterface $artifact): bool
+                {
+                    $this->seen[] = $artifact->normalize();
+                    return true;
+                }
+            };
+            $sink = new InMemoryArtifactPublisher();
+            new PublisherStackFactory()->compose(
+                $sink,
+                new DefaultSdkRedactor(),
+                $policy,
+                $health,
+                authority: $authority
+            )
+                ->publish($snapshot)
+            ;
+
+            self::assertCount(1, $policy->seen);
+            self::assertSame($terminal ? 'terminal' : 'checkpoint', $policy->seen[0]['classification']);
+            self::assertSame($executionId, $policy->seen[0]['execution_id']);
+            self::assertSame($snapshotId, $policy->seen[0]['id']);
+            self::assertArrayNotHasKey('payload', $policy->seen[0]);
+            self::assertArrayNotHasKey('content_hash', $policy->seen[0]);
+            self::assertCount(1, $sink->published());
+            self::assertEquals($policy->seen[0], $sink->published()[0]->normalize());
+
+            self::assertSame(['secret' => 'business-secret'], $snapshot->normalize()['payload']);
+
+            if (!$terminal) {
+                foreach ([null, new DefaultArtifactRedactor()] as $index => $redactor) {
+                    $optOutSink = new InMemoryArtifactPublisher();
+                    new PublisherStackFactory()->compose($optOutSink, $redactor, $policy, authority: $authority)
+                        ->publish($snapshot)
+                    ;
+                    self::assertSame(['secret' => 'business-secret'], $policy->seen[$index + 1]['payload']);
+                    self::assertSame('secret-hash', $policy->seen[$index + 1]['content_hash']);
+                    self::assertEquals($policy->seen[$index + 1], $optOutSink->published()[0]->normalize());
+                }
+            }
+        }
+    }
+
+    public function testInvalidSnapshotTimingDropsWithPayloadFreeHealth(): void
+    {
+        $health = $this->createMock(InternalHealthReporterInterface::class);
+        $health->expects(self::once())->method('report')->willReturnCallback(
+            static function (Throwable $failure, ExecutionArtifactInterface $notice): void {
+                self::assertSame('Redaction provenance verification failed.', $failure->getMessage());
+                self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $notice->normalize());
+            },
+        );
+        $authority = new ProvenanceAuthority($health);
+        $authority->issueExportId('execution', 'execution', 'business-exec', 'business-exec');
+
+        $snapshotId = $authority->bindArtifact(
+            'snapshot',
+            'snapshot',
+            'business-exec',
+            'business-snapshot',
+            'execution-snapshot',
+        );
+        $snapshot = InvalidTimingSnapshot::create(
+            SnapshotId::fromString('business-snapshot'),
+            ExecutionId::fromString('business-exec'),
+            SnapshotType::fromString('secret-type'),
+            1,
+            ['secret' => 'secret-payload'],
+            new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return 'secret-hash';
+                }
+            },
+        );
+        self::assertTrue($authority->attest($snapshot, $snapshotId));
+        $sampler = $this->createMock(SamplingPolicyInterface::class);
+        $sampler->expects(self::never())->method('sample');
+        $sink = new InMemoryArtifactPublisher();
+        new PublisherStackFactory()->compose($sink, new DefaultSdkRedactor(), $sampler, $health, authority: $authority)
+            ->publish($snapshot)
+        ;
+        self::assertSame([], $sink->published());
+    }
+
+    public function testVerifiedSnapshotClassificationTamperingDropsBeforeSampling(): void
+    {
+        $cases = [
+            'terminal to checkpoint' => [SnapshotClassification::Terminal, 'checkpoint', false],
+            'checkpoint to terminal' => [SnapshotClassification::Checkpoint, 'terminal', false],
+            'removed classification' => [SnapshotClassification::Terminal, null, true],
+            'null classification' => [SnapshotClassification::Terminal, null, false],
+            'unknown classification' => [SnapshotClassification::Terminal, 'invalid', false],
+            'non-string classification' => [SnapshotClassification::Terminal, 123, false],
+        ];
+
+        foreach ($cases as $label => [$classification, $replacement, $remove]) {
+            $health = $this->createMock(InternalHealthReporterInterface::class);
+            $health->expects(self::once())->method('report');
+            $authority = new ProvenanceAuthority($health);
+            $authority->issueExportId('execution', 'execution', 'business-exec', 'business-exec');
+            $terminal = $classification === SnapshotClassification::Terminal;
+            $snapshotId = $authority->bindArtifact(
+                'snapshot',
+                $terminal ? 'terminal-snapshot' : 'snapshot',
+                'business-exec',
+                'business-snapshot',
+                $terminal ? 'execution-terminal-snapshot' : 'execution-snapshot',
+            );
+            $snapshot = Snapshot::create(
+                SnapshotId::fromString('business-snapshot'),
+                ExecutionId::fromString('business-exec'),
+                SnapshotType::fromString('snapshot'),
+                1,
+                ['secret' => 'business-secret'],
+                new class () implements HashCalculatorInterface {
+                    public function calculate(string $content): string
+                    {
+                        return 'secret-hash';
+                    }
+                },
+                classification: $classification,
+            );
+            self::assertTrue($authority->attest($snapshot, $snapshotId), $label);
+
+            $controlSink = new InMemoryArtifactPublisher();
+            $controlPolicy = $this->createMock(SamplingPolicyInterface::class);
+            $controlPolicy->expects(self::once())->method('sample')->willReturn(true);
+            new PublisherStackFactory()->compose(
+                $controlSink,
+                null,
+                $controlPolicy,
+                authority: $authority,
+            )->publish($snapshot);
+            self::assertCount(1, $controlSink->published(), $label);
+
+            $redactor = $this->createMock(RedactorInterface::class);
+            $redactor->expects(self::once())->method('redact')->willReturnCallback(
+                static function (ExecutionArtifactInterface $artifact) use ($replacement, $remove): RedactedArtifact {
+                    $fields = $artifact->normalize();
+                    if ($remove) {
+                        unset($fields['classification']);
+                    } else {
+                        $fields['classification'] = $replacement;
+                    }
+
+                    return new RedactedArtifact($fields, 'snapshot');
+                },
+            );
+            $policy = $this->createMock(SamplingPolicyInterface::class);
+            $policy->expects(self::never())->method('sample');
+            $sink = new InMemoryArtifactPublisher();
+            new PublisherStackFactory()->compose($sink, $redactor, $policy, authority: $authority)->publish($snapshot);
+            self::assertSame([], $sink->published(), $label);
+        }
+    }
+
     public function testVerifiedUnredactedProjectionRetainsSamplingBehavior(): void
     {
         $info = new VerifiedArtifactProjection(['execution_id' => 'exec-1', 'level' => 200], 'observation');
@@ -946,5 +1227,21 @@ final class SamplingTest extends Unit
         self::assertInstanceOf(RedactedArtifactInterface::class, $second);
         self::assertSame($first->artifactType(), $second->artifactType());
         self::assertSame('observation', $second->artifactType());
+    }
+}
+
+readonly class SecretFieldsSnapshot extends Snapshot
+{
+    public function normalize(): array
+    {
+        return parent::normalize() + ['extra_secret' => 'secret-extra-value'];
+    }
+}
+
+readonly class InvalidTimingSnapshot extends Snapshot
+{
+    public function normalize(): array
+    {
+        return array_replace(parent::normalize(), ['created_at' => 'secret-timing']);
     }
 }

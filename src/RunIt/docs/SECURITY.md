@@ -58,10 +58,40 @@ data-exfiltration paths and applies defense-in-depth:
 
 ### Current publication limitations
 
-The SDK builder installs `DefaultArtifactRedactor` unless explicitly overridden,
-and the publication stack applies redaction before sampling, so samplers and
-downstream adapters see redacted artifacts unless the redactor returns the
-original instance unchanged (when no masking stage modifies any field). The default
+Provenance records are owned by the SDK execution runner and released after
+terminal publication and context cleanup, not after asynchronous delivery.
+The default builder stack verifies and classifies before calling its base
+publisher, so a buffer there can retain the resulting projection without retaining
+provenance. Custom stacks can instead receive raw business artifacts; deferring
+their verification beyond cleanup causes a reported drop, while directly exporting
+them bypasses the default projection and its field restrictions. See
+[`architecture/publication.md`](architecture/publication.md#provenance-lifetime-and-asynchronous-delivery)
+for ownership, bounds, and composition limitations.
+
+The SDK builder installs the default redactor unless explicitly overridden, and
+the publication stack applies redaction before sampling. On the default SDK
+stack, observations are also classified before sampling: arbitrary messages,
+attributes and diagnostic codes are replaced or removed; validated severity,
+verified identities, bounded timing and throwable class/code metadata are retained.
+Trace observations retain their typed severity on this path. Explicitly configured redactors and custom stack
+factories do not acquire this default observation classification automatically.
+Default SDK occurrences retain verified IDs and timing, but use a fixed type and
+source and omit unclassified data and attributes. This prevents routing by the
+original occurrence type. Other artifact types may still carry unclassified fields
+to samplers and sinks.
+On the default SDK stack, measurements are currently dropped with a payload-free
+health report because their required names, units and values are unclassified.
+This is a delivery loss, not a numeric-value redaction; explicit redactor
+overrides bypass this default guard.
+Default snapshot projections omit payloads, hashes and unclassified metadata
+before sampling. They retain verified relationships and validated structural
+fields, but do not implement `SnapshotInterface`; explicitly configured redactors
+are responsible for their own policy.
+Default execution and activity projections replace names and kinds, omit
+unclassified context and attributes, and retain verified relationships, validated
+statuses, timing, and bounded throwable class/code metadata. A sampling resolver
+keyed by business execution IDs will not match the export IDs it receives.
+The default
 redactor examines a top-level `throwable` and a failed execution's
 `result.throwable`. It masks throwable messages, replaces traces with null, omits
 unknown throwable fields, and limits throwable cause traversal to 16 levels.

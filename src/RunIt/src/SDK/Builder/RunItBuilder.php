@@ -16,6 +16,7 @@ use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
 use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
 use ItPack\RunIt\Application\Publication\ProvenanceArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
@@ -356,9 +357,8 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         // default publisher stack calls the sampler after redaction, but unchanged
         // fields may still be sensitive. Occurrence-data and snapshot-payload
         // masking require configured sensitive keys.
-        $redactor = $this->redactor ?? ($this->redactorConfigured ? null : new DefaultArtifactRedactor());
-
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
+        $redactor = $this->resolveRedactor($publisherStackFactory);
 
         $composedPublisher = match (true) {
             $publisherStackFactory instanceof PublisherStackFactory => $publisherStackFactory->compose(
@@ -409,6 +409,17 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         );
 
         return new DefaultRunIt($runner, $currentExecution);
+    }
+
+    private function resolveRedactor(PublisherStackFactoryInterface $factory): ?RedactorInterface
+    {
+        if ($this->redactorConfigured) {
+            return $this->redactor;
+        }
+
+        return $factory instanceof PublisherStackFactory
+            ? new DefaultSdkRedactor()
+            : new DefaultArtifactRedactor();
     }
 
     private function healthReporter(): InternalHealthReporterInterface

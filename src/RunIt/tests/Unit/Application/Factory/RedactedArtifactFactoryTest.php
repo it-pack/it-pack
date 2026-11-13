@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Factory;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Application\Factory\RedactedArtifactFactory;
+use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
-use ItPack\RunIt\Domain\Artifact\ArtifactType;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 
-#[CoversClass(RedactedArtifactFactory::class)]
+#[CoversClass(RedactedRedactedArtifactFactory::class)]
 #[UsesClass(RedactedArtifact::class)]
 #[UsesClass(ArtifactType::class)]
 class RedactedArtifactFactoryTest extends Unit
 {
     public function testCreateWithDefault(): void
     {
-        $factory = new RedactedArtifactFactory(ArtifactType::Occurrence);
+        $factory = new RedactedRedactedArtifactFactory(ArtifactType::Occurrence);
 
         $artifact = $factory->create(
             [
@@ -34,7 +34,7 @@ class RedactedArtifactFactoryTest extends Unit
 
     public function testCreateWithEnum(): void
     {
-        $factory = new RedactedArtifactFactory();
+        $factory = new RedactedRedactedArtifactFactory();
 
         $artifact = $factory->create(
             [
@@ -51,7 +51,7 @@ class RedactedArtifactFactoryTest extends Unit
 
     public function testCreateWithString(): void
     {
-        $factory = new RedactedArtifactFactory();
+        $factory = new RedactedRedactedArtifactFactory();
 
         $artifact = $factory->create(
             [
@@ -68,7 +68,7 @@ class RedactedArtifactFactoryTest extends Unit
 
     public function testCreateWithNull(): void
     {
-        $factory = new RedactedArtifactFactory();
+        $factory = new RedactedRedactedArtifactFactory();
 
         $artifact = $factory->create(
             [
@@ -84,7 +84,7 @@ class RedactedArtifactFactoryTest extends Unit
 
     public function testWithArtifactType(): void
     {
-        $factory = new RedactedArtifactFactory(ArtifactType::Occurrence);
+        $factory = new RedactedRedactedArtifactFactory(ArtifactType::Occurrence);
 
         $artifact = $factory->create(
             [

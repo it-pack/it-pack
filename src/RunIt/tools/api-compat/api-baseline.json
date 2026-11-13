@@ -4455,6 +4455,62 @@
         },
         "cases": []
     },
+
+    "ItPack\\RunIt\\Application\\Factory\\RedactedRedactedArtifactFactory": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "artifactType",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType|string",
+                        "optional": true
+                    }
+                ]
+            },
+            "create": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactType",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType|null|string",
+                        "optional": true
+                    }
+                ]
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "withArtifactType": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                "params": [
+                    {
+                        "name": "artifactType",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Lifecycle\\ExecutionLifecycleCoordinator": {
         "kind": "class",
         "final": true,
@@ -5473,6 +5529,7 @@
             "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
             "ItPack\\RunIt\\Contract\\Domain\\TrustedArtifactProjectionInterface": "ItPack\\RunIt\\Contract\\Domain\\TrustedArtifactProjectionInterface",
             "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface",
             "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface"
         },
         "constants": [],
@@ -5520,7 +5577,8 @@
             "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface": "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface",
             "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface",
             "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface",
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface"
         },
         "constants": [],
         "methods": {
@@ -5616,7 +5674,8 @@
             "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface": "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface",
             "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface",
             "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface",
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface"
         },
         "constants": [],
         "methods": {
@@ -5694,6 +5753,104 @@
             "extensionAttributes": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "sequence": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifiedTraceObservation": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface": "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+            "Countable": "Countable",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\AttributedInterface": "ItPack\\RunIt\\Contract\\Domain\\AttributedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface": "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface": "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "observation",
+                        "type": "ItPack\\RunIt\\Domain\\Observation\\Observation",
+                        "optional": false
+                    }
+                ]
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ObservationIdInterface",
+                "params": []
+            },
+            "executionId": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                "params": []
+            },
+            "activityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\StringIdentifierInterface",
+                "params": []
+            },
+            "severity": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                "params": []
+            },
+            "message": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "diagnosticCode": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "throwableDescription": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\ThrowableDescriptionInterface",
+                "params": []
+            },
+            "attributes": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "timestamp": {
+                "static": false,
+                "return": "int",
                 "params": []
             },
             "sequence": {
@@ -5915,6 +6072,418 @@
                     {
                         "name": "health",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                        "optional": true
+                    }
+                ]
+            },
+            "redact": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\DefaultLifecycleClassifier": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "inner",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                        "optional": true
+                    }
+                ]
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "flush": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "close": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "reportDrop": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "safeThrowable": {
+                "static": false,
+                "return": "null|array",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    },
+                    {
+                        "name": "maxDepth",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "depth",
+                        "type": "int",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\DefaultMeasurementClassifier": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "inner",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "flush": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "close": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "reportDrop": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "safeThrowable": {
+                "static": false,
+                "return": "null|array",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    },
+                    {
+                        "name": "maxDepth",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "depth",
+                        "type": "int",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\DefaultObservationClassifier": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "inner",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                        "optional": true
+                    }
+                ]
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "flush": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "close": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "reportDrop": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "safeThrowable": {
+                "static": false,
+                "return": "null|array",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    },
+                    {
+                        "name": "maxDepth",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "depth",
+                        "type": "int",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\DefaultOccurrenceClassifier": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "inner",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                        "optional": true
+                    }
+                ]
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "isNotValid": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "fields",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "flush": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "close": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "reportDrop": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "safeThrowable": {
+                "static": false,
+                "return": "null|array",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    },
+                    {
+                        "name": "maxDepth",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "depth",
+                        "type": "int",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\DefaultSdkRedactor": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "delegate",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\DefaultArtifactRedactor",
                         "optional": true
                     }
                 ]
@@ -6727,6 +7296,16 @@
                         "name": "maxIdentifierBytes",
                         "type": "int",
                         "optional": true
+                    },
+                    {
+                        "name": "maxTotalRecords",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -6864,12 +7443,12 @@
                     {
                         "name": "targetId",
                         "type": "null|string",
-                        "optional": false
+                        "optional": true
                     },
                     {
                         "name": "activityId",
                         "type": "null|string",
-                        "optional": false
+                        "optional": true
                     },
                     {
                         "name": "parent",
@@ -6913,6 +7492,11 @@
                         "name": "executionId",
                         "type": "string",
                         "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "null|string",
+                        "optional": true
                     }
                 ]
             },
@@ -7469,9 +8053,10 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
             "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
-            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface"
         },
         "constants": [],
         "methods": {
@@ -7486,7 +8071,7 @@
                     },
                     {
                         "name": "artifactType",
-                        "type": "string",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType|string",
                         "optional": true
                     }
                 ]
@@ -7542,6 +8127,11 @@
                     {
                         "name": "authority",
                         "type": "null|ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
                         "optional": true
                     }
                 ]
@@ -7694,6 +8284,11 @@
                         "name": "health",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
                         "optional": true
+                    },
+                    {
+                        "name": "redactedFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -7779,8 +8374,9 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
-            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
         },
         "constants": [],
         "methods": {
@@ -9981,6 +10577,48 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "create": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactType",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType|null|string",
+                        "optional": true
+                    }
+                ]
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "withArtifactType": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactedArtifactFactoryInterface",
+                "params": [
+                    {
+                        "name": "artifactType",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface": {
         "kind": "interface",
         "final": false,
@@ -10502,6 +11140,139 @@
             }
         },
         "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Domain\\ArtifactType": {
+        "kind": "enum",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "UnitEnum": "UnitEnum",
+            "BackedEnum": "BackedEnum"
+        },
+        "constants": {
+            "EXECUTION": "public",
+            "OBSERVATION": "public",
+            "ACTIVITY": "public",
+            "MEASUREMENT": "public",
+            "OCCURRENCE": "public",
+            "SNAPSHOT": "public",
+            "UNKNOWN": "public",
+            "INTERFACES": "public",
+            "Execution": "public",
+            "Observation": "public",
+            "Activity": "public",
+            "Measurement": "public",
+            "Occurrence": "public",
+            "Snapshot": "public"
+        },
+        "methods": {
+            "valid": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "type": {
+                "static": true,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "fromInstance": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityInterface|ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface|ItPack\\RunIt\\Contract\\Domain\\MeasurementInterface|ItPack\\RunIt\\Contract\\Domain\\ObservationInterface|ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface|ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "tryFromArtifact": {
+                "static": true,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\ArtifactType",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "fromArtifact": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ArtifactType",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "interface": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "isInstance": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "cases": {
+                "static": true,
+                "return": "array",
+                "params": []
+            },
+            "from": {
+                "static": true,
+                "return": "static",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "int|string",
+                        "optional": false
+                    }
+                ]
+            },
+            "tryFrom": {
+                "static": true,
+                "return": "null|static",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "int|string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": [
+            "Execution",
+            "Observation",
+            "Activity",
+            "Measurement",
+            "Occurrence",
+            "Snapshot"
+        ]
     },
     "ItPack\\RunIt\\Contract\\Domain\\AttributeCollectionInterface": {
         "kind": "interface",
@@ -12148,8 +12919,9 @@
         "final": false,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
-            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
         },
         "constants": [],
         "methods": {
@@ -12654,8 +13426,32 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
             "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+            "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Domain\\TypedExecutionArtifactInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
         },
         "constants": [],
         "methods": {

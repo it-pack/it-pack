@@ -22,7 +22,12 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Occurrence\Occurrence as RunItOccurrence;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\TestCase;
@@ -48,15 +53,29 @@ final class ConfigureItExecutionsTest extends TestCase
 
     }
 
-    private function runtime(): \ItPack\RunIt\SDK\RunItInterface
+    private function runtime(bool $defaultRedaction = false): \ItPack\RunIt\SDK\RunItInterface
     {
-        return RunItBuilder::create()
+        $builder = RunItBuilder::create()
             ->withPublisher($this->publisher)
             ->withClock(new SystemMonotonicClock())
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build();
+            ->withIdentifierGenerator(new RandomIdentifierGenerator());
+
+        if (!$defaultRedaction) {
+            // Inspect bridge mapping before the SDK's security projection in these tests only.
+            $builder = $builder->withRedactor(null)->withPublisherStackFactory(new class implements PublisherStackFactoryInterface {
+                public function compose(
+                    ArtifactPublisherInterface $base,
+                    ?RedactorInterface $redactor,
+                    ?SamplingPolicyInterface $samplingPolicy,
+                ): ArtifactPublisherInterface {
+                    return $base;
+                }
+            });
+        }
+
+        return $builder->build();
     }
 
     /**
@@ -209,13 +228,65 @@ final class ConfigureItExecutionsTest extends TestCase
         ));
         self::assertCount(1, $warnings);
         $warning = $warnings[0]->normalize();
-        self::assertSame('[redacted]', $warning['message']);
+        self::assertSame('careful: db.host overridden', $warning['message']);
         self::assertSame('db.host', $warning['attributes']['path']);
 
         $snapshots = $this->configSnapshots();
         self::assertCount(1, $snapshots);
         self::assertSame(2, $snapshots[0]->payload()['validation_errors']);
         self::assertSame(1, $snapshots[0]->payload()['validation_warnings']);
+    }
+
+    public function testDefaultRedactionProjectsWarningAndTerminalSnapshot(): void
+    {
+        ConfigureItExecutions::run(
+            $this->runtime(true),
+            'config.security',
+            static function (ResolutionReporterInterface $reporter): void {
+                $reporter->observe(new ConfigureItObservation(
+                    Severity::Warning,
+                    'sensitive warning secret',
+                    ['path' => 'sensitive path secret'],
+                ));
+                $reporter->record(new ConfigureItOccurrence(
+                    OccurrenceType::Validated,
+                    microtime(true),
+                    ['valid' => true, 'errors' => 2, 'warnings' => 1],
+                ));
+                $reporter->record(new ConfigureItOccurrence(OccurrenceType::SnapshotCreated, microtime(true)));
+            },
+        );
+
+        $artifacts = $this->publisher->published();
+        $observations = array_values(array_filter(
+            $artifacts,
+            static fn ($artifact): bool => $artifact instanceof RedactedArtifactInterface
+                && $artifact->artifactType() === 'observation',
+        ));
+        self::assertCount(1, $observations);
+        $warning = $observations[0]->normalize();
+        self::assertSame('warning', $warning['severity']);
+        self::assertSame('[redacted]', $warning['message']);
+        self::assertSame([], $warning['attributes']);
+        self::assertNotEmpty($warning['id']);
+        self::assertNotEmpty($warning['execution_id']);
+
+        $snapshots = array_values(array_filter(
+            $artifacts,
+            static fn ($artifact): bool => ($artifact->normalize()['type'] ?? null)
+                === 'configureit.configuration.resolved',
+        ));
+        self::assertCount(1, $snapshots);
+        $snapshot = $snapshots[0]->normalize();
+        self::assertArrayNotHasKey('payload', $snapshot);
+        self::assertArrayNotHasKey('content_hash', $snapshot);
+        self::assertNotEmpty($snapshot['id']);
+        self::assertNotEmpty($snapshot['execution_id']);
+        foreach ($artifacts as $artifact) {
+            $encoded = json_encode($artifact->normalize(), JSON_THROW_ON_ERROR);
+            self::assertStringNotContainsString('sensitive warning secret', $encoded);
+            self::assertStringNotContainsString('sensitive path secret', $encoded);
+        }
     }
 
     /**

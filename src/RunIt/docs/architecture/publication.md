@@ -16,22 +16,25 @@ any order and are independently testable.
 The pipeline stages are composed outside-in:
 
 ```
-guard → fail-safe → redact → sample → classify → sink
+guard → fail-safe → redact → default-SDK classification → sample → classify → sink
 ```
 
-Redaction runs before sampling so the sampler sees redacted artifacts rather than
-originals with sensitive values. Classification runs after sampling and before the
-sink, so **sampled artifacts are not verified-safe projections** — they can still
-contain unclassified nested keys and values. Only classified artifacts reaching the
-sick are bounded to known fields. This ordering is the Phase 2 default and is
-enforced by `PublisherStackFactory::compose()`.
+Redaction runs before sampling, but it is not a complete allowlist. In the default
+SDK composition, executions, activities, observations, occurrences and snapshots
+receive additional classification before sampling, and unclassified measurements
+are reported and dropped. Custom compositions can still contain unclassified fields
+at that boundary. The
+later classifier bounds projections before the sink, but bounding does not prove
+that retained content is safe. Explicit redactor overrides and custom stacks do not
+automatically use these SDK default classifiers.
 
 ```mermaid
 flowchart TD;
     Recorder["Recorder"] --> Guard["PublicationGuard<br/>(recursion guard)"];
     Guard --> FailSafe["FailSafeArtifactPublisher<br/>(failure policy)"];
     FailSafe --> Redact["RedactingArtifactPublisher<br/>(Redactor)"];
-    Redact --> Sample["SamplingArtifactPublisher<br/>(SamplingPolicy)"];
+    Redact --> DefaultClassify["Default SDK artifact classification"];
+    DefaultClassify --> Sample["SamplingArtifactPublisher<br/>(SamplingPolicy)"];
     Sample --> Classify["ClassifyingArtifactPublisher<br/>(Classifier)"];
     Classify --> Sink["Sink adapter<br/>(OTel / CloudEvents / Memory / Log)"];
     FailSafe -. "on failure" .-> Health["InternalHealthReporter<br/>(no recursion)"];
@@ -42,6 +45,7 @@ flowchart TD;
 | Guard        | `PublicationGuard`, `GuardedArtifactPublisher`      | Prevents recursive publication on one execution path.               |
 | Fail-safe    | `FailSafeArtifactPublisher` + `PublicationFailurePolicyInterface` | Applies the failure policy when the inner publisher throws.  |
 | Redact       | `RedactingArtifactPublisher` + `RedactorInterface`   | Masks configured sensitive fields before sampling; concrete types visible. |
+| Default classification | Internal default-SDK classifiers | Classifies lifecycle artifacts, observations, occurrences and snapshots and drops unclassified measurements before sampling. |
 | Sample       | `SamplingArtifactPublisher` + `SamplingPolicyInterface` | Drops artifacts the sampling policy rejects. Not a security boundary. |
 | Classify     | `ClassifyingArtifactPublisher`                      | Projects artifacts to bounded, type-safe fields before the sink.     |
 | Sink         | any `ArtifactPublisherInterface` adapter            | The real transport (in-memory, log, OpenTelemetry, ...).          |
@@ -55,11 +59,11 @@ buffering, or the adapter, so volume costs are paid as late as possible.
 The default redactor returns the original instance when nothing matches and a generic
 `RedactedArtifact` projection otherwise; it does not mutate the original. Its current
 throwable masking covers a top-level `throwable` and a failed execution's
-`result.throwable`, including recognized previous causes. It masks recognized
-string traces rather than omitting them. Occurrence data and snapshot payload
+`result.throwable`, including recognized previous causes. By default it masks
+messages and replaces recognized traces with null. Occurrence data and snapshot payload
 masking only covers configured key names, and the default lists are empty.
-Unknown throwable fields and unsupported shapes are not necessarily masked;
-generic projections can also miss typed adapter dispatch. These limitations are
+Unknown artifact fields and unsupported shapes are not necessarily masked;
+generic projections may not retain typed sampling interfaces. These limitations are
 tracked in Phase 2; do not treat this pipeline as a complete security boundary for
 arbitrary artifact contents.
 
@@ -76,6 +80,46 @@ arbitrary artifact contents.
   a fallback failure is caught and routed to the health reporter instead of recursing.
 
 ## Buffering and backpressure
+
+### Provenance lifetime and asynchronous delivery
+
+Each SDK build creates its own in-process provenance authority. The execution
+runner owns its records: it releases them after terminal publication and context
+detachment, and also releases issued records on setup failure. Release removes
+the execution's records and their relationship edges, including edges to other
+executions. Evidence is attached to the exact artifact object through a weak map;
+retaining an artifact does not keep its released records valid. There is no
+completion acknowledgement, lease, or time-based expiry for outstanding
+publication work. The authority is documented for a single persistent worker;
+the implementation does not establish thread-safe concurrent access.
+
+With the SDK builder's default stack, provenance verification and export-ID
+projection happen synchronously, followed by sampling and classification before
+the configured base publisher is called. A buffer used as that base therefore
+receives the classified projection while the records are live; later delivery of
+that projection does not need the authority. This does not guarantee delivery or
+make every earlier sampler input safe. Buffer limits, expiry, and failures still
+apply. A standalone `PublicationPipeline` is not automatically connected to the
+SDK authority; its behavior depends on how it is composed.
+
+Custom stack factories receive the original attested artifact after the SDK's
+outer provenance check, not the default export-ID projection. If a custom stack
+queues that raw artifact and later passes it through a provenance-verifying stage,
+verification after runner cleanup fails and the artifact is reported and dropped.
+If it delivers the raw artifact directly instead, the initial check neither
+sanitizes its fields nor replaces business IDs; the custom stack owns that risk.
+The publisher port requires implementations to retain only normalized projections,
+although `BufferedArtifactPublisher` currently retains artifact objects. Do not
+assume an arbitrary queued artifact is a safe or independently verifiable projection.
+
+The authority caps records both per execution and across the SDK instance
+(100,000 each by default), and caps relationship edges across the authority
+(200,000 by default). Rejected issuance or relationships are reported and lack
+trusted provenance. These capacity bounds are not asynchronous lifetime management:
+the current runner does not retain records until queued raw work completes or
+expires. Supporting that behavior requires an ownership and completion/expiry
+protocol, including concurrency and overflow semantics; the current publisher
+port provides no such acknowledgement.
 
 `BufferedArtifactPublisher` checks the current item count and estimated bytes before
 admission. The estimated-byte limit is not currently a hard bound: an incoming item can

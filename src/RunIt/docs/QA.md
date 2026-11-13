@@ -209,9 +209,12 @@ terminal-publication target script exited 0 with four synthetic fallback
 diagnostics. These isolated target failures are expected evidence of current
 defects, not failures of the normal test suites.
 
-The redacted-observation delivery-or-report target remains blocked by the lack
-of an injectable health-reporting seam; requiring delivery alone would exclude
-the approved report-on-unsafe-mapping outcome. The health-report destination,
+At that time the redacted-observation delivery-or-report target was described as
+blocked by the lack of an injectable health-reporting seam. That description is
+now stale: `TelemetryPublisher` accepts an `InternalHealthReporterInterface` and
+reports and drops redacted observations when the mapper cannot handle them.
+Requiring delivery alone would exclude the approved report-on-unsafe-mapping
+outcome. The general health-report destination,
 nullable-callback compatibility, invalid-estimate and oversized-item policies
 are not settled by these controls. Runtime integration, exporter, configuration
 and adapter failure-path evidence remains incomplete.
@@ -222,8 +225,26 @@ six trace-omission, six sampling/routing, one recursive-reporting, and 27 buffer
 bound/accounting checks. Token ownership controls and declared-concurrency
 validation pass their focused tests; neither proves external-token migration or
 every integration/storage pairing. The retained synchronous default is not
-required to isolate interleaved Fibers. Missing reporting seams and unresolved
-policy decisions above must not be replaced with invented target behavior.
+required to isolate interleaved Fibers. The reporting-seam limitation described
+at the time is corrected above; unresolved policy decisions must not be
+replaced with invented target behavior.
+
+On 2026-11-13, against an in-progress worktree based on
+`b4056f5787a5538a12cf6669880910b4b0df1f89`, the following standalone commands
+were run with both PHP 8.4.27 and PHP 8.5.12, with identical results:
+
+| Command (using each PHP binary) | Exit | Result |
+| --- | --- | --- |
+| `php tests/target-policy-psr3-regressions.php` | 1 | Three failures: traces are not omitted at each of three throwable cause levels. |
+| `php tests/target-policy-otel-regressions.php` | 0 | OpenTelemetry target-policy checks passed. |
+| `php tests/target-policy-regressions.php` | 1 | 31 failures: two typed severity/error-override sampling decisions, one recursive health-reporting check, and 28 buffer bound/accounting checks. |
+
+The buffer checks belong to Phase 3 and recursive health reporting to Phase 4;
+they are not Phase 2 sampling or redaction failures. The OpenTelemetry harness
+does not establish the redacted-observation delivery-or-report path. These
+synthetic controls do not prove complete exporter, configuration or failure-path
+coverage, and the concurrent worktree may change after this run. Earlier counts
+in this section are historical observations, not current results.
 
 The normal Unit file `tests/Unit/Application/Publication/RedactingPublisherTest.php`
 also characterizes a failed execution nested in a snapshot payload. At clean
@@ -256,8 +277,8 @@ abandoned `doctrine/annotations` and no security advisories. The full PHP 8.4
 suite was not rerun.
 
 Run `php tests/target-policy-regressions.php` separately to check the approved
-redaction, sampling, health-reporting and buffer byte-bound targets. It currently
-exits nonzero for known violations and is intentionally excluded from the normal
+redaction, sampling, health-reporting and buffer byte-bound targets. As recorded
+above, it exited nonzero on 2026-11-13 and is intentionally excluded from the normal
 Codeception suites; a passing normal suite does not mean those policies are
 implemented. The checks use synthetic inputs and do not cover every exporter,
 configuration, overflow edge case or failure path. See `REFACTORING_PLAN.md` for

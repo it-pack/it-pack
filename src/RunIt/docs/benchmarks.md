@@ -34,6 +34,196 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Focused Synthetic SDK Workload (2026-11-13)
+
+This is a deliberately small synthetic workload, not production representative.
+It ran twice at HEAD `b4056f5787a5538a12cf6669880910b4b0df1f89` with a dirty,
+actively changing worktree: SDK builder, publisher stack and classifiers were
+being edited concurrently. The checkout was not frozen; rerun against the final
+integrated tree before interpreting its results. PHP 8.5.12 CLI NTS on the
+unisolated, unpinned WSL2 host described below used CLI OPcache, JIT and PCOV
+disabled. Runs were sequential, with no warmup and other development activity.
+
+Each run creates one SDK with the current builder's default publisher stack and
+redactor, required real clock, serializer and allocator, a counting sink and a
+custom sequential business-ID generator. It executes 100 synchronous operations,
+each with one completed activity and one counter, info observation, occurrence
+and explicit snapshot inside that activity. It also emits execution and activity
+lifecycle publications and a terminal snapshot. Expected counts below are
+publication attempts implied by this fixture, not counts of unique objects.
+Counts classify sink outputs by projection kind or concrete domain class, and
+do not prove downstream export or complete field retention.
+
+| Artifact | Expected | Sink, each run | Difference |
+| --- | ---: | ---: | ---: |
+| Execution lifecycle | 200 | 200 | 0 |
+| Activity lifecycle | 200 | 200 | 0 |
+| Counter measurement | 100 | 0 | 100 |
+| Observation | 100 | 100 | 0 |
+| Occurrence | 100 | 100 | 0 |
+| Explicit snapshot | 100 | 100 | 0 |
+| Terminal snapshot | 100 | 100 | 0 |
+
+Both runs reported 100 health notices, each `Default measurement classification
+dropped an unclassified measurement.` This correlates with the missing counters,
+but does not quantify provenance-only drops. The full SDK loops took 112.414 and
+108.141 ms, respectively, including creation, publication and cleanup, not SDK
+construction. There is no controlled no-provenance baseline. The custom generator
+exercises SDK-minted export IDs independently of business IDs; imported or forged
+artifacts, unknown IDs, asynchronous retention, expiration and capacity loss
+were not exercised through the SDK.
+
+The separate authority-only fixture creates one execution binding and 10,000
+observation bindings with execution-observation edges, using default authority
+limits. It measures `memory_get_usage(false)` after constructing the empty
+authority, then after issuance and after release, without creating or attesting
+artifact objects. Both runs retained 10,001 records and verified zero after
+release. Live PHP-accounted memory increased by 19,388,104 bytes and the
+post-release delta was 1,967,000 bytes in both runs. Issuance took 44.229 and
+43.980 ms; release took 11.195 and 10.923 ms. These are total allocator-accounted
+deltas and elapsed wall times, including random export-ID generation and indexes,
+not isolated per-record costs, RSS, peak memory, full SDK retention costs or
+proof of a leak. The two fixtures are distinct and cannot be subtracted.
+
+Reproduce from the package directory with the following complete PHP program,
+using the flags shown after it. The checks throw on authority retention mismatch.
+Record the actual source state and rerun counts: uncommitted changes can alter
+both the behavior and results.
+
+```php
+<?php
+declare(strict_types=1);
+require getcwd() . '/vendor/autoload.php';
+
+use ItPack\RunIt\Adapter\Common\{InMemorySequenceAllocator,JsonSnapshotSerializer,SystemMonotonicClock};
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
+use ItPack\RunIt\Contract\Domain\{ExecutionArtifactInterface,RedactedArtifactInterface};
+use ItPack\RunIt\Contract\Port\{ArtifactPublisherInterface,IdentifierGeneratorInterface};
+use ItPack\RunIt\Domain\Activity\{ActivityDefinition,ActivityKind,ActivityName};
+use ItPack\RunIt\Domain\Execution\{ExecutionDefinition,ExecutionKind,ExecutionName};
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use ItPack\RunIt\SDK\Builder\RunItBuilder;
+
+$sink = new class implements ArtifactPublisherInterface {
+    public array $counts = [];
+    public function publish(ExecutionArtifactInterface $artifact): void {
+        $kind = $artifact instanceof RedactedArtifactInterface ? $artifact->artifactType() : get_class($artifact);
+        $this->counts[$kind] = ($this->counts[$kind] ?? 0) + 1;
+    }
+};
+$generator = new class implements IdentifierGeneratorInterface {
+    private int $n = 0;
+    public function generate(): string { return 'synthetic-' . ++$this->n; }
+};
+$health = [];
+$sdk = RunItBuilder::create()->withPublisher($sink)->withClock(new SystemMonotonicClock())
+    ->withSequenceAllocator(new InMemorySequenceAllocator())->withSnapshotSerializer(new JsonSnapshotSerializer())
+    ->withIdentifierGenerator($generator)->withPublicationFailureHandler(static function (Throwable $e) use (&$health): void {
+        $health[$e->getMessage()] = ($health[$e->getMessage()] ?? 0) + 1;
+    })->build();
+$definition = ExecutionDefinition::create(ExecutionName::fromString('synthetic'), ExecutionKind::fromString('task'));
+$activity = ActivityDefinition::create(ActivityName::fromString('child'), ActivityKind::fromString('task'));
+$start = hrtime(true);
+for ($i = 0; $i < 100; ++$i) {
+    $sdk->run($definition, static function ($scope) use ($activity): void {
+        $scope->activities()->run($activity, static function ($s): void {
+            $s->measurements()->counter('synthetic.count', 1);
+            $s->observations()->record('synthetic', ObservationSeverity::Info);
+            $s->occurrences()->record(OccurrenceType::fromString('synthetic.event.v1'), 'synthetic', ['value' => 1]);
+            $s->snapshots()->record(SnapshotType::fromString('synthetic.snapshot'), ['value' => 1]);
+        });
+    });
+}
+printf("SDK ms=%.3f health=%s counts=%s\n", (hrtime(true)-$start)/1e6, json_encode($health), json_encode($sink->counts));
+
+gc_collect_cycles();
+$a = new ProvenanceAuthority();
+$base = memory_get_usage(false);
+$t = hrtime(true);
+$a->issueExportId('execution', 'execution', 'exec', 'exec');
+for ($i = 0; $i < 10000; ++$i) {
+    if ($a->bindArtifact('observation', 'observation', 'exec', 'obs-'.$i, 'execution-observation') === null) {
+        throw new RuntimeException('binding failed');
+    }
+}
+$made = hrtime(true);
+$live = memory_get_usage(false);
+$count = count($a->allRecords());
+$a->releaseExecution('exec');
+$released = hrtime(true);
+$after = memory_get_usage(false);
+if ($count !== 10001 || count($a->allRecords()) !== 0) { throw new RuntimeException('retention check failed'); }
+printf("Authority records=%d live_delta=%d release_delta=%d issue_ms=%.3f release_ms=%.3f\n",
+    $count, $live-$base, $after-$base, ($made-$t)/1e6, ($released-$made)/1e6);
+```
+
+Run the program from this directory with
+`php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 <program.php>`.
+The embedded program differs from the executed temporary harness only in
+whitespace. It uses internal authority APIs and is tied to the measured checkout.
+No real exporter, concurrency, failure injection, import mix, expiry, distribution
+or sustained workload was measured. The Phase 2 pre-adoption requirement for
+representative delivery-loss and retention-cost evidence remains **unmet**;
+these numbers are neither production loss rates nor regression thresholds.
+
+## Phase 2 Delivery And Retention Assessment (2026-11-13)
+
+The Phase 2 pre-adoption decision requires delivery-loss and retention-cost
+measurements on representative workloads for the proposed SDK-issued identity
+and provenance mechanism. The existing buffer benchmarks do not exercise that
+mechanism. Their controlled losses are buffer-policy outcomes, not estimates of
+unknown-identity or provenance-expiry drops. No representative workload or
+provenance retention memory, CPU, or lifetime cost is established here; this
+requirement remains unmet.
+
+At clean starting revision `b4056f5787a5538a12cf6669880910b4b0df1f89`, run
+sequentially from the package directory:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedFlushBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedOverflowBench.php --config=phpbench.json --report=aggregate
+```
+
+PHPBench 1.7.0 used PHP 8.5.12 CLI NTS without Xdebug or CLI OPcache, on the
+unisolated, unpinned x86-64 WSL2 host described below. Each subject ran ten
+one-revolution iterations with no warmups. Both commands exited successfully;
+verification hooks passed, although PHPBench reported zero assertions.
+Modes are microseconds per operation or batch, with relative standard deviations:
+
+| Existing synthetic workload | Mode | Relative standard deviation |
+| --- | ---: | ---: |
+| Flush one 256-item batch | 653.726 | 2.74% |
+| Close, full 1,024-item budget | 1,747.587 | 4.06% |
+| Four 256-item flushes | 1,718.004 | 2.32% |
+| Close, 256-item budget | 1,533.479 | 7.33% |
+| Count-bound overflow, 128 publishes | 984.476 | 6.11% |
+| Byte-bound overflow, 128 publishes | 988.033 | 1.63% |
+
+The close fixture pre-fills 1,024 distinct small snapshots outside timing with
+the real byte estimator, an 8 MiB byte limit, and an in-memory sink. Full close
+and repeated flush deliver all 1,024 with zero drops. Limited close delivers the
+first 256 and drops 768 of 1,024 (75%); its hook checks FIFO, drops and empty
+accounting. One flush delivers 256 and retains 768 until an untimed close.
+Overflow uses two reused equal-estimated-size snapshots, a full 1,024-item buffer,
+and 128 incoming publishes with `DropOldest`. The hooks check 128 evictions,
+1,024 survivors in order and their eventual delivery: 128 of 1,152 offered
+artifacts are dropped in each artificial batch (about 11.1%). Setup and the
+overflow verification close are outside timing. Neither scenario uses a real
+exporter or measures downstream delivery failure.
+
+PHPBench's reported process peaks (10.497 MB for close and 8.971 MB for
+overflow) include runtime and fixtures, not incremental buffer or provenance
+retention costs. These fixed-order synthetic samples have no controlled repeat,
+production traffic distribution, concurrency, real I/O, expiration, failure
+injection, or memory profiling. They are not production loss rates, throughput,
+regression thresholds, or evidence for adopting the proposed mechanism. Closing
+the Phase 2 gap requires representative artifact and identity provenance mixes,
+including unknown IDs and asynchronous retention/expiry under bounded capacity,
+with measured delivery outcomes and incremental memory and CPU costs, plus the
+separate migration and compatibility review specified in the plan.
+
 ## Phase 2 Partial Baseline (2026-11-13)
 
 At starting revision `2944e703f36e9f64272d99a5454bca5d1011b7fe`, the

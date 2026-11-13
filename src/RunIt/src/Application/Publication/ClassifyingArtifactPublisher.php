@@ -37,6 +37,7 @@ use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
@@ -164,9 +165,6 @@ final class ClassifyingArtifactPublisher implements
         ],
     ];
 
-    /** Required fields for terminal snapshots: payload/content_hash are omitted by default. */
-    private const array REQUIRED_FIELDS_TERMINAL_SNAPSHOT = ['id', 'execution_id'];
-
     /**
      * Artifact kinds supported by classification. Anything else is rejected
      * with a payload-free report rather than published as an empty projection.
@@ -212,18 +210,13 @@ final class ClassifyingArtifactPublisher implements
 
         $normalized = $artifact->normalize();
 
-        $isTerminalSnapshot = $kind === 'snapshot'
-            && isset($normalized[ArtifactField::CLASSIFICATION])
-            && $normalized[ArtifactField::CLASSIFICATION] === SnapshotClassification::Terminal->value;
-
-        // Terminal snapshots omit payload and content hash by default: they are
-        // unclassified until an explicit opt-in rewrites them as verified exports.
-        if ($isTerminalSnapshot) {
-            unset($normalized[ArtifactField::PAYLOAD], $normalized[ArtifactField::CONTENT_HASH]);
-        }
+        $omittedSnapshotPayload = $kind === 'snapshot'
+            && !array_key_exists(ArtifactField::PAYLOAD, $normalized)
+            && !array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
+            && ($artifact instanceof RedactedArtifactInterface || $artifact instanceof VerifiedArtifactProjection);
 
         $payloadBytes = 0;
-        if (!$isTerminalSnapshot
+        if (!$omittedSnapshotPayload
             && $kind === 'snapshot' && array_key_exists(ArtifactField::PAYLOAD, $normalized)
             && !$this->validSnapshotPayload($normalized[ArtifactField::PAYLOAD], 1, $payloadBytes)) {
             $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
@@ -232,7 +225,12 @@ final class ClassifyingArtifactPublisher implements
 
         $projected = $this->projectObject($normalized, $kind, 0);
 
-        if (!$isTerminalSnapshot && $kind === 'snapshot'
+        if (!$this->structuralFieldsIntact($normalized, $projected, $kind)) {
+            $this->reportMissingRequiredField($kind, 'unchanged structural fields');
+            return;
+        }
+
+        if (!$omittedSnapshotPayload && $kind === 'snapshot'
             && (!array_key_exists(ArtifactField::PAYLOAD, $normalized)
                 || !array_key_exists(ArtifactField::PAYLOAD, $projected)
                 || $normalized[ArtifactField::PAYLOAD] !== $projected[ArtifactField::PAYLOAD]
@@ -246,9 +244,7 @@ final class ClassifyingArtifactPublisher implements
         }
 
         // Verify required fields are present and safely represented.
-        $required = $isTerminalSnapshot
-            ? self::REQUIRED_FIELDS_TERMINAL_SNAPSHOT
-            : self::REQUIRED_FIELDS[$kind];
+        $required = self::REQUIRED_FIELDS[$kind];
 
         foreach ($required as $field) {
             if (!array_key_exists($field, $projected) || $projected[$field] === null) {
@@ -260,7 +256,7 @@ final class ClassifyingArtifactPublisher implements
         $classified = match ($kind) {
             'measurement' => $this->typedMeasurement($projected),
             'occurrence' => $this->typedOccurrence($projected),
-            'observation' => $this->typedObservation($projected),
+            'observation' => $this->typedObservation($projected, $artifact instanceof RedactedArtifactInterface),
             'activity' => $this->typedActivity($projected),
             'snapshot' => $this->typedSnapshot($projected),
             default => $this->typedExecution($projected),
@@ -289,6 +285,38 @@ final class ClassifyingArtifactPublisher implements
         if ($this->inner instanceof CloseablePublisherInterface) {
             $this->inner->close();
         }
+    }
+
+    /**
+     * @param array<string, mixed> $original
+     * @param array<string, mixed> $projected
+     */
+    private function structuralFieldsIntact(array $original, array $projected, string $kind): bool
+    {
+        $field = match ($kind) {
+            'observation', 'activity' => 'throwable',
+            'execution' => 'result',
+            default => null,
+        };
+
+        return $field === null || !is_array($original[$field] ?? null)
+            || $this->unchangedStructure($original[$field], $projected[$field] ?? null, 0);
+    }
+
+    private function unchangedStructure(mixed $original, mixed $projected, int $depth): bool
+    {
+        if (!is_array($original)) {
+            return $original === $projected;
+        }
+
+        if ($depth > self::MAX_DEPTH || !is_array($projected) || array_keys($original) !== array_keys($projected)) {
+            return false;
+        }
+
+        return array_all(
+            $original,
+            fn ($value, $key): bool => $this->unchangedStructure($value, $projected[$key], $depth + 1),
+        );
     }
 
     /** @param array<string, mixed> $fields */
@@ -354,7 +382,7 @@ final class ClassifyingArtifactPublisher implements
     }
 
     /** @param array<string, mixed> $fields */
-    private function typedObservation(array $fields): ?ObservationInterface
+    private function typedObservation(array $fields, bool $redacted): ?ObservationInterface
     {
         $keys = [
             'id', 'execution_id', 'activity_id', 'severity', 'level', 'message', 'diagnostic_code', 'sequence',
@@ -384,6 +412,7 @@ final class ClassifyingArtifactPublisher implements
             $instant = Instant::of($fields['timestamp']);
             $sequence = ArtifactSequence::of($fields['sequence']);
             $attributes = AttributeCollection::fromArray($attributes);
+            $trace = $this->prepareTraceObservation($fields, $redacted);
             if (!is_string($fields['id']) || !is_string($fields['message'])
                 || (!is_string($fields['diagnostic_code']) && $fields['diagnostic_code'] !== null)
                 || !in_array($fields['severity'], ['debug', 'info', 'notice', 'warning', 'error',
@@ -417,12 +446,28 @@ final class ClassifyingArtifactPublisher implements
             ksort($normalized);
             ksort($fields);
 
-            return ($fields['throwable'] === null
-                || $throwable instanceof ThrowableDescriptionInterface)
-                && $normalized === $fields ? $artifact : null;
+            if (($fields['throwable'] !== null && !$throwable instanceof ThrowableDescriptionInterface)
+                || $normalized !== $fields) {
+                return null;
+            }
+
+            return $trace ? new ClassifiedTraceObservation($artifact) : $artifact;
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function prepareTraceObservation(array &$fields, bool $redacted): bool
+    {
+        if (!$redacted || $fields['severity'] !== ObservationSeverity::Trace->value
+            || $fields['level'] !== ObservationSeverity::Trace->level()) {
+            return false;
+        }
+
+        $fields['severity'] = ObservationSeverity::Debug->value;
+        $fields['level'] = ObservationSeverity::Debug->level();
+        return true;
     }
 
     private function typedThrowable(mixed $value): ?ThrowableDescriptionInterface

@@ -107,7 +107,7 @@ final class FailureHandlingTest extends Unit
         self::assertCount(5, $errors);
     }
 
-    public function testThrowingHealthCallbackReportsBothFailuresAndArtifactId(): void
+    public function testThrowingHealthCallbackReportsPayloadFreeFallback(): void
     {
         $primary = new RuntimeException('transport down');
         $handler = new RuntimeException('callback down');
@@ -131,9 +131,34 @@ final class FailureHandlingTest extends Unit
 
         self::assertSame([[$primary, $artifact]], $seen);
         self::assertSame([
-            '[runit] publication health fallback:  handler fault [RuntimeException] callback down '
-                . 'while reporting [RuntimeException] transport down artifact=obs-1',
+            '[runit] publication health fallback:  handler fault [RuntimeException] Health callback failed '
+                . 'while reporting [RuntimeException] Publication health reporting failed',
         ], $lines);
+    }
+
+    public function testThrowingHealthCallbackCannotLeakNoticePayloads(): void
+    {
+        $artifact = $this->createMock(ExecutionArtifactInterface::class);
+        $artifact->expects($this->never())->method('normalize');
+        $lines = [];
+        $health = new CallbackHealthReporter(
+            static function (): never {
+                throw new RuntimeException('secret callback message and artifact ID');
+            },
+            new FallbackErrorLogReporter(static function (string $line) use (&$lines): void {
+                $lines[] = $line;
+            }),
+        );
+
+        foreach (['classification secret', 'unsafe-drop secret'] as $message) {
+            $health->report(new RuntimeException($message), $artifact);
+        }
+
+        self::assertCount(2, $lines);
+        foreach ($lines as $line) {
+            self::assertStringNotContainsString('secret', $line);
+            self::assertStringNotContainsString('artifact=', $line);
+        }
     }
 
     public function testThrowingFallbackLogSinkDoesNotPreventFailurePolicy(): void
@@ -207,7 +232,7 @@ final class FailureHandlingTest extends Unit
     {
         $normalizationFailure = new RuntimeException('normalization failed');
         $artifact = $this->createMock(ExecutionArtifactInterface::class);
-        $artifact->expects($this->once())->method('normalize')->willThrowException($normalizationFailure);
+        $artifact->expects($this->never())->method('normalize')->willThrowException($normalizationFailure);
         $health = new CallbackHealthReporter(
             static function (): never {
                 throw new RuntimeException('callback down');
@@ -266,7 +291,7 @@ final class FailureHandlingTest extends Unit
             $log = file_get_contents($path);
             self::assertIsString($log);
             self::assertSame(2, substr_count($log, 'publication health fallback'));
-            self::assertSame(2, substr_count($log, 'Fallback failure: RuntimeException'));
+            self::assertSame(2, substr_count($log, 'Fallback failure'));
             self::assertStringNotContainsString('secret', $log);
         } finally {
             ini_set('error_log', $oldLog);

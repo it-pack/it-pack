@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 complete as a documented baseline; dependent phases pending).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 remains open).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -1141,6 +1141,19 @@ control, isolation verification) remain open.
 
 **Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
 
+**Verification (2026-11-13):** On the initially clean checkout, `composer
+quality --quiet` passed on PHP 8.5.12, including API checking and all configured
+suites. On PHP 8.4.27, the conformance suite passed 52 tests (111 assertions)
+and the concurrency suite passed eight tests (172 assertions), including the
+native Swoole test. OpenSwoole and Swow were unavailable. These results do not
+close the separately tracked runtime and performance follow-ups below.
+The downstream runner on PHP 8.5 passed CommitItRunit and the third-party sample,
+and AsyncIt passed with three conformance skips. ConfigureItRunit could not install
+because the path package version did not satisfy its constraint; DeriveItRunit
+failed two tests. The PHP 8.4 third-party sample passed; DeriveItRunit could not
+install because DeriveIt requires PHP 8.5. The worktree changed during these runs,
+so they do not establish final-tree compatibility; investigate and rerun.
+
 **Progress:** The builder and integration guides explain the synchronous default and explicit Fiber/coroutine storage. The Swoole example retains the immutable builder returned by `withContextStorage()`. The Fiber concurrency suite demonstrates default-stack interleaving, verifies nested parent identity and failure restoration, and covers a second execution on the same Fiber while another Fiber is suspended. Remaining runtime-specific cases are tracked below. The Fiber engine does not automatically propagate caller-local ambient scope into its new Fiber; the operation receives the explicit scope instead. Phase 0 is complete with documented limitations. The approved `id()` break is recorded in the changelog and API baseline; current RunIt, AsyncIt and RunItThirdPartySample token implementations already declare the method. Composite-token tests exercise delegation and ownership with custom tokens.
 
 **Concurrency validation boundary (implemented):** `RunItBuilder::build()` now rejects a shared `StackContextStorage` paired with an engine whose `EngineCapability::concurrent` is `true`, throwing `IncompatibleContextStorageException` with an actionable message directing the consumer to runtime-isolated storage. The check runs before any attach and cannot be overridden. An opt-in `withConcurrencyValidator(?Closure)` seam is declared on `ExtendedRunItBuilderInterface` (which extends `RunItBuilderInterface`) and implemented by `RunItBuilder`, so custom builder implementations are not required to add the method. Tests cover: non-concurrent engine with default stack (accepted), concurrent engine with shared stack (rejected by built-in check), concurrent engine with `FiberContextStorage` (accepted), concurrent engine with isolated storage + rejecting validator (rejected by custom validator), concurrent engine with shared stack + accepting validator (rejected — built-in check runs first and cannot be overridden), validator receiving capability and storage, exception message content identifying the pairing, and the interface hierarchy (`ExtendedRunItBuilderInterface extends RunItBuilderInterface`; `RunItBuilderInterface` does not declare `withConcurrencyValidator`). `composer api:check` passes with both baseline snapshots regenerated; `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, and all four test suites pass.
@@ -1229,8 +1242,18 @@ every configuration is affected, and do not authorize a change in delivery.
 
 Open implementation gaps (decisions approved, implementation pending):
 
+- The standalone factory characterization still sends unclassified occurrence
+  data to its sampler and sink. Bounded traversal is not deny-by-default field
+  classification; the full field policy and composition matrix remain open.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond
-  cleanup cannot be verified. Async ownership behavior undocumented.
+  cleanup cannot be verified. The current ownership limitation is documented in
+  `docs/architecture/publication.md`; completion or expiry of outstanding raw
+  work is not tracked.
+- Existing custom factory contracts receive original concrete artifacts. Replacing
+  those with export projections before invoking the factory would change what its
+  redactor and publisher receive; neither factory interface provides a way to
+  enforce classification within custom code. A compatibility decision and
+  downstream migration are needed before changing that extension contract.
 - No representative workload, delivery-loss measurement, or real exporter I/O
   baseline established for Phase 2 cost evaluation.
 
@@ -1238,7 +1261,18 @@ Phase 2 cannot be closed until the approved field-policy is implemented, tested,
 and documented with corresponding updates to `docs/SECURITY.md`,
 `docs/architecture/publication.md`, `docs/compatibility.md`, relevant README/configuration
 and adapter docs, `docs/QA.md`, `docs/benchmarks.md`, and `docs/CHANGELOG.md`.
-`composer quality` passes on PHP 8.5.12.
+An earlier `composer quality` run passed on PHP 8.5.12; rerun on the final tree.
+
+On 2026-11-13, the default SDK provenance-aware redaction path was changed to omit terminal
+snapshot payload and content hash before sampling, not merely before sink
+delivery. `SamplingTest::testVerifiedTerminalSnapshotIsSanitizedBeforeSamplerAndSink`
+checks both boundaries, export IDs and original immutability. This targeted fix
+does not establish safety of other fields or standalone/custom compositions.
+Before the subsequent classification-tampering and other changes, on PHP 8.5.12,
+`composer quality --quiet` and the separate Unit-only `composer coverage -- --silent`
+passed. The coverage XML recorded 5,373/5,877 statements; this is not an attribution or Phase 6
+coverage gate. After classification-tampering validation, the focused sampling
+suite passed 39 tests with 257 assertions on PHP 8.4.27.
 
 **Preparatory findings (2026-11-06):** Observations and activities normalize a
 top-level `throwable`; failed executions place it under `result.throwable`.
@@ -1257,7 +1291,7 @@ misclassify or drop changed artifacts. The observation safe-field and health
 reporting decisions, bounded traversal, and compatible routing design remain open;
 none of the approved target policies should be assumed implemented.
 
-**Phase 2 progress (implemented, decisions approved):** `DefaultArtifactRedactor` now optionally masks
+**Historical Phase 2 progress (decisions approved):** The following records an earlier implementation state, not current configuration defaults. `DefaultArtifactRedactor` optionally masks
 `Observation::message` (`redactObservationMessages`, opt-in, default `false`), `Measurement::value`
 (`redactMeasurementValues`, opt-in, default `false`), `Occurrence::extension_attributes` by
 `sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`.
@@ -1305,54 +1339,25 @@ On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
 
-**Phase 2 implementation status (2026-11-13, revision 46311f4b):**
+**Phase 2 implementation status (2026-11-13):**
 
 Implemented within already-approved decisions:
 
-- `ProvenanceAuthority::reportUnverified()` now falls back to the payload-free
-  `FallbackErrorLogReporter` (error log) when no health reporter is configured,
-  so standalone composition remains observable instead of silently dropping
-  unverified artifacts. Reporter failures are contained; the authority stays
-  usable after a throwing reporter. Covered by
-  `tests/Unit/Application/Publication/ProvenanceAuthorityTest.php`:
-  `testReportUnverifiedWithoutHealthReporterUsesErrorLogFallback`,
-  `testReportUnverifiedWithThrowingHealthReporterFallsBackAndStaysUsable`,
-  `testReportUnverifiedWithoutReporterDoesNotThrow`.
+- Default SDK field classification runs before sampling for observations, occurrences, measurements, lifecycle artifacts, and snapshots. Each classifier retains verified export IDs and relationships, removes or replaces unclassified fields, and reports drops with payload-free health notices.
+- Terminal snapshot payloads and content hashes omitted before sampling on the default SDK path; explicit null or custom redactor opt-outs retain previous behavior.
+- Trace observations retain typed `ObservationInterface` with sanitized severity (trace → debug) before sampling.
+- Custom health reporters produce payload-free fallback diagnostics; throwing reporters are contained.
+- Low `maxAttributeCount` limits cause fail-closed drops (not truncated metadata) for observation/activity throwable and execution result structures.
+- Explicit redactor opt-outs (`withRedactor(null)`) and custom redactors bypass default SDK classification; custom factory contracts unchanged.
 
-Open gaps requiring maintainer approval before any delivery or contract change:
+Open gaps (the Phase 0-2 policy direction is approved; implementation and compatibility verification remain necessary):
 
-- Runner cleanup releases provenance records; raw artifacts deferred beyond
-  cleanup cannot be verified. This is by design but async ownership behavior is
-  undocumented.
-- No representative workload, delivery-loss measurement, or real exporter I/O
-  baseline has been established for Phase 2 cost evaluation.
+- Standalone factory characterization shows unclassified occurrence data reaching both sampler and sink. Bounded traversal is not deny-by-default field classification; full enforcement before both boundaries remains open for standalone/custom compositions.
+- Custom factory contracts receive original concrete artifacts including business IDs. Replacing those with export projections would change what custom redactors and publishers receive; neither factory interface provides a way to enforce classification within custom code. A compatibility decision and downstream migration are needed before changing this extension contract.
+- No representative workload, delivery-loss measurement, or real exporter I/O baseline established for Phase 2 cost evaluation. Synthetic benchmarks exist in `docs/benchmarks.md` but do not measure representative production traffic.
+- Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. Async ownership behavior is documented as a limitation, not implemented.
 
-Resolved in Phase 2 implementation:
-
-- Safe-field and representation/delivery policies approved (lines 1202-1220):
-  arbitrary fields are unclassified unless an explicit opt-in policy establishes
-  otherwise; throwable class/code preserved by default, traces omitted; terminal
-  snapshot payload and content hash omitted by default. Implemented in
-  `ClassifyingArtifactPublisher`, `DefaultArtifactRedactor`, and
-  `PublisherStackFactory` ordering.
-- `ProvenanceAuthority::bindActivityRelationship()` now accepts verified export
-  IDs instead of business ID claims. Callers (`DefaultObservationRecorder`,
-  `DefaultOccurrenceRecorder`, `DefaultSnapshotRecorder`, `DefaultMeasurementRecorder`,
-  `DefaultActivityRunner`) resolve business IDs to export IDs via
-  `exportIdForBusinessId()` before binding, eliminating the business-ID-claim
-  weakness. Covered by `ProvenanceAuthorityTest`:
-  `testActivityRelationshipsRequireUniqueSameExecutionEdges`.
-- `ClassifyingArtifactPublisher` fallback to `ClassifiedArtifact` when typed
-  reconstruction fails is routed through `TelemetryPublisher` via
-  `dispatchRedactedArtifact()` based on the trusted `artifactType()`, producing
-  an observable payload-free drop rather than silent loss.
-- Terminal snapshot payloads and content hashes omitted by default in
-  `ClassifyingArtifactPublisher`; `TypedSnapshot` falls back to `ClassifiedArtifact`
-  which is safely dispatched by adapters.
-
-Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run,
-PHPStan at level max, architecture, lint:length, all four test suites, security
-audit) passes on PHP 8.5.12.
+Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run, PHPStan at level max, architecture, lint:length, all four test suites, security audit) passes on PHP 8.5.12 AND the custom factory compatibility decision is made.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
@@ -1576,14 +1581,14 @@ fields or exporters. The focused `TelemetryPublisherTest` passed on PHP 8.5
 (18 tests, 166 assertions).
 The representation and delivery decisions remain open.
 
-- [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
-- [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
-- [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
-- [ ] Exercise actual composed pipelines to PSR-3 and OpenTelemetry with in-memory sinks, asserting secrets are absent in exported fields and throwable arrays. Include a failed execution and a redacted observation, not only a unit-level normalized array.
-- [ ] In `src/Application/Factory/PublisherStackFactory.php`, align the execution order with the approved contract. Extend `tests/Unit/Application/Publication/SamplingTest.php` with a spy `SamplingPolicyInterface` and sink to prove what each receives. Test severity-floor, error-override, execution-kind, unchanged artifacts, and null-decorator combinations: `ErrorOverrideSamplePolicy` depends on `ObservationInterface`, which a generic redacted wrapper does not retain. Measure serialization costs before deployment.
-- [ ] Implement the approved safe handling for redacted observations in `src/Adapter/OpenTelemetry/TelemetryPublisher.php` and its mapper path, or make a deliberate drop visible via the health path. Check changed executions, activities, and measurements as well as occurrences and snapshots, because generic wrappers may bypass typed dispatch. Avoid inferring type from an ambiguous user-controlled field or exposing the original unredacted artifact through a wrapper.
-- [ ] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary.
-- [ ] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision.
+- [x] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated. Documented at lines 1394-1401; bounded recursion enforced by `ClassifyingArtifactPublisher::projectObject()` depth limit.
+- [x] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations. All three suites pass; coverage is focused rather than exhaustive for OTel span/event fields.
+- [x] Implement the approved recursive masking and trace policy for all applicable artifact shapes on the default SDK path. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs. Default SDK classifiers for observations, occurrences, measurements, lifecycle artifacts, and snapshots are implemented; standalone/custom compositions bypass default classification.
+- [x] Exercise actual composed pipelines to PSR-3 and OpenTelemetry with in-memory sinks, asserting secrets are absent in exported fields and throwable arrays. Include a failed execution and a redacted observation. `DefaultSdkPsrSecurityTest`, `TerminalSnapshotRedactionTest`, and `TelemetryPublisherTest` cover composed pipelines.
+- [x] In `src/Application/Factory/PublisherStackFactory.php`, align the execution order with the approved contract. Extend `tests/Unit/Application/Publication/SamplingTest.php` with a spy `SamplingPolicyInterface` and sink to prove what each receives. Test severity-floor, error-override, execution-kind, unchanged artifacts, and null-decorator combinations. Serialization costs not measured (deferred to Phase 6 benchmarks).
+- [x] Implement the approved safe handling for redacted observations in `src/Adapter/OpenTelemetry/TelemetryPublisher.php` and its mapper path, or make a deliberate drop visible via the health path. Check changed executions, activities, and measurements as well as occurrences and snapshots. `TelemetryPublisherTest` covers redacted observation delivery and health-reported drops.
+- [x] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary. Focused tests cover known cases; full third-party-publisher matrix not established.
+- [x] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision. `docs/SECURITY.md`, `docs/architecture/publication.md`, `docs/CHANGELOG.md`, `README.md`, and `docs/QA.md` updated; no API baseline or schema changed.
 
 **Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths.
 
@@ -1637,7 +1642,7 @@ do not establish coverage for unavailable OpenSwoole or Swow extensions.
 
 - [ ] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
 - [ ] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
-- [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard artifact normalization and fallback reporting; verify runner outcomes and context restoration when either fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback retains its existing behavior.
+- [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard fallback reporting and verify runner outcomes and context restoration when it fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback now also uses fixed payload-free diagnostics and no longer normalizes the artifact.
 - [x] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration. On the worktree based on `0b072d80`, the focused suite passed on PHP 8.5.12 (25 tests, 116 assertions), and the separate target-policy harness passed on PHP 8.4.27 and 8.5.12. Execution publication now also precedes snapshot factory invocation; failing publishers cannot guarantee delivery.
 - On that worktree, `composer quality --quiet` passed on PHP 8.5.12. It does not
   include the standalone target-policy harness, API checks, coverage, or benchmarks.

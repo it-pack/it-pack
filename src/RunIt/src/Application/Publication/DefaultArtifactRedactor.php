@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
-use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionInterface;
-use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
-use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
-use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
@@ -62,10 +60,16 @@ final class DefaultArtifactRedactor implements RedactorInterface
 
     private bool $truncationReported = false;
 
+    private readonly RedactedArtifactFactoryInterface $redactedFactory;
+
     public function __construct(
         private readonly ArtifactRedactionConfig $config = new ArtifactRedactionConfig(),
         private readonly ?InternalHealthReporterInterface $health = null,
+        ?RedactedArtifactFactoryInterface $redactedFactory = null,
     ) {
+        $this->redactedFactory =
+            $redactedFactory?->withArtifactType(ArtifactType::UNKNOWN)
+            ?? new RedactedRedactedArtifactFactory(ArtifactType::UNKNOWN);
     }
 
     public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
@@ -138,7 +142,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
             $this->reportTruncation();
         }
 
-        return new RedactedArtifact($normalized, $this->artifactType($artifact));
+        return $this->redactedFactory->create($normalized, $this->artifactType($artifact));
     }
 
     /**
@@ -246,10 +250,10 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactThrowableMessages
-            || !$this->isTypeOf($artifact, 'execution')
             || !is_array($normalized[ArtifactField::RESULT] ?? null)
             || !isset($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
             || !is_array($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
+            || !$this->isTypeOf($artifact, 'execution')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -484,7 +488,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
                 $safe[ArtifactField::PREVIOUS] = null;
             }
 
-            if ($previous !== null && is_array($previous) && $depth < 15) {
+            if (is_array($previous) && $depth < 15) {
                 $maskedPrevious = $this->maskThrowable($previous, $depth + 1, $truncated);
                 $safe[ArtifactField::PREVIOUS] = $maskedPrevious[0];
                 if ($maskedPrevious[1] || $safe[ArtifactField::PREVIOUS] !== $previous) {
@@ -524,21 +528,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
 
     private function artifactType(ExecutionArtifactInterface $artifact): string
     {
-        if ($artifact instanceof RedactedArtifactInterface) {
-            // A redacted artifact already carries its trusted type from the
-            // redactor that produced it; preserve it through redaction.
-            return $artifact->artifactType();
-        }
-
-        return match (true) {
-            $artifact instanceof ExecutionInterface => 'execution',
-            $artifact instanceof ObservationInterface => 'observation',
-            $artifact instanceof ActivityInterface => 'activity',
-            $artifact instanceof MeasurementInterface => 'measurement',
-            $artifact instanceof OccurrenceInterface => 'occurrence',
-            $artifact instanceof SnapshotInterface => 'snapshot',
-            default => 'unknown',
-        };
+        return ArtifactType::type($artifact);
     }
 
     /**
@@ -552,25 +542,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
      */
     private function isTypeOf(ExecutionArtifactInterface $artifact, string $type): bool
     {
-        if (match (true) {
-            $artifact instanceof ExecutionInterface => 'execution',
-            $artifact instanceof ObservationInterface => 'observation',
-            $artifact instanceof ActivityInterface => 'activity',
-            $artifact instanceof MeasurementInterface => 'measurement',
-            $artifact instanceof OccurrenceInterface => 'occurrence',
-            $artifact instanceof SnapshotInterface => 'snapshot',
-            default => 'unknown',
-        } === $type) {
-            return true;
-        }
-
-        if ($artifact instanceof TrustedArtifactProjectionInterface
-            && $artifact->artifactType() === $type) {
-            return true;
-        }
-
-        return $artifact instanceof RedactedArtifactInterface
-            && $artifact->artifactType() === $type;
+        return $this->artifactType($artifact) === $type;
     }
 
     /**
@@ -602,7 +574,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
             $this->truncationReported = true;
             $this->health?->report(
                 new RuntimeException('Artifact redaction traversal limits exceeded; sensitive data was truncated.'),
-                new RedactedArtifact([
+                $this->redactedFactory->create([
                     ArtifactField::ID => 'redacted',
                     ArtifactField::TYPE => 'runit.artifact.redacted',
                 ]),

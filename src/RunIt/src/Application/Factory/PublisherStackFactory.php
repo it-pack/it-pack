@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Factory;
 
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\DefaultLifecycleClassifier;
+use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
+use ItPack\RunIt\Application\Publication\DefaultObservationClassifier;
+use ItPack\RunIt\Application\Publication\DefaultOccurrenceClassifier;
+use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
@@ -48,18 +53,24 @@ final class PublisherStackFactory implements HealthAwarePublisherStackFactoryInt
     ): ArtifactPublisherInterface {
         $composed = $base;
 
-        // Classification is innermost: it bounds the redacted result before the
-        // sink sees it. Even artifacts that pass the deny-list redactor
-        // unchanged are projected to a safe, bounded form.
+        // The innermost classifier bounds the projection before sink delivery;
+        // bounded fields are not necessarily safe for every custom composition.
         if ($redactor instanceof RedactorInterface || $samplingPolicy instanceof SamplingPolicyInterface
             || $authority instanceof ProvenanceAuthority) {
             $composed = new ClassifyingArtifactPublisher($composed, $health, $limits ?? new SecurityLimits());
         }
 
-        // Sampling runs after redaction so the sampler sees redacted artifacts,
-        // not originals with sensitive values.
+        // Sampling runs after redaction and the default SDK classifiers.
         if ($samplingPolicy instanceof SamplingPolicyInterface) {
             $composed = new SamplingArtifactPublisher($samplingPolicy, $composed, $health);
+        }
+
+        if ($authority instanceof ProvenanceAuthority && $redactor instanceof DefaultSdkRedactor) {
+            // Classify default SDK artifacts before either sampler or sink.
+            $composed = new DefaultObservationClassifier($composed, $health, $limits ?? new SecurityLimits());
+            $composed = new DefaultOccurrenceClassifier($composed, $health, $limits ?? new SecurityLimits());
+            $composed = new DefaultMeasurementClassifier($composed, $health);
+            $composed = new DefaultLifecycleClassifier($composed, $health, $limits ?? new SecurityLimits());
         }
 
         // Redaction runs outermost so the redactor sees the concrete artifact

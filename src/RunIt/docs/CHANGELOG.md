@@ -28,6 +28,29 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- A failing health callback now produces fixed payload-free fallback diagnostics
+  without logging exception messages or artifact identifiers. Configured callbacks
+  still receive the original arguments.
+- The default SDK publication stack classifies observations before sampling,
+  removing arbitrary attributes and diagnostic codes and masking messages while
+  retaining validated severity and bounded throwable class/code metadata. Explicitly
+  configured redactors and custom stacks retain their configured behavior.
+- Default SDK publication reports and drops measurements before sampling until
+  their required names, units and values have an approved classification; custom
+  redactor configurations bypass this default guard. This can suppress all
+  measurements on the default path.
+- Default SDK occurrences now use the fixed exported type `runit.redacted.v1`
+  and source `runit:redacted`, with unclassified payload and attributes omitted.
+  Consumers cannot route these projections by the original occurrence type.
+- Default SDK execution and activity projections replace names and kinds and
+  omit unclassified context, result and attribute content. Execution-kind
+  samplers resolve using export execution IDs; resolvers keyed only by business
+  IDs must be migrated or they fail closed.
+- The default SDK path withholds snapshot payloads, hashes and unclassified
+  metadata before sampling. Default snapshot exports are generic projections;
+  samplers and consumers requiring `SnapshotInterface` or those fields need an
+  explicit alternative policy. Explicit redactor overrides retain their existing
+  behavior.
 - Provenance retention is capped at 100,000 live records across each SDK
   authority as well as per execution. At capacity new bindings are dropped and
   reported through the configured health path; releasing executions frees capacity.

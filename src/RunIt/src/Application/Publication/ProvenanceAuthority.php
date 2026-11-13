@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use InvalidArgumentException;
+use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Random\RandomException;
@@ -113,18 +116,24 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     /** @var WeakMap<ExecutionArtifactInterface, array{exportId: string, fields: array<string, mixed>}> */
     private WeakMap $evidence;
 
+    private readonly RedactedArtifactFactoryInterface $redactedFactory;
+
     public function __construct(
         private readonly ?InternalHealthReporterInterface $health = null,
         private readonly int $maxRecords = 100000,
         private readonly int $maxEdges = 200000,
         private readonly int $maxIdentifierBytes = 1024,
         private readonly int $maxTotalRecords = 100000,
+        ?RedactedArtifactFactoryInterface $redactedFactory = null,
     ) {
         if ($maxRecords < 1 || $maxEdges < 1 || $maxIdentifierBytes < 1 || $maxTotalRecords < 1) {
             throw new InvalidArgumentException('Provenance retention limits must be positive.');
         }
 
         $this->evidence = new WeakMap();
+        $this->redactedFactory =
+            $redactedFactory?->withArtifactType(ArtifactType::UNKNOWN)
+            ?? new RedactedRedactedArtifactFactory(ArtifactType::UNKNOWN);
     }
 
     /** Bind evidence to the exact object created by an SDK issuance site. */
@@ -667,10 +676,10 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             try {
                 $this->health->report(
                     $failure,
-                    new RedactedArtifact([
+                    $this->redactedFactory->create([
                         ArtifactField::ID => $artifactId,
                         ArtifactField::TYPE => 'runit.artifact.redacted',
-                    ]),
+                    ])
                 );
 
                 return;

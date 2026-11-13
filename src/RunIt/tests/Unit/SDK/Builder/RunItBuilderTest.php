@@ -210,7 +210,7 @@ final class RunItBuilderTest extends TestCase
         $snapshots = array_values(array_filter(
             $sink->published(),
             static fn (ExecutionArtifactInterface $artifact): bool =>
-                ($artifact->normalize()['type'] ?? null) === 'execution.terminal',
+                $artifact instanceof TrustedArtifactProjectionInterface && $artifact->artifactType() === 'snapshot',
         ));
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();
@@ -538,6 +538,46 @@ final class RunItBuilderTest extends TestCase
         }
     }
 
+    public function testDefaultObservationIsClassifiedBeforeSamplerAndSink(): void
+    {
+        $spy = new RecordingArtifactPublisher();
+        $sampling = new class () implements SamplingPolicyInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $seen = [];
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen[] = $artifact;
+                return true;
+            }
+        };
+        $runtime = $this->builder()->withPublisher($spy)->withSamplingPolicy($sampling)->build();
+        try {
+            $runtime->run($this->definition(), static function (): never {
+                throw new RuntimeException('synthetic-secret-failure');
+            });
+        } catch (RuntimeException) {
+            // The business exception is expected.
+        }
+
+        foreach ([$sampling->seen, $spy->published] as $artifacts) {
+            $observations = array_values(array_filter(
+                $artifacts,
+                static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface
+            ));
+            self::assertNotEmpty($observations);
+            foreach ($observations as $observation) {
+                self::assertInstanceOf(ObservationInterface::class, $observation);
+                self::assertSame('[redacted]', $observation->message());
+                self::assertSame([], $observation->attributes());
+                self::assertStringNotContainsString(
+                    'synthetic-secret',
+                    json_encode($observation->normalize(), JSON_THROW_ON_ERROR)
+                );
+            }
+        }
+    }
+
     public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
     {
         $spy = new RecordingArtifactPublisher();
@@ -617,6 +657,7 @@ final class RunItBuilderTest extends TestCase
         $sink = new InMemoryArtifactPublisher();
         $runtime = $this->builder()
             ->withPublisher($sink)
+            ->withRedactor(null)
             ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
             ->build()
         ;
