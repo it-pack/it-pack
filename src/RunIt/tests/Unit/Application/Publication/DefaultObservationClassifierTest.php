@@ -26,10 +26,14 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Throwable;
 
 #[CoversClass(DefaultObservationClassifier::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(VerifiedArtifactProjection::class)]
 final class DefaultObservationClassifierTest extends Unit
 {
     public function testUnclassifiedFieldsAreRemovedBeforeTypedErrorSampling(): void

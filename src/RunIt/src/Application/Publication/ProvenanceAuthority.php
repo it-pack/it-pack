@@ -222,7 +222,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
 
         if ($record['role'] !== 'execution') {
-            $rootId = $this->exportIdForBusinessId($record['executionId'], $record['executionId']);
+            $rootId = $this->exportIdForBusinessId($record['executionId'], $record['executionId'], 'execution');
             $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
             $relation = $record['role'] === 'terminal-snapshot'
                 ? 'execution-terminal-snapshot' : 'execution-' . $record['role'];
@@ -568,7 +568,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
 
         if ($relationshipType !== '') {
-            $executionExportId = $this->exportIdForBusinessId($executionId, $executionId);
+            $executionExportId = $this->exportIdForBusinessId($executionId, $executionId, 'execution');
             $execution = $executionExportId !== null ? ($this->records[$executionExportId] ?? null) : null;
             $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
             if ($execution === null || $execution['released'] || $roles === null

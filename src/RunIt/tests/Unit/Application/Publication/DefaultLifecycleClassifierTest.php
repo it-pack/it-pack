@@ -14,9 +14,13 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Throwable;
 
 #[CoversClass(DefaultLifecycleClassifier::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(VerifiedArtifactProjection::class)]
 final class DefaultLifecycleClassifierTest extends Unit
 {
     public function testExecutionAndActivityHaveOnlySafeFields(): void

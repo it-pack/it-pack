@@ -25,10 +25,17 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Throwable;
 
 #[CoversClass(DefaultOccurrenceClassifier::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(PublisherStackFactory::class)]
+#[UsesClass(ProvenanceAuthority::class)]
+#[UsesClass(DefaultSdkRedactor::class)]
+#[UsesClass(VerifiedArtifactProjection::class)]
 final class DefaultOccurrenceClassifierTest extends Unit
 {
     public function testDefaultStackSanitizesBeforeSamplerAndSink(): void

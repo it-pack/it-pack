@@ -52,6 +52,7 @@ use Throwable;
 #[UsesClass(ArtifactRedactionConfig::class)]
 #[UsesClass(CallbackHealthReporter::class)]
 #[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(PublisherStackFactory::class)]
 final class RedactionSecurityCharacterizationTest extends Unit
 {
     /** @param list<string>|null $sensitiveAttributeKeys */

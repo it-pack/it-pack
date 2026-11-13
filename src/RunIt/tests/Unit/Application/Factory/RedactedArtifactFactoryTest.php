@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 #[CoversClass(RedactedRedactedArtifactFactory::class)]
 #[UsesClass(RedactedArtifact::class)]
 #[UsesClass(ArtifactType::class)]
-class RedactedArtifactFactoryTest extends Unit
+final class RedactedArtifactFactoryTest extends Unit
 {
     public function testCreateWithDefault(): void
     {

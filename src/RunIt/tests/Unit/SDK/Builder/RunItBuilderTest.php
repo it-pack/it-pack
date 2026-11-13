@@ -207,6 +207,13 @@ final class RunItBuilderTest extends TestCase
 
         $runtime->run($this->definition(), static fn (): int => 1);
 
+        $executions = array_values(array_filter(
+            $sink->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        $execution = $executions[0]->normalize();
+
         $snapshots = array_values(array_filter(
             $sink->published(),
             static fn (ExecutionArtifactInterface $artifact): bool =>
@@ -214,7 +221,7 @@ final class RunItBuilderTest extends TestCase
         ));
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();
-        self::assertNotSame('caller-business-execution-id', $snapshot['execution_id']);
+        self::assertSame($execution['id'], $snapshot['execution_id']);
         self::assertArrayNotHasKey(ArtifactField::PAYLOAD, $snapshot);
         self::assertArrayNotHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }
@@ -699,6 +706,13 @@ final class RunItBuilderTest extends TestCase
         self::assertNotEmpty($sink->published);
         self::assertSame([], $failures);
         // Terminal snapshots are published as classified projections (payload omitted by default).
+        $executions = array_values(array_filter(
+            $sink->published,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        $execution = $executions[0]->normalize();
+
         $snapshots = array_values(array_filter(
             $sink->published,
             static fn (ExecutionArtifactInterface $artifact): bool =>
@@ -708,6 +722,7 @@ final class RunItBuilderTest extends TestCase
         ));
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();
+        self::assertSame($execution['id'], $snapshot['execution_id']);
         self::assertArrayNotHasKey(ArtifactField::PAYLOAD, $snapshot);
         self::assertArrayNotHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }

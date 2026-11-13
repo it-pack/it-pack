@@ -12,10 +12,14 @@ use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Throwable;
 
 #[CoversClass(DefaultMeasurementClassifier::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(VerifiedArtifactProjection::class)]
 final class DefaultMeasurementClassifierTest extends Unit
 {
     public function testMeasurementsAreDroppedAndReportedWithoutTheirFields(): void

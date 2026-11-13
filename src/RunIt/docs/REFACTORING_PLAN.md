@@ -1345,7 +1345,8 @@ Implemented within already-approved decisions:
 
 - Default SDK field classification runs before sampling for observations, occurrences, measurements, lifecycle artifacts, and snapshots. Each classifier retains verified export IDs and relationships, removes or replaces unclassified fields, and reports drops with payload-free health notices.
 - Terminal snapshot payloads and content hashes omitted before sampling on the default SDK path; explicit null or custom redactor opt-outs retain previous behavior.
-- Trace observations retain typed `ObservationInterface` with sanitized severity (trace → debug) before sampling.
+- Trace observations retain typed `ObservationInterface`; `ClassifiedTraceObservation`
+  restores trace severity before sampling, so a debug severity floor treats them as trace.
 - Custom health reporters produce payload-free fallback diagnostics; throwing reporters are contained.
 - Low `maxAttributeCount` limits cause fail-closed drops (not truncated metadata) for observation/activity throwable and execution result structures.
 - Explicit redactor opt-outs (`withRedactor(null)`) and custom redactors bypass default SDK classification; custom factory contracts unchanged.

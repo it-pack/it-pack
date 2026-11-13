@@ -315,7 +315,7 @@ final class ClassifyingArtifactPublisher implements
 
         return array_all(
             $original,
-            fn ($value, $key): bool => $this->unchangedStructure($value, $projected[$key], $depth + 1),
+            fn (mixed $value, int|string $key): bool => $this->unchangedStructure($value, $projected[$key], $depth + 1),
         );
     }
 

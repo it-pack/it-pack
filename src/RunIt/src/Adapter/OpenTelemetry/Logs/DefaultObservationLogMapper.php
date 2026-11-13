@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
+use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\LogEmitterBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedObservationLogMapperInterface;
@@ -16,7 +17,9 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
+use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\API\Trace\Span;
+use OpenTelemetry\SemConv\Attributes\ExceptionAttributes;
 
 /**
  * Maps a RunIt observation to an OpenTelemetry log record.
@@ -33,16 +36,19 @@ final readonly class DefaultObservationLogMapper implements
     ObservationLogMapperInterface,
     RedactedObservationLogMapperInterface
 {
+    use LogEmitterBehavior;
+
     public function __construct(
-        private ?LoggerProviderInterface $loggerProvider,
+        ?LoggerProviderInterface         $loggerProvider,
         private SeverityMapInterface     $severityMap,
         private bool                     $mapToSpanEvents = false,
     ) {
+        $this->initLoggerProvider($loggerProvider);
     }
 
     public function map(ObservationInterface $observation): void
     {
-        if (!$this->loggerProvider instanceof LoggerProviderInterface && !$this->mapToSpanEvents) {
+        if (!$this->mapToSpanEvents && $this->loggerProvider() instanceof LoggerProviderInterface) {
             return;
         }
 
@@ -56,25 +62,22 @@ final readonly class DefaultObservationLogMapper implements
 
         $throwable = $observation->throwableDescription();
         if ($throwable instanceof ThrowableDescriptionInterface) {
-            $attributes['exception.type'] = $throwable->class();
-            $attributes['exception.message'] = $throwable->message();
+            $attributes[ExceptionAttributes::EXCEPTION_TYPE] = $throwable->class();
+            $attributes[ExceptionAttributes::EXCEPTION_MESSAGE] = $throwable->message();
             $trace = $throwable->trace();
-            if ($trace !== null) {
-                $attributes['exception.stacktrace'] = $trace;
+            if (is_string($trace)) {
+                $attributes[ExceptionAttributes::EXCEPTION_STACKTRACE] = $trace;
             }
         }
 
-        if ($this->loggerProvider instanceof LoggerProviderInterface) {
-            $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE)
-                ->logRecordBuilder()
-                ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
-                ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
-                ->setSeverityText($this->severityMap->toText($observation->severity()))
-                ->setBody($observation->message())
-                ->setAttributes($attributes)
-                ->emit()
-            ;
-        }
+        $this->logRecordBuilder()
+            ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
+            ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
+            ->setSeverityText($this->severityMap->toText($observation->severity()))
+            ->setBody($observation->message())
+            ->setAttributes($attributes)
+            ->emit()
+        ;
 
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $attributes);
@@ -86,7 +89,7 @@ final readonly class DefaultObservationLogMapper implements
      */
     public function mapRedactedObservation(array $normalized): void
     {
-        if (!$this->loggerProvider instanceof LoggerProviderInterface && !$this->mapToSpanEvents) {
+        if (!$this->mapToSpanEvents) {
             return;
         }
 
@@ -112,20 +115,18 @@ final readonly class DefaultObservationLogMapper implements
         // Free-form attributes are suppressed entirely in redacted observations: they
         // are caller-controlled and cannot be classified safe without redaction config.
         // Only the validated identity/correlation fields above are exported.
-
         $this->appendThrowableAttributes($otelAttributes, $normalized[ArtifactField::THROWABLE] ?? null);
 
-        if ($this->loggerProvider instanceof LoggerProviderInterface) {
-            $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE)
-                ->logRecordBuilder()
-                ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
-                ->setSeverityNumber($this->severityLevelToNumber($level))
-                ->setSeverityText($this->severityLevelToText($level))
-                ->setBody($message)
-                ->setAttributes($otelAttributes)
-                ->emit()
-            ;
-        }
+
+        $this->logRecordBuilder()
+            ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
+            ->setSeverityNumber($this->severityLevelToNumber($level))
+            ->setSeverityText($this->severityLevelToText($level))
+            ->setBody($message)
+            ->setAttributes($otelAttributes)
+            ->emit()
+        ;
+
 
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $otelAttributes);
@@ -217,34 +218,31 @@ final readonly class DefaultObservationLogMapper implements
             return;
         }
 
-        $throwableClass = $throwable[ArtifactField::THROWABLE_CLASS] ?? null;
-        $throwableMessage = $throwable[ArtifactField::MESSAGE] ?? null;
-        if (is_string($throwableClass)) {
-            $otelAttributes['exception.type'] = $throwableClass;
+        if (is_string($throwable[ArtifactField::THROWABLE_CLASS] ?? null)) {
+            $otelAttributes[ExceptionAttributes::EXCEPTION_TYPE] = $throwable[ArtifactField::THROWABLE_CLASS];
         }
 
-        if (is_string($throwableMessage)) {
-            $otelAttributes['exception.message'] = $throwableMessage;
+        if (is_string($throwable[ArtifactField::MESSAGE] ?? null)) {
+            $otelAttributes[ExceptionAttributes::EXCEPTION_MESSAGE] = $throwable[ArtifactField::MESSAGE];
         }
 
-        $trace = $throwable[ArtifactField::TRACE] ?? null;
-        if (is_string($trace) && $trace !== '') {
-            $otelAttributes['exception.stacktrace'] = $trace;
+        if (is_string($throwable[ArtifactField::TRACE] ?? null)) {
+            $otelAttributes[ExceptionAttributes::EXCEPTION_STACKTRACE] = $throwable[ArtifactField::TRACE];
         }
     }
 
     private function severityLevelToNumber(int $level): int
     {
         return match (true) {
-            $level >= ObservationSeverity::Emergency->level() => 23,
-            $level >= ObservationSeverity::Alert->level() => 22,
-            $level >= ObservationSeverity::Critical->level() => 21,
-            $level >= ObservationSeverity::Error->level() => 17,
-            $level >= ObservationSeverity::Warning->level() => 13,
-            $level >= ObservationSeverity::Notice->level() => 10,
-            $level >= ObservationSeverity::Info->level() => 9,
-            $level >= ObservationSeverity::Debug->level() => 5,
-            default => 1,
+            $level >= ObservationSeverity::Emergency->level() => Severity::FATAL3->value,
+            $level >= ObservationSeverity::Alert->level() => Severity::FATAL2->value,
+            $level >= ObservationSeverity::Critical->level() => Severity::FATAL->value,
+            $level >= ObservationSeverity::Error->level() => Severity::ERROR->value,
+            $level >= ObservationSeverity::Warning->level() => Severity::WARN->value,
+            $level >= ObservationSeverity::Notice->level() => Severity::INFO2->value,
+            $level >= ObservationSeverity::Info->level() => Severity::INFO->value,
+            $level >= ObservationSeverity::Debug->level() => Severity::DEBUG->value,
+            default => Severity::TRACE->value,
         };
     }
 

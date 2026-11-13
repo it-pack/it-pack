@@ -32,11 +32,12 @@ use ValueError;
 final class ArtifactTypeTest extends Unit
 {
     #[DataProvider('provideCases')]
-    public function testInterfaces(ArtifactType $type): void
+    public function testInterfaces(string $type): void
     {
+        $artifactType = ArtifactType::from($type);
         self::assertTrue(
             is_a(
-                $type->interface(),
+                $artifactType->interface(),
                 ExecutionArtifactInterface::class,
                 true
             )
@@ -64,10 +65,11 @@ final class ArtifactTypeTest extends Unit
     }
 
     #[DataProvider('provideCases')]
-    public function testIsInstanceRejetsArbitraryArtifact(ArtifactType $type): void
+    public function testIsInstanceRejetsArbitraryArtifact(string $type): void
     {
+        $artifactType = ArtifactType::from($type);
         self::assertFalse(
-            $type->isInstance(
+            $artifactType->isInstance(
                 $this->createImplementation()
             )
         );
@@ -132,14 +134,12 @@ final class ArtifactTypeTest extends Unit
     }
 
     #[DataProvider('provideCases')]
-    public function testTryFromArtifactWithTypedExecutionArtifact(ArtifactType $type): void
+    public function testTryFromArtifactWithTypedExecutionArtifact(string $type): void
     {
         self::assertInstanceOf(
             ArtifactType::class,
             ArtifactType::tryFromArtifact(
-                $this->createTypedExecutionArtifactImplementation(
-                    $type->value
-                )
+                $this->createTypedExecutionArtifactImplementation($type)
             )
         );
     }
@@ -167,17 +167,17 @@ final class ArtifactTypeTest extends Unit
     }
 
     #[DataProvider('provideCases')]
-    public function testFromArtifactWithTypedExecutionArtifact(ArtifactType $type): void
+    public function testFromArtifactWithTypedExecutionArtifact(string $type): void
     {
-        $instance = $this->createTypedExecutionArtifactImplementation($type->value);
+        $instance = $this->createTypedExecutionArtifactImplementation($type);
 
-        $type = ArtifactType::fromArtifact(
+        $resolved = ArtifactType::fromArtifact(
             $instance
         );
 
         self::assertSame(
             $instance->artifactType(),
-            $type->value
+            $resolved->value
         );
     }
 
@@ -206,15 +206,19 @@ final class ArtifactTypeTest extends Unit
     }
 
     /**
-     * @return array<array{0: ArtifactType}>
+     * @return array<array{0: string}>
      * @phpstan-ignore method.unused
      */
     private function provideCases(): array
     {
-        return array_map(
-            static fn (ArtifactType $case): array => [$case],
-            ArtifactType::cases()
-        );
+        return [
+            ['execution'],
+            ['observation'],
+            ['activity'],
+            ['measurement'],
+            ['occurrence'],
+            ['snapshot'],
+        ];
     }
 
     /**

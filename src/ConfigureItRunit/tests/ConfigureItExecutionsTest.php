@@ -273,8 +273,7 @@ final class ConfigureItExecutionsTest extends TestCase
 
         $snapshots = array_values(array_filter(
             $artifacts,
-            static fn ($artifact): bool => ($artifact->normalize()['type'] ?? null)
-                === 'configureit.configuration.resolved',
+            static fn ($artifact): bool => $artifact->artifactType() === 'snapshot',
         ));
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();

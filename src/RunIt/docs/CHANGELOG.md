@@ -71,8 +71,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 - Terminal snapshots omit `payload` and `content_hash` by default; they are
   published as classified projections until an explicit opt-in rewrites them
   as verified exports.
-- `DefaultArtifactRedactor` omits throwable trace values by default; trace is
-  no longer preserved as a null field in the normalized projection.
+- `DefaultArtifactRedactor` masks throwable trace as null by default; a present
+  trace is preserved as a null field in the normalized projection.
 - The default sampler receives redacted projections before classification, which
   can be generic rather than the original domain type, even when values are
   unchanged. Custom sampling policies relying on domain interfaces must account
