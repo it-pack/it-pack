@@ -279,11 +279,13 @@ final class ConfigureItExecutionsTest extends TestCase
                 && $artifact->artifactType() === 'snapshot',
         ));
         self::assertCount(2, $snapshots);
-        $snapshot = $snapshots[0]->normalize();
-        self::assertArrayNotHasKey('payload', $snapshot);
-        self::assertArrayNotHasKey('content_hash', $snapshot);
-        self::assertNotEmpty($snapshot['id']);
-        self::assertNotEmpty($snapshot['execution_id']);
+        foreach ($snapshots as $snapshot) {
+            $normalized = $snapshot->normalize();
+            self::assertArrayNotHasKey('payload', $normalized);
+            self::assertArrayNotHasKey('content_hash', $normalized);
+            self::assertNotEmpty($normalized['id']);
+            self::assertNotEmpty($normalized['execution_id']);
+        }
         foreach ($artifacts as $artifact) {
             $encoded = json_encode($artifact->normalize(), JSON_THROW_ON_ERROR);
             self::assertStringNotContainsString('sensitive warning secret', $encoded);
