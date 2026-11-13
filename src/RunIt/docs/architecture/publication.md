@@ -13,39 +13,37 @@ any order and are independently testable.
 
 ## Ordering
 
-The following is the intended ordering, not a guarantee of the SDK builder's
-current stack. `PublisherStackFactory::compose()` currently places sampling
-outside redaction, so a configured sampling policy receives the original
-artifact before the redactor runs. The configurable order and redaction-first
-default are pending Phase 2 of `docs/REFACTORING_PLAN.md`.
-
-The intended call flow through the stages is outside-in:
+The pipeline stages are composed outside-in:
 
 ```
-guard → fail-safe → filter → redact → sample → buffer → sink
+guard → fail-safe → redact → sample → classify → sink
 ```
+
+Redaction runs before sampling so the sampler sees redacted artifacts rather than
+originals with sensitive values. Classification runs after sampling and before the
+sink, so **sampled artifacts are not verified-safe projections** — they can still
+contain unclassified nested keys and values. Only classified artifacts reaching the
+sick are bounded to known fields. This ordering is the Phase 2 default and is
+enforced by `PublisherStackFactory::compose()`.
 
 ```mermaid
 flowchart TD;
     Recorder["Recorder"] --> Guard["PublicationGuard<br/>(recursion guard)"];
     Guard --> FailSafe["FailSafeArtifactPublisher<br/>(failure policy)"];
-    FailSafe --> Filter["FilteringArtifactPublisher<br/>(ArtifactFilter)"];
-    Filter --> Redact["RedactingArtifactPublisher<br/>(Redactor)"];
+    FailSafe --> Redact["RedactingArtifactPublisher<br/>(Redactor)"];
     Redact --> Sample["SamplingArtifactPublisher<br/>(SamplingPolicy)"];
-    Sample --> Buffer["BufferedArtifactPublisher<br/>(BufferConfiguration)"];
-    Buffer --> Sink["Sink adapter<br/>(OTel / CloudEvents / Memory / Log)"];
+    Sample --> Classify["ClassifyingArtifactPublisher<br/>(Classifier)"];
+    Classify --> Sink["Sink adapter<br/>(OTel / CloudEvents / Memory / Log)"];
     FailSafe -. "on failure" .-> Health["InternalHealthReporter<br/>(no recursion)"];
-    Buffer -. "dropped / expired" .-> Health;
 ```
 
 | Stage        | Contract / class                                   | Responsibility                                                      |
 |--------------|----------------------------------------------------|--------------------------------------------------------------------|
 | Guard        | `PublicationGuard`, `GuardedArtifactPublisher`      | Prevents recursive publication on one execution path.               |
 | Fail-safe    | `FailSafeArtifactPublisher` + `PublicationFailurePolicyInterface` | Applies the failure policy when the inner publisher throws.  |
-| Filter       | `FilteringArtifactPublisher` + `ArtifactFilterInterface` | Drops uninteresting artifacts before any expensive mapping.    |
-| Redact       | `RedactingArtifactPublisher` + `RedactorInterface`   | Applies the configured redactor before the sink.                   |
-| Sample       | `SamplingArtifactPublisher` + `SamplingPolicyInterface` | Drops artifacts the sampling policy rejects.                    |
-| Buffer       | `BufferedArtifactPublisher` + `BufferConfiguration`  | Bounds memory and flushes in batches.                             |
+| Redact       | `RedactingArtifactPublisher` + `RedactorInterface`   | Masks configured sensitive fields before sampling; concrete types visible. |
+| Sample       | `SamplingArtifactPublisher` + `SamplingPolicyInterface` | Drops artifacts the sampling policy rejects. Not a security boundary. |
+| Classify     | `ClassifyingArtifactPublisher`                      | Projects artifacts to bounded, type-safe fields before the sink.     |
 | Sink         | any `ArtifactPublisherInterface` adapter            | The real transport (in-memory, log, OpenTelemetry, ...).          |
 
 Filtering runs first by design: a dropped artifact never reaches redaction, sampling,

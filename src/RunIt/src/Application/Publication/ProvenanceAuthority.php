@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use Random\RandomException;
 use RuntimeException;
 use Throwable;
 use WeakMap;
@@ -266,6 +267,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * limit issuance fails; bindArtifact drops and reports the rejected binding.
      *
      * @param list<string> $relationships Initial relationships are unsupported and must be empty.
+     * @throws RandomException
      */
     public function issueExportId(
         string $kind,
@@ -278,11 +280,13 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             throw new RuntimeException('Provenance authority is releasing; no new issuance permitted.');
         }
 
-        if (count($this->records) >= $this->maxTotalRecords
+        if (
+            $relationships !== []
+            || count($this->records) >= $this->maxTotalRecords
             || count($this->byExecution[$executionId] ?? []) >= $this->maxRecords
             || strlen($kind) > $this->maxIdentifierBytes || strlen($role) > $this->maxIdentifierBytes
             || strlen($executionId) > $this->maxIdentifierBytes || strlen($businessId) > $this->maxIdentifierBytes
-            || $relationships !== []) {
+        ) {
             throw new RuntimeException('Provenance capacity exceeded or initial relationships rejected.');
         }
 
@@ -343,14 +347,17 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return false;
         }
 
-        if (!in_array($from['role'], $roles['from'], true)
+        if (
+            !in_array($from['role'], $roles['from'], true)
             || !in_array($to['role'], $roles['to'], true)
         ) {
             return false;
         }
 
-        if (str_starts_with($relationshipType, 'activity-')
-            && ($from['executionId'] !== $to['executionId'] || $fromExportId === $toExportId)) {
+        if (
+            ($from['executionId'] !== $to['executionId'] || $fromExportId === $toExportId)
+            && str_starts_with($relationshipType, 'activity-')
+        ) {
             return false;
         }
 
@@ -373,24 +380,44 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         return true;
     }
 
-    /** Record an activity claim only when it identifies one issued activity in the same execution. */
-    public function bindActivityRelationship(?string $targetId, ?string $activityId, bool $parent = false): void
-    {
-        if ($targetId === null || $activityId === null || !isset($this->records[$targetId])) {
+    /**
+     * Record a verified relationship between two issued export IDs.
+     *
+     * Both endpoints must be issued and unreleased export IDs. Business IDs are
+     * not accepted here: callers must resolve activity business IDs to export IDs
+     * through {@see exportIdForBusinessId()} before calling, so that only
+     * independently issued and verified identities can be bound.
+     *
+     * @param string|null $targetId Export ID of the target artifact (not a business ID)
+     * @param string|null $activityId Export ID of the activity (not a business ID)
+     */
+    public function bindActivityRelationship(
+        ?string $targetId = null,
+        ?string $activityId = null,
+        bool $parent = false,
+    ): void {
+        if ($targetId === null || $activityId === null) {
             return;
         }
 
-        $executionId = $this->records[$targetId]['executionId'];
-        $matches = [];
-        foreach ($this->byBusinessExecution[$activityId . "\0" . $executionId] ?? [] as $candidate) {
-            if (($this->records[$candidate]['role'] ?? null) === 'activity') {
-                $matches[] = $candidate;
-            }
+        if (!isset($this->records[$targetId]) || !isset($this->records[$activityId])) {
+            return;
         }
 
-        if (count($matches) === 1) {
-            $this->registerRelationship($matches[0], $targetId, $parent ? 'activity-parent' : 'activity-artifact');
+        $target = $this->records[$targetId];
+        $activity = $this->records[$activityId];
+
+        if ($target['released'] || $activity['released']) {
+            return;
         }
+
+        if ($target['executionId'] !== $activity['executionId']) {
+            return;
+        }
+
+        $relationshipType = $parent ? 'activity-parent' : 'activity-artifact';
+
+        $this->registerRelationship($activityId, $targetId, $relationshipType);
     }
 
     /**
@@ -425,16 +452,20 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * Find the export ID bound to a business ID within a given execution.
      *
      * Returns null when no unreleased record matches, meaning the relationship is
-     * unverified and must not be trusted.
+     * unverified and must not be trusted. When `$role` is provided, only records
+     * of that role are eligible, so a measurement with business ID "2" cannot
+     * shadow an activity with business ID "2" in the same execution.
+     *
+     * @param string|null $role Optional role filter (e.g. 'activity')
      */
-    public function exportIdForBusinessId(string $businessId, string $executionId): ?string
+    public function exportIdForBusinessId(string $businessId, string $executionId, ?string $role = null): ?string
     {
         $key = $businessId . "\0" . $executionId;
         $candidates = $this->byBusinessExecution[$key] ?? [];
 
         foreach ($candidates as $exportId) {
             $record = $this->records[$exportId] ?? null;
-            if ($record !== null && !$record['released']) {
+            if ($record !== null && !$record['released'] && ($role === null || $record['role'] === $role)) {
                 return $exportId;
             }
         }
@@ -597,8 +628,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
                     }
                 }
 
-                unset($this->outgoing[$exportId], $this->incoming[$exportId]);
-                unset($this->records[$exportId]);
+                unset($this->outgoing[$exportId], $this->incoming[$exportId], $this->records[$exportId]);
                 // Remove from byBusinessExecution index directly via the record's
                 // businessId/executionId key instead of scanning every bucket.
                 if ($record !== null) {

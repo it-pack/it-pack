@@ -63,8 +63,8 @@ final class ProvenanceAuthorityTest extends Unit
         $artifact = new RedactedArtifact(['id' => 'obs', 'execution_id' => 'exec', 'activity_id' => 'child']);
         self::assertTrue($authority->attest($activity, $child));
         self::assertTrue($authority->attest($artifact, $observation));
-        $authority->bindActivityRelationship($child, 'parent', true);
-        $authority->bindActivityRelationship($observation, 'child');
+        $authority->bindActivityRelationship($child, $parent, true);
+        $authority->bindActivityRelationship($observation, $child);
         self::assertSame(
             ['id' => $child, 'execution_id' => $root, 'parent_activity_id' => $parent],
             $authority->exportIdentityFields($activity)
@@ -80,8 +80,11 @@ final class ProvenanceAuthorityTest extends Unit
             'id' => 'other', 'execution_id' => 'exec', 'parent_activity_id' => 'parent',
         ]);
         self::assertTrue($authority->attest($ambiguous, $other));
-        $authority->bindActivityRelationship($other, 'parent', true);
-        self::assertSame(['id' => $other, 'execution_id' => $root], $authority->exportIdentityFields($ambiguous));
+        $authority->bindActivityRelationship($other, $parent, true);
+        self::assertSame(
+            ['id' => $other, 'execution_id' => $root, 'parent_activity_id' => $parent],
+            $authority->exportIdentityFields($ambiguous)
+        );
 
         $foreign = $authority->issueExportId('activity', 'activity', 'foreign', 'foreign');
         self::assertNotNull($observation);

@@ -87,7 +87,16 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
             );
 
             $this->authority->attest($observation, $exportId);
-            $this->authority->bindActivityRelationship($exportId, $observation->activityId()?->toString());
+            $activityBusinessId = $observation->activityId()?->toString();
+            if ($exportId !== null && $activityBusinessId !== null) {
+                $executionId = $this->authority->executionIdForExportId($exportId);
+                $activityExportId = $executionId !== null
+                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
+                    : null;
+                if ($activityExportId !== null) {
+                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
+                }
+            }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Observation publication preparation failed.'));
             return $observation;

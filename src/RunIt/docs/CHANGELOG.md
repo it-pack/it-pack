@@ -36,6 +36,20 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   projections; implementing it does not establish provenance. Trust requires an
   upstream provenance check. The API baseline has not been updated for this or
   the internal `ClassifiedRedactedOccurrence` addition.
+- `ProvenanceAuthority::bindActivityRelationship()` now accepts verified export
+  IDs (nullable, backward-compatible defaults) instead of business ID claims.
+  Callers resolve activity business IDs to export IDs via `exportIdForBusinessId()`
+  before binding, eliminating the business-ID-claim weakness. Old business-ID
+  calls are silently no-ops (export IDs are not business IDs).
+- `TelemetryPublisher` dispatches verified/classified projections (including
+  `VerifiedArtifactProjection` and `ClassifiedArtifact`) through redacted mapper
+  methods based on the trusted `artifactType()`, producing an observable
+  payload-free delivery rather than silent loss.
+- Terminal snapshots omit `payload` and `content_hash` by default; they are
+  published as classified projections until an explicit opt-in rewrites them
+  as verified exports.
+- `DefaultArtifactRedactor` omits throwable trace values by default; trace is
+  no longer preserved as a null field in the normalized projection.
 - The default sampler receives redacted projections before classification, which
   can be generic rather than the original domain type, even when values are
   unchanged. Custom sampling policies relying on domain interfaces must account

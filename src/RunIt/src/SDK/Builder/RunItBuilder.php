@@ -370,7 +370,12 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
                 $authority,
             ),
             $publisherStackFactory instanceof HealthAwarePublisherStackFactoryInterface =>
-                $publisherStackFactory->composeWithHealth($publisher, $redactor, $this->samplingPolicy, $health),
+                $publisherStackFactory->composeWithHealth(
+                    $publisher,
+                    $redactor,
+                    $this->samplingPolicy,
+                    $health,
+                ),
             default => $publisherStackFactory->compose($publisher, $redactor, $this->samplingPolicy),
         };
 

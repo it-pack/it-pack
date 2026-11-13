@@ -15,7 +15,6 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
-use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
@@ -141,13 +140,32 @@ final class ClassifyingArtifactPublisher implements
      * @var array<string, list<string>>
      */
     private const array REQUIRED_FIELDS = [
-        'execution' => ['id'],
-        'activity' => ['id', 'execution_id'],
-        'measurement' => ['execution_id'],
-        'observation' => ['id', 'execution_id'],
-        'occurrence' => ['id', 'execution_id'],
-        'snapshot' => ['id', 'execution_id'],
+        'execution' => [
+            'id',
+        ],
+        'activity' => [
+            'id',
+            'execution_id',
+        ],
+        'measurement' => [
+            'execution_id',
+        ],
+        'observation' => [
+            'id',
+            'execution_id',
+        ],
+        'occurrence' => [
+            'id',
+            'execution_id',
+        ],
+        'snapshot' => [
+            'id',
+            'execution_id',
+        ],
     ];
+
+    /** Required fields for terminal snapshots: payload/content_hash are omitted by default. */
+    private const array REQUIRED_FIELDS_TERMINAL_SNAPSHOT = ['id', 'execution_id'];
 
     /**
      * Artifact kinds supported by classification. Anything else is rejected
@@ -194,29 +212,44 @@ final class ClassifyingArtifactPublisher implements
 
         $normalized = $artifact->normalize();
 
+        $isTerminalSnapshot = $kind === 'snapshot'
+            && isset($normalized[ArtifactField::CLASSIFICATION])
+            && $normalized[ArtifactField::CLASSIFICATION] === SnapshotClassification::Terminal->value;
+
+        // Terminal snapshots omit payload and content hash by default: they are
+        // unclassified until an explicit opt-in rewrites them as verified exports.
+        if ($isTerminalSnapshot) {
+            unset($normalized[ArtifactField::PAYLOAD], $normalized[ArtifactField::CONTENT_HASH]);
+        }
+
         $payloadBytes = 0;
-        if ($kind === 'snapshot' && array_key_exists('payload', $normalized)
-            && !$this->validSnapshotPayload($normalized['payload'], 1, $payloadBytes)) {
+        if (!$isTerminalSnapshot
+            && $kind === 'snapshot' && array_key_exists(ArtifactField::PAYLOAD, $normalized)
+            && !$this->validSnapshotPayload($normalized[ArtifactField::PAYLOAD], 1, $payloadBytes)) {
             $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
             return;
         }
 
         $projected = $this->projectObject($normalized, $kind, 0);
 
-        if ($kind === 'snapshot'
-            && (!array_key_exists('payload', $normalized)
-                || !array_key_exists('payload', $projected)
-                || $normalized['payload'] !== $projected['payload']
-                || (isset($normalized['content_hash'])
-                    && (!isset($projected['content_hash'])
-                        || $normalized['content_hash'] !== $projected['content_hash']))
-                || (!isset($normalized['content_hash']) && !$artifact instanceof RedactedArtifactInterface))) {
+        if (!$isTerminalSnapshot && $kind === 'snapshot'
+            && (!array_key_exists(ArtifactField::PAYLOAD, $normalized)
+                || !array_key_exists(ArtifactField::PAYLOAD, $projected)
+                || $normalized[ArtifactField::PAYLOAD] !== $projected[ArtifactField::PAYLOAD]
+                || (array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
+                    && (!array_key_exists(ArtifactField::CONTENT_HASH, $projected)
+                        || $normalized[ArtifactField::CONTENT_HASH] !== $projected[ArtifactField::CONTENT_HASH]))
+                || (!array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
+                    && !$artifact instanceof RedactedArtifactInterface))) {
             $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
             return;
         }
 
         // Verify required fields are present and safely represented.
-        $required = self::REQUIRED_FIELDS[$kind];
+        $required = $isTerminalSnapshot
+            ? self::REQUIRED_FIELDS_TERMINAL_SNAPSHOT
+            : self::REQUIRED_FIELDS[$kind];
+
         foreach ($required as $field) {
             if (!array_key_exists($field, $projected) || $projected[$field] === null) {
                 $this->reportMissingRequiredField($kind, $field);
@@ -261,11 +294,11 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedMeasurement(array $fields): ?MeasurementInterface
     {
-        foreach (['name', 'kind', 'unit', 'value', 'execution_id', 'activity_id',
-            'timestamp', 'sequence', 'attributes'] as $key) {
-            if (!array_key_exists($key, $fields)) {
-                return null;
-            }
+        if (array_any(
+            ['name', 'kind', 'unit', 'value', 'execution_id', 'activity_id', 'timestamp', 'sequence', 'attributes'],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        )) {
+            return null;
         }
 
         if (!is_string($fields['name']) || !is_string($fields['kind']) || !is_string($fields['unit'])
@@ -323,12 +356,11 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedObservation(array $fields): ?ObservationInterface
     {
-        $keys = ['id', 'execution_id', 'activity_id', 'severity', 'level', 'message', 'diagnostic_code',
-            'sequence', 'timestamp', 'attributes', 'throwable'];
-        foreach ($keys as $key) {
-            if (!array_key_exists($key, $fields)) {
-                return null;
-            }
+        $keys = [
+            'id', 'execution_id', 'activity_id', 'severity', 'level', 'message', 'diagnostic_code', 'sequence',
+            'timestamp', 'attributes', 'throwable'];
+        if (array_any($keys, fn (string $key): bool => !array_key_exists($key, $fields))) {
+            return null;
         }
 
         if (!is_string($fields['execution_id']) || !is_int($fields['timestamp'])
@@ -353,7 +385,6 @@ final class ClassifyingArtifactPublisher implements
             $sequence = ArtifactSequence::of($fields['sequence']);
             $attributes = AttributeCollection::fromArray($attributes);
             if (!is_string($fields['id']) || !is_string($fields['message'])
-                || !is_string($fields['severity'])
                 || (!is_string($fields['diagnostic_code']) && $fields['diagnostic_code'] !== null)
                 || !in_array($fields['severity'], ['debug', 'info', 'notice', 'warning', 'error',
                     'critical', 'alert', 'emergency'], true)) {
@@ -424,11 +455,13 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedExecution(array $fields): ?ExecutionInterface
     {
-        foreach (['id', 'name', 'kind', 'status', 'started_at', 'ended_at', 'parent_execution_id',
-            'linked_execution_ids', 'sequence', 'context', 'result'] as $key) {
-            if (!array_key_exists($key, $fields)) {
-                return null;
-            }
+        if (array_any(
+            [
+            'id', 'name', 'kind', 'status', 'started_at', 'ended_at', 'parent_execution_id',
+            'linked_execution_ids', 'sequence', 'context', 'result'],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        )) {
+            return null;
         }
 
         // Normalization does not necessarily retain the original context classification.
@@ -505,11 +538,13 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedActivity(array $fields): ?ActivityInterface
     {
-        foreach (['id', 'execution_id', 'name', 'kind', 'status', 'started_at', 'ended_at',
-            'parent_activity_id', 'sequence', 'attributes', 'throwable'] as $key) {
-            if (!array_key_exists($key, $fields)) {
-                return null;
-            }
+        if (array_any(
+            [
+            'id', 'execution_id', 'name', 'kind', 'status', 'started_at', 'ended_at',
+            'parent_activity_id', 'sequence', 'attributes', 'throwable'],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        )) {
+            return null;
         }
 
         if (!is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['name'])
@@ -572,12 +607,25 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedSnapshot(array $fields): ?SnapshotInterface
     {
-        foreach (['id', 'execution_id', 'activity_id', 'type', 'classification',
-            'schema_version', 'created_at', 'content_type', 'content_hash', 'predecessor_id',
-            'sequence', 'payload', 'attributes'] as $key) {
-            if (!array_key_exists($key, $fields)) {
-                return null;
-            }
+        if (array_any(
+            [
+                'id',
+                'activity_id',
+                'execution_id',
+                'type',
+                'classification',
+                'schema_version',
+                'created_at',
+                'content_type',
+                'content_hash',
+                'predecessor_id',
+                'sequence',
+                'payload',
+                'attributes',
+            ],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        )) {
+            return null;
         }
 
         if (!is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['type'])
@@ -656,11 +704,26 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedOccurrence(array $fields): ?OccurrenceInterface
     {
-        foreach (['id', 'execution_id', 'type', 'source', 'time', 'data', 'content_type',
-            'extension_attributes', 'sequence', 'activity_id', 'subject', 'data_schema', 'version'] as $key) {
-            if (!array_key_exists($key, $fields)) {
-                return null;
-            }
+        if (array_any(
+            [
+                'id',
+                'activity_id',
+                'execution_id',
+                'type',
+                'source',
+                'time',
+                'data',
+                'content_type',
+                'extension_attributes',
+                'sequence',
+                'subject',
+                'data_schema',
+                'version',
+            ],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        )
+        ) {
+            return null;
         }
 
         if (!is_string($fields['id']) || !is_string($fields['execution_id'])
@@ -741,7 +804,7 @@ final class ClassifyingArtifactPublisher implements
             return 'snapshot';
         }
 
-        if ($artifact instanceof RedactedArtifactInterface || $artifact instanceof TrustedArtifactProjectionInterface
+        if ($artifact instanceof RedactedArtifactInterface
             || $artifact instanceof VerifiedArtifactProjection) {
             $type = $artifact->artifactType();
             if (array_key_exists($type, self::FIELD_ALLOWLIST)) {
@@ -832,7 +895,6 @@ final class ClassifyingArtifactPublisher implements
 
     /**
      * Project a map: keep all keys, recursively bound values, respect budgets.
-     *
      * @param array<mixed, mixed> $value
      * @return array<string, mixed>
      */

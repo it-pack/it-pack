@@ -49,6 +49,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
@@ -184,7 +185,7 @@ final class RunItBuilderTest extends TestCase
         self::assertSame('value', $result);
     }
 
-    public function testDefaultTerminalSnapshotSinkRetainsBusinessIdInPayload(): void
+    public function testDefaultTerminalSnapshotSinkOmitsPayloadByDefault(): void
     {
         $sink = new RecordingArtifactPublisher();
         $generator = new class () implements IdentifierGeneratorInterface {
@@ -214,8 +215,8 @@ final class RunItBuilderTest extends TestCase
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();
         self::assertNotSame('caller-business-execution-id', $snapshot['execution_id']);
-        self::assertIsArray($snapshot['payload']);
-        self::assertSame('caller-business-execution-id', $snapshot['payload']['id']);
+        self::assertArrayNotHasKey(ArtifactField::PAYLOAD, $snapshot);
+        self::assertArrayNotHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }
 
     public function testSamplingPolicyDropsArtifacts(): void
@@ -656,12 +657,18 @@ final class RunItBuilderTest extends TestCase
         self::assertSame('result', $runtime->run($this->definition(), static fn (): string => 'result'));
         self::assertNotEmpty($sink->published);
         self::assertSame([], $failures);
+        // Terminal snapshots are published as classified projections (payload omitted by default).
         $snapshots = array_values(array_filter(
             $sink->published,
-            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface,
+            static fn (ExecutionArtifactInterface $artifact): bool =>
+                $artifact instanceof SnapshotInterface
+                || ($artifact instanceof TrustedArtifactProjectionInterface
+                    && $artifact->artifactType() === 'snapshot'),
         ));
         self::assertCount(1, $snapshots);
-        self::assertSame($sink->published[1]->normalize()['id'], $snapshots[0]->normalize()['execution_id']);
+        $snapshot = $snapshots[0]->normalize();
+        self::assertArrayNotHasKey(ArtifactField::PAYLOAD, $snapshot);
+        self::assertArrayNotHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }
 
     public function testCustomSnapshotFactoryCannotForgeExecutionOwnership(): void

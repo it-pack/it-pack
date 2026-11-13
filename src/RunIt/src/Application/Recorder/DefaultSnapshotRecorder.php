@@ -87,7 +87,16 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
             );
 
             $this->authority->attest($snapshot, $exportId);
-            $this->authority->bindActivityRelationship($exportId, $snapshot->activityId()?->toString());
+            $activityBusinessId = $snapshot->activityId()?->toString();
+            if ($exportId !== null && $activityBusinessId !== null) {
+                $executionId = $this->authority->executionIdForExportId($exportId);
+                $activityExportId = $executionId !== null
+                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
+                    : null;
+                if ($activityExportId !== null) {
+                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
+                }
+            }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Snapshot publication preparation failed.'));
             $this->persist($snapshot);

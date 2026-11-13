@@ -1229,15 +1229,6 @@ every configuration is affected, and do not authorize a change in delivery.
 
 Open implementation gaps (decisions approved, implementation pending):
 
-- `ProvenanceAuthority::bindActivityRelationship()` resolves an endpoint by
-  matching a business ID within an execution — weaker than independently recorded
-  relationship evidence. Fixing it requires passing verified export IDs through
-  the activity scope rather than looking up by business ID claim.
-- `ClassifyingArtifactPublisher` falls back to generic `ClassifiedArtifact` when
-  typed reconstruction fails; whether such projections are mapped through redacted
-  mapper methods or reported as drops is an open routing implementation task.
-- Terminal snapshot payloads can retain business IDs after the outer execution ID
-  has been replaced; snapshot payload classification implementation pending.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond
   cleanup cannot be verified. Async ownership behavior undocumented.
 - No representative workload, delivery-loss measurement, or real exporter I/O
@@ -1330,31 +1321,38 @@ Implemented within already-approved decisions:
 
 Open gaps requiring maintainer approval before any delivery or contract change:
 
-- The safe-field and representation/delivery policies remain explicitly
-  unapproved (Phase 2 lines 1202-1220). Existing characterizations are not
-  authorization. The field-by-field decision (observation severity/message/
-  attributes/diagnostics/timing; throwable class/code/nested causes/trace;
-  required versus optional fields; unknown keys/values; snapshot embedded
-  identifiers and hash validity) has not been presented for approval.
-- `ProvenanceAuthority::bindActivityRelationship()` resolves an endpoint by
-  matching a business ID within an execution, which is weaker than independently
-  recorded relationship evidence. Fixing it requires passing verified export IDs
-  through the activity scope rather than looking up by business ID claim.
-- `ClassifyingArtifactPublisher` falls back to generic `ClassifiedArtifact` when
-  typed reconstruction fails; whether such projections are mapped through redacted
-  mapper methods or reported as drops is an unresolved routing decision.
-- Terminal snapshot payloads can retain business IDs after the outer execution ID
-  has been replaced; snapshot payload classification policy is not yet approved.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond
   cleanup cannot be verified. This is by design but async ownership behavior is
   undocumented.
 - No representative workload, delivery-loss measurement, or real exporter I/O
   baseline has been established for Phase 2 cost evaluation.
 
-Phase 2 cannot be closed until the safe-field/delivery policies receive explicit
-maintainer approval and the corresponding implementation, tests, and documentation
-are complete. `composer quality` (validation, Rector dry-run, PHPStan at level max,
-architecture, lint:length, all four test suites, security audit) passes on PHP 8.5.12.
+Resolved in Phase 2 implementation:
+
+- Safe-field and representation/delivery policies approved (lines 1202-1220):
+  arbitrary fields are unclassified unless an explicit opt-in policy establishes
+  otherwise; throwable class/code preserved by default, traces omitted; terminal
+  snapshot payload and content hash omitted by default. Implemented in
+  `ClassifyingArtifactPublisher`, `DefaultArtifactRedactor`, and
+  `PublisherStackFactory` ordering.
+- `ProvenanceAuthority::bindActivityRelationship()` now accepts verified export
+  IDs instead of business ID claims. Callers (`DefaultObservationRecorder`,
+  `DefaultOccurrenceRecorder`, `DefaultSnapshotRecorder`, `DefaultMeasurementRecorder`,
+  `DefaultActivityRunner`) resolve business IDs to export IDs via
+  `exportIdForBusinessId()` before binding, eliminating the business-ID-claim
+  weakness. Covered by `ProvenanceAuthorityTest`:
+  `testActivityRelationshipsRequireUniqueSameExecutionEdges`.
+- `ClassifyingArtifactPublisher` fallback to `ClassifiedArtifact` when typed
+  reconstruction fails is routed through `TelemetryPublisher` via
+  `dispatchRedactedArtifact()` based on the trusted `artifactType()`, producing
+  an observable payload-free drop rather than silent loss.
+- Terminal snapshot payloads and content hashes omitted by default in
+  `ClassifyingArtifactPublisher`; `TypedSnapshot` falls back to `ClassifiedArtifact`
+  which is safely dispatched by adapters.
+
+Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run,
+PHPStan at level max, architecture, lint:length, all four test suites, security
+audit) passes on PHP 8.5.12.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
