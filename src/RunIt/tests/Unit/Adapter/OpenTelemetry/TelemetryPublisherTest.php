@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\OpenTelemetry;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
@@ -22,11 +23,13 @@ use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -428,6 +431,46 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish($observation);
     }
 
+    public function testClassifiedRedactedObservationNeverReachesLegacyMapper(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+                $reports[] = [$error->getMessage(), $artifact->normalize()];
+            },
+        );
+        $mapper = $this->createMock(ObservationLogMapperInterface::class);
+        $mapper->expects($this->never())->method('map');
+        $publisher = new TelemetryPublisher(
+            BridgeConfig::default(),
+            $this->createMock(ExecutionSpanMapperInterface::class),
+            $this->createMock(ActivitySpanMapperInterface::class),
+            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $mapper,
+            $this->createMock(OccurrenceLogMapperInterface::class),
+            $health,
+        );
+        $sink = new InMemoryArtifactPublisher();
+        $original = RunItArtifactFactory::observation('obs', 'exec', 'info', 'secret-message');
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig())->redact($original);
+        new ClassifyingArtifactPublisher($sink)->publish($redacted);
+        $classified = $sink->published()[0];
+
+        self::assertInstanceOf(ObservationInterface::class, $classified);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $classified);
+        self::assertNotSame($original, $classified);
+        self::assertStringNotContainsString(
+            'secret-message',
+            json_encode($classified->normalize(), JSON_THROW_ON_ERROR),
+        );
+        $publisher->publish($classified);
+
+        self::assertCount(1, $reports);
+        self::assertSame('Observation mapper does not support redacted observations.', $reports[0][0]);
+        self::assertStringNotContainsString('secret-message', json_encode($reports, JSON_THROW_ON_ERROR));
+        self::assertCount(0, $this->kit->logs());
+    }
+
     /** Redacted measurements are delivered via mapRedactedMeasurement, not dropped. */
     public function testRedactedMeasurementIsDeliveredViaMapRedactedMeasurement(): void
     {
@@ -637,6 +680,12 @@ final class TelemetryPublisherTest extends Unit
         self::assertArrayNotHasKey('source', $normalized);
         self::assertArrayNotHasKey('classification', $normalized);
 
+        $sink = new InMemoryArtifactPublisher();
+        new ClassifyingArtifactPublisher($sink)->publish($redacted);
+        $classified = $sink->published()[0];
+        self::assertInstanceOf(ObservationInterface::class, $classified);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $classified);
+
         $config = new BridgeConfigBuilder()
             ->withLoggerProvider($this->kit->loggerProvider)
             ->withObservationSpanEvents(enabled: true)
@@ -646,7 +695,7 @@ final class TelemetryPublisherTest extends Unit
         $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
         $scope = $span->activate();
         try {
-            $publisher->publish($redacted);
+            $publisher->publish($classified);
             self::assertCount(1, $this->kit->logs());
             self::assertSame('[redacted]', $this->kit->log(0)->getBody());
             $publisher->publish(RunItArtifactFactory::observation('obs-control', 'exec-1', 'info', 'control'));

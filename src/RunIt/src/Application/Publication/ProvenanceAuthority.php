@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use InvalidArgumentException;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
 use Throwable;
+use WeakMap;
 
 /**
  * Internal authority for issuance and verification of SDK-controlled export identities.
@@ -72,6 +75,14 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             'from' => ['execution'],
             'to' => ['snapshot', 'terminal-snapshot'],
         ],
+        'activity-artifact' => [
+            'from' => ['activity'],
+            'to' => ['observation', 'occurrence', 'measurement', 'snapshot', 'terminal-snapshot'],
+        ],
+        'activity-parent' => [
+            'from' => ['activity'],
+            'to' => ['activity'],
+        ],
     ];
 
     /**
@@ -89,10 +100,158 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      */
     private array $byExecution = [];
 
+    /** @var array<string, array<string, array<string, true>>> */
+    private array $outgoing = [];
+
+    /** @var array<string, array<string, array<string, true>>> */
+    private array $incoming = [];
+
     private bool $releasing = false;
 
-    public function __construct(private readonly ?InternalHealthReporterInterface $health = null)
+    private int $edgeCount = 0;
+
+    /** @var WeakMap<ExecutionArtifactInterface, array{exportId: string, fields: array<string, mixed>}> */
+    private WeakMap $evidence;
+
+    public function __construct(
+        private readonly ?InternalHealthReporterInterface $health = null,
+        private readonly int $maxRecords = 100000,
+        private readonly int $maxEdges = 200000,
+        private readonly int $maxIdentifierBytes = 1024,
+    ) {
+        if ($maxRecords < 1 || $maxEdges < 1 || $maxIdentifierBytes < 1) {
+            throw new InvalidArgumentException('Provenance retention limits must be positive.');
+        }
+
+        $this->evidence = new WeakMap();
+    }
+
+    /** Bind evidence to the exact object created by an SDK issuance site. */
+    public function attest(ExecutionArtifactInterface $artifact, ?string $exportId): bool
     {
+        if ($exportId === null || !isset($this->records[$exportId])) {
+            return false;
+        }
+
+        try {
+            $fields = $this->identityFields($artifact);
+            $record = $this->records[$exportId];
+            $executionId = $record['role'] === 'execution'
+                ? ($fields[ArtifactField::ID] ?? null)
+                : ($fields[ArtifactField::EXECUTION_ID] ?? null);
+            if ($executionId !== $record['executionId']
+                || ($record['role'] !== 'measurement'
+                    && ($fields[ArtifactField::ID] ?? null) !== $record['businessId'])) {
+                return false;
+            }
+
+            $this->evidence[$artifact] = ['exportId' => $exportId, 'fields' => $fields];
+        } catch (Throwable) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Return the issued export ID only for the unchanged, live object. */
+    public function exportIdForArtifact(ExecutionArtifactInterface $artifact): ?string
+    {
+        $evidence = $this->evidence[$artifact] ?? null;
+        if ($evidence === null || !isset($this->records[$evidence['exportId']])) {
+            return null;
+        }
+
+        try {
+            if ($evidence['fields'] !== $this->identityFields($artifact)) {
+                return null;
+            }
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $evidence['exportId'];
+    }
+
+    /** Transfer an existing issuance to an immutable lifecycle successor. */
+    public function attestSuccessor(ExecutionArtifactInterface $previous, ExecutionArtifactInterface $successor): bool
+    {
+        $exportId = $this->exportIdForArtifact($previous);
+        if ($exportId === null) {
+            return false;
+        }
+
+        try {
+            if ($this->identityFields($previous) !== $this->identityFields($successor)) {
+                return false;
+            }
+        } catch (Throwable) {
+            return false;
+        }
+
+        return $this->attest($successor, $exportId);
+    }
+
+    /**
+     * Return export identities for attested objects and recorded edges only.
+     * Unverified activity and predecessor claims are deliberately omitted.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function exportIdentityFields(ExecutionArtifactInterface $artifact): ?array
+    {
+        $exportId = $this->exportIdForArtifact($artifact);
+        if ($exportId === null) {
+            return null;
+        }
+
+        $record = $this->records[$exportId];
+        $fields = $this->evidence[$artifact]['fields'];
+        $output = [];
+        if (array_key_exists(ArtifactField::ID, $fields)) {
+            $output[ArtifactField::ID] = $exportId;
+        }
+
+        if ($record['role'] !== 'execution') {
+            $rootId = $this->exportIdForBusinessId($record['executionId'], $record['executionId']);
+            $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
+            $relation = $record['role'] === 'terminal-snapshot'
+                ? 'execution-terminal-snapshot' : 'execution-' . $record['role'];
+            if ($root === null || $root['role'] !== 'execution'
+                || !isset($this->outgoing[$rootId][$relation][$exportId])) {
+                return null;
+            }
+
+            $output[ArtifactField::EXECUTION_ID] = $rootId;
+
+            return $output + $this->activityIdentityFields($exportId, $fields);
+        }
+
+        $parents = [];
+        $links = [];
+        $linkedClaims = $fields[ArtifactField::LINKED_EXECUTION_IDS] ?? [];
+        if (!is_array($linkedClaims)) {
+            return null;
+        }
+
+        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
+            $source = $this->records[$sourceId] ?? null;
+            if ($source !== null && $source['role'] === 'execution'
+                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
+                $parents[] = $sourceId;
+            }
+        }
+
+        $links = $this->linkedExecutionIds($exportId, $linkedClaims);
+
+        if (count($parents) === 1) {
+            $output[ArtifactField::PARENT_EXECUTION_ID] = $parents[0];
+        }
+
+        if ($links !== []) {
+            $output[ArtifactField::LINKED_EXECUTION_IDS] = $links;
+        }
+
+        return $output;
     }
 
     /**
@@ -114,6 +273,13 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     ): string {
         if ($this->releasing) {
             throw new RuntimeException('Provenance authority is releasing; no new issuance permitted.');
+        }
+
+        if (count($this->records) >= $this->maxRecords
+            || strlen($kind) > $this->maxIdentifierBytes || strlen($role) > $this->maxIdentifierBytes
+            || strlen($executionId) > $this->maxIdentifierBytes || strlen($businessId) > $this->maxIdentifierBytes
+            || $relationships !== []) {
+            throw new RuntimeException('Provenance capacity exceeded or initial relationships rejected.');
         }
 
         $exportId = 'runit-export-' . bin2hex(random_bytes(16));
@@ -179,10 +345,48 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return false;
         }
 
+        if (str_starts_with($relationshipType, 'activity-')
+            && ($from['executionId'] !== $to['executionId'] || $fromExportId === $toExportId)) {
+            return false;
+        }
+
+        if (isset($this->outgoing[$fromExportId][$relationshipType][$toExportId])) {
+            return true;
+        }
+
+        if ($this->edgeCount >= $this->maxEdges) {
+            $this->reportUnverified(new RuntimeException('Provenance relationship capacity exceeded.'));
+
+            return false;
+        }
+
         unset($from, $to);
         $this->records[$fromExportId]['relationships'][] = $relationshipType . ':' . $toExportId;
+        $this->outgoing[$fromExportId][$relationshipType][$toExportId] = true;
+        $this->incoming[$toExportId][$relationshipType][$fromExportId] = true;
+        ++$this->edgeCount;
 
         return true;
+    }
+
+    /** Record an activity claim only when it identifies one issued activity in the same execution. */
+    public function bindActivityRelationship(?string $targetId, ?string $activityId, bool $parent = false): void
+    {
+        if ($targetId === null || $activityId === null || !isset($this->records[$targetId])) {
+            return;
+        }
+
+        $executionId = $this->records[$targetId]['executionId'];
+        $matches = [];
+        foreach ($this->byBusinessExecution[$activityId . "\0" . $executionId] ?? [] as $candidate) {
+            if (($this->records[$candidate]['role'] ?? null) === 'activity') {
+                $matches[] = $candidate;
+            }
+        }
+
+        if (count($matches) === 1) {
+            $this->registerRelationship($matches[0], $targetId, $parent ? 'activity-parent' : 'activity-artifact');
+        }
     }
 
     /**
@@ -321,6 +525,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             if ($execution === null || $execution['released'] || $roles === null
                 || !in_array($execution['role'], $roles['from'], true)
                 || !in_array($role, $roles['to'], true)
+                || $this->edgeCount >= $this->maxEdges
             ) {
                 $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
 
@@ -330,7 +535,13 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             unset($execution);
         }
 
-        $exportId = $this->issueExportId($kind, $role, $executionId, $businessId);
+        try {
+            $exportId = $this->issueExportId($kind, $role, $executionId, $businessId);
+        } catch (Throwable) {
+            $this->reportUnverified(new RuntimeException('Provenance issuance rejected.'));
+
+            return null;
+        }
 
         if ($relationshipType !== ''
             && !$this->registerRelationship($executionExportId, $exportId, $relationshipType)
@@ -363,6 +574,26 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 
             foreach ($candidates as $exportId) {
                 $record = $this->records[$exportId] ?? null;
+                foreach ($this->outgoing[$exportId] ?? [] as $type => $targets) {
+                    foreach ($targets as $target => $_) {
+                        unset($this->incoming[$target][$type][$exportId]);
+                        --$this->edgeCount;
+                    }
+                }
+
+                foreach ($this->incoming[$exportId] ?? [] as $type => $sources) {
+                    foreach ($sources as $source => $_) {
+                        unset($this->outgoing[$source][$type][$exportId]);
+                        $edge = $type . ':' . $exportId;
+                        $this->records[$source]['relationships'] = array_values(array_filter(
+                            $this->records[$source]['relationships'],
+                            static fn (string $item): bool => $item !== $edge,
+                        ));
+                        --$this->edgeCount;
+                    }
+                }
+
+                unset($this->outgoing[$exportId], $this->incoming[$exportId]);
                 unset($this->records[$exportId]);
                 // Remove from byBusinessExecution index directly via the record's
                 // businessId/executionId key instead of scanning every bucket.
@@ -381,21 +612,6 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 
             unset($this->byExecution[$executionId]);
 
-            // Edges are stored on their source, which may belong to a longer-lived
-            // execution. Remove references to the records just released as well.
-            if ($candidates !== []) {
-                $released = array_fill_keys($candidates, true);
-                foreach ($this->records as $key => $liveRecord) {
-                    $this->records[$key]['relationships'] = array_values(array_filter(
-                        $liveRecord['relationships'],
-                        static function (string $relationship) use ($released): bool {
-                            $separator = strpos($relationship, ':');
-
-                            return $separator === false || !isset($released[substr($relationship, $separator + 1)]);
-                        },
-                    ));
-                }
-            }
         } finally {
             $this->releasing = false;
         }
@@ -431,5 +647,53 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
                 // No further independent sink remains; preserve the business outcome.
             }
         }
+    }
+
+    /** @param array<string, mixed> $fields
+     * @return array<string, string>
+     */
+    private function activityIdentityFields(string $exportId, array $fields): array
+    {
+        $record = $this->records[$exportId];
+        $field = $record['role'] === 'activity' ? ArtifactField::PARENT_ACTIVITY_ID : ArtifactField::ACTIVITY_ID;
+        $relation = $record['role'] === 'activity' ? 'activity-parent' : 'activity-artifact';
+        $claim = $fields[$field] ?? null;
+        $matches = [];
+        foreach ($this->incoming[$exportId][$relation] ?? [] as $sourceId => $_) {
+            $source = $this->records[$sourceId] ?? null;
+            if ($source !== null && $source['executionId'] === $record['executionId']
+                && $source['businessId'] === $claim) {
+                $matches[] = $sourceId;
+            }
+        }
+
+        return count($matches) === 1 ? [$field => $matches[0]] : [];
+    }
+
+    /** @param array<mixed> $claims
+     * @return list<string>
+     */
+    private function linkedExecutionIds(string $exportId, array $claims): array
+    {
+        $lookup = array_fill_keys(array_filter($claims, is_string(...)), true);
+        $links = [];
+        foreach ($this->incoming[$exportId]['link'] ?? [] as $sourceId => $_) {
+            $source = $this->records[$sourceId] ?? null;
+            if ($source !== null && $source['role'] === 'execution' && isset($lookup[$source['businessId']])) {
+                $links[] = $sourceId;
+            }
+        }
+
+        return $links;
+    }
+
+    /** @return array<string, mixed> */
+    private function identityFields(ExecutionArtifactInterface $artifact): array
+    {
+        return array_intersect_key($artifact->normalize(), array_flip([
+            ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
+            ArtifactField::PARENT_EXECUTION_ID, ArtifactField::LINKED_EXECUTION_IDS,
+            ArtifactField::PARENT_ACTIVITY_ID, ArtifactField::PREDECESSOR_ID,
+        ]));
     }
 }

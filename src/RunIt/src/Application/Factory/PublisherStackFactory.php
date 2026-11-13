@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Factory;
 
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
@@ -43,13 +44,15 @@ final class PublisherStackFactory implements HealthAwarePublisherStackFactoryInt
         ?SamplingPolicyInterface $samplingPolicy,
         ?InternalHealthReporterInterface $health = null,
         ?SecurityLimits $limits = null,
+        ?ProvenanceAuthority $authority = null,
     ): ArtifactPublisherInterface {
         $composed = $base;
 
         // Classification is innermost: it bounds the redacted result before the
         // sink sees it. Even artifacts that pass the deny-list redactor
         // unchanged are projected to a safe, bounded form.
-        if ($redactor instanceof RedactorInterface || $samplingPolicy instanceof SamplingPolicyInterface) {
+        if ($redactor instanceof RedactorInterface || $samplingPolicy instanceof SamplingPolicyInterface
+            || $authority instanceof ProvenanceAuthority) {
             $composed = new ClassifyingArtifactPublisher($composed, $health, $limits ?? new SecurityLimits());
         }
 
@@ -62,8 +65,8 @@ final class PublisherStackFactory implements HealthAwarePublisherStackFactoryInt
         // Redaction runs outermost so the redactor sees the concrete artifact
         // type (SnapshotInterface, ObservationInterface, etc.) and can mask
         // throwable messages, observation messages, and sensitive keys.
-        if ($redactor instanceof RedactorInterface) {
-            $composed = new RedactingArtifactPublisher($redactor, $composed);
+        if ($redactor instanceof RedactorInterface || $authority instanceof ProvenanceAuthority) {
+            $composed = new RedactingArtifactPublisher($redactor, $composed, authority: $authority);
         }
 
         return $composed;

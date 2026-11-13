@@ -6,6 +6,8 @@ namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
+use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -50,6 +52,37 @@ final class DefaultExecutionRunnerTest extends Unit
         $kit = new RunItTestKit();
 
         self::assertSame('value', $kit->runner->run($definition, static fn (): string => 'value'));
+    }
+
+    public function testSetupFailuresReleaseOnlyIssuedProvenance(): void
+    {
+        foreach (['factory', 'coordinator', 'duplicate'] as $stage) {
+            $authority = new ProvenanceAuthority();
+            $failure = new RuntimeException('setup failure');
+            $factory = self::createStub(ExecutionFactoryInterface::class);
+            $coordinator = self::createStub(ExecutionLifecycleCoordinatorInterface::class);
+            if ($stage === 'factory' || $stage === 'duplicate') {
+                $factory->method('create')->willThrowException($failure);
+            } else {
+                $factory->method('create')->willReturn(self::createStub(ExecutionInterface::class));
+                $coordinator->method('start')->willThrowException($failure);
+            }
+
+            if ($stage === 'duplicate') {
+                $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+            }
+
+            $kit = new RunItTestKit(coordinator: $coordinator, authority: $authority, executionFactory: $factory);
+            $caught = null;
+            try {
+                $kit->runner->run($this->definition(), static fn (): null => null);
+            } catch (Throwable $throwable) {
+                $caught = $throwable;
+            }
+
+            self::assertSame($failure, $caught);
+            self::assertSame($stage === 'duplicate', $authority->hasLiveRecords('exec-1'));
+        }
     }
 
     public function testActivityOnlyModeWithoutCurrentExecutionRunsAFullExecution(): void

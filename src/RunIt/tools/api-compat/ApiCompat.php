@@ -80,12 +80,13 @@ final class ApiCompat
 
     /**
      * @param list<string> $argv
+     * @param array{publicDirs: list<string>, internalNamespaces: list<string>, baseline: string, schema: array{path: string, baseline: string}}|null $config
      * @throws JsonException
      */
-    public function __construct(private array $argv)
+    public function __construct(private array $argv, ?array $config = null)
     {
         $this->root = dirname(__DIR__, 2);
-        $this->config = $this->loadConfig();
+        $this->config = $config ?? $this->loadConfig();
     }
 
     /**
@@ -182,6 +183,13 @@ final class ApiCompat
 
             foreach ($new['methods'] as $name => $newMethod) {
                 if (isset($old['methods'][$name])) {
+                    continue;
+                }
+
+                // Older baselines omit PHP-internal methods, but already record
+                // the interfaces that imposed those obligations.
+                if (isset($newMethod['internalInterface'])
+                    && in_array($newMethod['internalInterface'], $old['implements'], true)) {
                     continue;
                 }
 
@@ -471,12 +479,9 @@ final class ApiCompat
                     continue;
                 }
 
-                // Skip methods inherited from internal PHP classes (e.g. Exception,
-                // stdClass) since they are part of PHP's API, not this project's.
-                // Methods inherited from project interfaces/classes ARE part of this
-                // project's public API surface and must be recorded so that removing
-                // them from a parent is detected as a compatibility break.
-                if ($m->getDeclaringClass()->isInternal()) {
+                // Built-in interface methods are implementation obligations, unlike
+                // methods inherited from built-in classes such as Exception.
+                if ($m->getDeclaringClass()->isInternal() && !$m->getDeclaringClass()->isInterface()) {
                     continue;
                 }
                 $params = [];
@@ -494,6 +499,10 @@ final class ApiCompat
                     'return' => $m->hasReturnType() ? $this->typeToString($m->getReturnType()) : null,
                     'params' => $params,
                 ];
+
+                if ($m->getDeclaringClass()->isInternal() && $m->getDeclaringClass()->isInterface()) {
+                    $entry['methods'][$m->getName()]['internalInterface'] = $m->getDeclaringClass()->getName();
+                }
             }
 
             if ($rc->isEnum()) {

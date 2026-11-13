@@ -175,13 +175,17 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         // repeatable across calls and cannot serve as a distinct artifact identity.
         $rawSequence = $measurement->normalize()[ArtifactField::SEQUENCE] ?? null;
         $businessId = is_int($rawSequence) ? (string) $rawSequence : 'unknown';
-        $this->authority->bindArtifact(
+        $exportId = $this->authority->bindArtifact(
             'measurement',
             'measurement',
             $this->executionId->toString(),
             $businessId,
             'execution-measurement',
         );
+
+        $this->authority->attest($measurement, $exportId);
+        $activityId = $measurement->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
+        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
 
         $this->publisher->publish($measurement);
 

@@ -70,7 +70,8 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
 
             // SDK-classified projections carry a trustworthy execution_id in
             // their normalized projection.
-            if ($artifact instanceof TrustedArtifactProjectionInterface) {
+            if ($artifact instanceof TrustedArtifactProjectionInterface
+                || $artifact instanceof VerifiedArtifactProjection) {
                 $normalized = $artifact->normalize();
                 $id = $normalized[$artifact->artifactType() === 'execution'
                     ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;

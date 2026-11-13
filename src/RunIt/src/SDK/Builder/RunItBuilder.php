@@ -14,8 +14,10 @@ use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
+use ItPack\RunIt\Application\Publication\ProvenanceArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\EngineCapability;
@@ -25,6 +27,7 @@ use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
@@ -314,7 +317,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         $executionFactory = $this->executionFactory ?? new ExecutionFactory();
         $coordinator = $this->coordinator ?? new ExecutionLifecycleCoordinator();
 
-        $health = new ErrorLogHealthReporter();
+        $health = $this->healthReporter();
         $authority = new ProvenanceAuthority($health);
 
         $snapshotFactory = $this->snapshotFactory
@@ -350,8 +353,9 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         // Unless the consumer explicitly configured a redactor, including an
         // explicit `withRedactor(null)` opt-out,
         // the default redactor is installed. Its current coverage is limited, and the
-        // default publisher stack calls the sampler before redaction. Occurrence-data
-        // and snapshot-payload masking require configured sensitive keys.
+        // default publisher stack calls the sampler after redaction, but unchanged
+        // fields may still be sensitive. Occurrence-data and snapshot-payload
+        // masking require configured sensitive keys.
         $redactor = $this->redactor ?? ($this->redactorConfigured ? null : new DefaultArtifactRedactor());
 
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
@@ -363,11 +367,14 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
                 $this->samplingPolicy,
                 $health,
                 $this->limits,
+                $authority,
             ),
             $publisherStackFactory instanceof HealthAwarePublisherStackFactoryInterface =>
                 $publisherStackFactory->composeWithHealth($publisher, $redactor, $this->samplingPolicy, $health),
             default => $publisherStackFactory->compose($publisher, $redactor, $this->samplingPolicy),
         };
+
+        $composedPublisher = new ProvenanceArtifactPublisher($authority, $composedPublisher);
 
         $runner = new DefaultExecutionRunner(
             currentExecution: $currentExecution,
@@ -397,6 +404,13 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         );
 
         return new DefaultRunIt($runner, $currentExecution);
+    }
+
+    private function healthReporter(): InternalHealthReporterInterface
+    {
+        return $this->onPublicationFailure instanceof Closure
+            ? new CallbackHealthReporter($this->onPublicationFailure)
+            : new ErrorLogHealthReporter();
     }
 
     private function requirePublisher(): ArtifactPublisherInterface

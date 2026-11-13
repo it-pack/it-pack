@@ -10,12 +10,16 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
@@ -64,6 +68,9 @@ use Throwable;
 #[UsesClass(RedactedArtifact::class)]
 #[UsesClass(CallbackHealthReporter::class)]
 #[UsesClass(BoundDropException::class)]
+#[UsesClass(ProvenanceAuthority::class)]
+#[UsesClass(ClassifyingArtifactPublisher::class)]
+#[UsesClass(VerifiedArtifactProjection::class)]
 #[UsesClass(Execution::class)]
 #[UsesClass(ExecutionDefinition::class)]
 #[UsesClass(ExecutionFailure::class)]
@@ -81,6 +88,50 @@ use Throwable;
 #[UsesClass(SnapshotType::class)]
 final class RedactingPublisherTest extends Unit
 {
+    public function testVerifiedProjectionMarksOnlyActuallyRedactedObservations(): void
+    {
+        foreach (['disabled', 'no-match', 'default'] as $mode) {
+            $authority = new ProvenanceAuthority();
+            $executionId = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+            $observationId = $authority->bindArtifact(
+                'observation',
+                'observation',
+                'exec',
+                'obs',
+                'execution-observation',
+            );
+            $observation = Observation::info(
+                ObservationId::fromString('obs'),
+                ExecutionId::fromString('exec'),
+                'message',
+            );
+            self::assertTrue($authority->attest($observation, $observationId));
+            $redactor = match ($mode) {
+                'disabled' => null,
+                'no-match' => new DefaultArtifactRedactor(
+                    new ArtifactRedactionConfig(redactObservationMessages: false),
+                ),
+                default => new DefaultArtifactRedactor(),
+            };
+            $sink = new InMemoryArtifactPublisher();
+            new RedactingArtifactPublisher($redactor, $sink, authority: $authority)->publish($observation);
+
+            self::assertCount(1, $sink->published());
+            $projection = $sink->published()[0];
+            self::assertSame($mode === 'default', $projection instanceof RedactedArtifactInterface, $mode);
+            self::assertSame($observationId, $projection->normalize()['id']);
+            self::assertSame($executionId, $projection->normalize()['execution_id']);
+            self::assertSame($mode === 'default' ? '[redacted]' : 'message', $projection->normalize()['message']);
+
+            $classifiedSink = new InMemoryArtifactPublisher();
+            new ClassifyingArtifactPublisher($classifiedSink)->publish($projection);
+            self::assertCount(1, $classifiedSink->published());
+            $classified = $classifiedSink->published()[0];
+            self::assertInstanceOf(ObservationInterface::class, $classified);
+            self::assertSame($mode === 'default', $classified instanceof RedactedArtifactInterface, $mode);
+        }
+    }
+
     private function redactor(): DefaultArtifactRedactor
     {
         return new DefaultArtifactRedactor(new ArtifactRedactionConfig(

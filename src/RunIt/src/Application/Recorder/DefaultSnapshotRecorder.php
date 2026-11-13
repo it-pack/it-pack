@@ -79,13 +79,17 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         // execution→snapshot edge so provenance can be verified at publication.
         $rawId = $snapshot->normalize()[ArtifactField::ID] ?? null;
         $businessId = is_string($rawId) ? $rawId : 'unknown';
-        $this->authority->bindArtifact(
+        $exportId = $this->authority->bindArtifact(
             'snapshot',
             'snapshot',
             $this->executionId->toString(),
             $businessId,
             'execution-snapshot',
         );
+
+        $this->authority->attest($snapshot, $exportId);
+        $activityId = $snapshot->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
+        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
 
         $this->publisher->publish($snapshot);
         $this->persist($snapshot);

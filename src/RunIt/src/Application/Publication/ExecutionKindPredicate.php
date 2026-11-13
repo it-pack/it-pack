@@ -61,7 +61,8 @@ final readonly class ExecutionKindPredicate implements ArtifactPredicateInterfac
             return ($this->decide)($kind);
         }
 
-        if ($artifact instanceof TrustedArtifactProjectionInterface) {
+        if ($artifact instanceof TrustedArtifactProjectionInterface
+            || $artifact instanceof VerifiedArtifactProjection) {
             return $this->resolveKindFromNormalized($artifact);
         }
 

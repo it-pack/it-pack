@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Metrics;
 
+use ArrayObject;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedMeasurementInstrumentMapperInterface;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
@@ -18,6 +21,7 @@ use OpenTelemetry\API\Metrics\HistogramInterface;
 use OpenTelemetry\API\Metrics\MeterInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;
 use OpenTelemetry\API\Metrics\UpDownCounterInterface;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -36,6 +40,9 @@ final readonly class DefaultMeasurementInstrumentMapper implements
     MeasurementInstrumentMapperInterface,
     RedactedMeasurementInstrumentMapperInterface
 {
+    /** @var ArrayObject<string, bool> */
+    private ArrayObject $healthState;
+
     /**
      * @param list<string> $metricAttributeAllowList measurement attribute keys allowed as dimensions
      */
@@ -43,7 +50,9 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         private ?MeterProviderInterface $meterProvider,
         private InstrumentCache         $cache,
         private array                   $metricAttributeAllowList,
+        private ?InternalHealthReporterInterface $health = null,
     ) {
+        $this->healthState = new ArrayObject(['reporting' => false]);
     }
 
     public function record(MeasurementInterface $measurement): void
@@ -92,6 +101,7 @@ final readonly class DefaultMeasurementInstrumentMapper implements
 
         $value = $normalized[ArtifactField::VALUE] ?? null;
         if (!is_int($value) && !is_float($value)) {
+            $this->reportInvalidValue();
             return;
         }
 
@@ -113,6 +123,40 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         $instrument = $this->resolveInstrumentFromRedacted($meter, $name, $unit, $kind);
 
         $this->apply($instrument, $measurementValue, $attributes);
+    }
+
+    private function reportInvalidValue(): void
+    {
+        if ($this->healthState['reporting'] === true) {
+            return;
+        }
+
+        $this->healthState['reporting'] = true;
+        try {
+            if ($this->health instanceof InternalHealthReporterInterface) {
+                $this->health->report(
+                    new RuntimeException('Redacted measurement has a nonnumeric value.'),
+                    new readonly class () implements ExecutionArtifactInterface {
+                        public function normalize(): array
+                        {
+                            return ['id' => 'redacted', 'type' => 'runit.artifact.redacted'];
+                        }
+                    },
+                );
+                $this->healthState['reporting'] = false;
+                return;
+            }
+        } catch (Throwable) {
+            // Do not include the reporter exception, which may contain payload data.
+        }
+
+        try {
+            error_log('[runit] publication health: Redacted measurement has a nonnumeric value.');
+        } catch (Throwable) {
+            // The last-resort sink must not affect the business outcome.
+        } finally {
+            $this->healthState['reporting'] = false;
+        }
     }
 
     private function resolveInstrumentFromRedacted(

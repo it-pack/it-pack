@@ -191,91 +191,67 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         return $current->activities()->run($activityDefinition, $operation);
     }
 
-    private function runExecution(
+    private function setupExecutionScope(
         NestedExecutionMode $mode,
         ?ExecutionScopeInterface $current,
         ExecutionDefinitionInterface $definition,
-        callable $operation,
-    ): mixed {
-        // Setup faults (definition resolution, identity allocation, start, scope
-        // assembly, attach) are genuine configuration errors and still surface to
-        // the caller — but they are always reported first, so no execution can
-        // fail to materialize silently (Phase 0, T0.2).
-        $id = null;
+    ): ExecutionScopeSetup {
+        // A duplicate business ID must not share or release another scope's
+        // provenance. Suppress its telemetry without aborting the operation.
+        $rawId = $this->executionIdFactory->build();
+        $id = ExecutionId::fromString($rawId->toString());
+
+        $parentId =
+            ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
+                ? $current->execution()->id()
+                : null;
+        $linkedIds =
+            ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface)
+                ? [$current->execution()->id()]
+                : [];
+
+        $effectiveDefinition = ExecutionDefinition::create(
+            $definition->name(),
+            $definition->kind(),
+            $parentId,
+            $linkedIds,
+            $definition->context(),
+        );
+
+        $startedAt = $this->now();
+        $sequence = $this->sequenceAllocator->allocate($id);
+
+        $duplicateId = $this->authority->hasLiveRecords($id->toString());
+
         $exportId = null;
-
         try {
-            $parentId =
-                ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
-                    ? $current->execution()->id()
-                    : null;
-            $linkedIds =
-                ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface)
-                    ? [$current->execution()->id()]
-                    : [];
-
-            $effectiveDefinition = ExecutionDefinition::create(
-                $definition->name(),
-                $definition->kind(),
-                $parentId,
-                $linkedIds,
-                $definition->context(),
-            );
-
-            $rawId = $this->executionIdFactory->build();
-            $id = ExecutionId::fromString($rawId->toString());
-
-            // Reject a repeated execution ID before any provenance record is
-            // issued, so two live executions can never share an ID and releasing
-            // one cannot drop the other's export bindings.
-            if ($this->authority->hasLiveRecords($id->toString())) {
-                throw new RuntimeException(
-                    'Execution ID ' . $id->toString()
-                    . ' already has live provenance records; duplicate execution ID rejected.'
+            if (!$duplicateId) {
+                $exportId = $this->authority->issueExportId(
+                    'execution',
+                    'execution',
+                    $id->toString(),
+                    $rawId->toString(),
                 );
             }
 
-            $startedAt = $this->now();
-            $sequence = $this->sequenceAllocator->allocate($id);
+            if ($duplicateId) {
+                $this->authority->reportUnverified(new RuntimeException('Duplicate execution identity.'));
+            }
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Provenance issuance rejected.'));
+        }
 
-            // Issue an SDK-controlled export ID bound to this execution. Business
-            // IDs (from the caller's generator) are preserved but never trusted as
-            // provenance; only the export ID verified against this authority counts.
-            $exportId = $this->authority->issueExportId(
-                'execution',
-                'execution',
-                $id->toString(),
-                $rawId->toString(),
-            );
+        $scopeAuthority = $duplicateId ? new ProvenanceAuthority() : $this->authority;
+
+        try {
+            $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
+            $execution = $this->coordinator->start($created);
+            $this->authority->attest($execution, $exportId);
 
             // Register verified parent/link edges. A parent supplied in an activity
             // definition is an unverified claim; only an edge recorded by this
             // authority establishes trust.
-            $parentExportId = null;
-            $linkedExportIds = [];
-
-            if ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface) {
-                $parentBusinessId = $current->execution()->id()->toString();
-                $parentExportId = $this->findExportIdForBusinessId($parentBusinessId, $id->toString());
-                if ($parentExportId !== null) {
-                    $this->authority->registerRelationship($parentExportId, $exportId, 'parent');
-                }
-            }
-
-            $linkedExportIds = [];
-
-            if ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface) {
-                $linkedBusinessId = $current->execution()->id()->toString();
-                $linkedExportId = $this->findExportIdForBusinessId($linkedBusinessId, $id->toString());
-                if ($linkedExportId !== null) {
-                    $this->authority->registerRelationship($linkedExportId, $exportId, 'link');
-                }
-
-                $linkedExportIds[] = ExecutionId::fromString($linkedExportId ?? $linkedBusinessId);
-            }
-
-            $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
-            $execution = $this->coordinator->start($created);
+            $this->registerExecutionEdges($mode, $current, $exportId);
 
             $scope = new ExecutionScope(
                 $execution,
@@ -295,15 +271,64 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
                 $this->onSnapshotStoreFailure,
                 $this->limits,
                 null,
-                $this->authority,
+                $scopeAuthority,
             );
 
-            $token = $this->contextStorage->attach($scope);
+            return new ExecutionScopeSetup($scope, $execution, $id, $exportId, $scopeAuthority);
+        } catch (Throwable $throwable) {
+            if ($exportId !== null) {
+                try {
+                    $this->authority->releaseExecution($id->toString());
+                } catch (Throwable $cleanupFailure) {
+                    $this->reportFailure($cleanupFailure);
+                }
+            }
+
+            throw $throwable;
+        }
+    }
+
+    private function registerExecutionEdges(
+        NestedExecutionMode $mode,
+        ?ExecutionScopeInterface $current,
+        ?string $exportId,
+    ): void {
+        $parentExportId = null;
+        $linkedExportIds = [];
+
+        if ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface) {
+            $parentExportId = $this->authority->exportIdForArtifact($current->execution());
+            if ($parentExportId !== null && $exportId !== null) {
+                $this->authority->registerRelationship($parentExportId, $exportId, 'parent');
+            }
+        }
+
+        if ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface) {
+            $linkedBusinessId = $current->execution()->id()->toString();
+            $linkedExportId = $this->authority->exportIdForArtifact($current->execution());
+            if ($linkedExportId !== null && $exportId !== null) {
+                $this->authority->registerRelationship($linkedExportId, $exportId, 'link');
+            }
+
+            $linkedExportIds[] = ExecutionId::fromString($linkedExportId ?? $linkedBusinessId);
+        }
+    }
+
+
+    private function runExecution(
+        NestedExecutionMode $mode,
+        ?ExecutionScopeInterface $current,
+        ExecutionDefinitionInterface $definition,
+        callable $operation,
+    ): mixed {
+        try {
+            $scopeSetup = $this->setupExecutionScope($mode, $current, $definition);
+            $token = $this->contextStorage->attach($scopeSetup->scope());
         } catch (Throwable $throwable) {
             // Release the export record on setup failure so it cannot be reused
             // by a later execution through exportIdForBusinessIdExcluding().
-            if (isset($exportId) && $id instanceof ExecutionId) {
-                $this->authority->releaseExecution($id->toString());
+            if (isset($scopeSetup) && $scopeSetup->exportId() !== null && $scopeSetup->id() instanceof ExecutionId) {
+                $this->authority->releaseExecution($scopeSetup->id()->toString());
             }
 
             $this->reportFailure($throwable);
@@ -314,24 +339,26 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         // The startup publish is protected separately: an unexpected fault there
         // is reported and the business operation still runs (Phase 0, T0.1).
         try {
-            $this->safePublish($execution);
+            $this->safePublish($scopeSetup->execution());
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
         }
 
         try {
-            $result = $this->engine->run($scope, $operation);
+            $result = $this->engine->run($scopeSetup->scope(), $operation);
 
-            $this->completeSuccess($execution, $scope);
+            $this->completeSuccess($scopeSetup->execution(), $scopeSetup->scope());
 
             return $result;
         } catch (Throwable $throwable) {
-            $this->completeFailure($execution, $scope, $throwable);
+            $this->completeFailure($scopeSetup->execution(), $scopeSetup->scope(), $throwable);
 
             throw $throwable;
         } finally {
             $this->detachSafely($token);
-            $this->authority->releaseExecution($id->toString());
+            if ($scopeSetup->exportId() !== null) {
+                $this->authority->releaseExecution($scopeSetup->id()->toString());
+            }
         }
     }
 
@@ -351,6 +378,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             return;
         }
 
+        $this->authority->attestSuccessor($execution, $completed);
         $this->publishTerminal($completed);
     }
 
@@ -388,6 +416,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             return;
         }
 
+        $this->authority->attestSuccessor($execution, $completed);
         $this->publishTerminal($completed);
     }
 
@@ -423,6 +452,53 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
         try {
             $snapshot = $this->snapshotFactory->terminal($completed);
+            $executionExportId = $this->authority->exportIdForArtifact($completed);
+            $executionId = $completed->executionId()->toString();
+            $snapshotId = $snapshot->id()->toString();
+            $snapshotExecutionId = $snapshot->executionId()->toString();
+            $fields = $snapshot->normalize();
+            if ($executionExportId === null
+                || !$this->authority->verifyExportId($executionExportId, 'execution', $executionId)
+                || $snapshotExecutionId !== $executionId
+                || ($fields[ArtifactField::EXECUTION_ID] ?? null) !== $executionId
+                || ($fields[ArtifactField::ID] ?? null) !== $snapshotId
+            ) {
+                $this->authority->reportUnverified(
+                    new RuntimeException('Terminal snapshot provenance verification failed.'),
+                );
+
+                return;
+            }
+
+            $snapshotExportId = $this->authority->exportIdForArtifact($snapshot);
+            if ($snapshotExportId === null) {
+                $snapshotExportId = $this->authority->bindArtifact(
+                    'snapshot',
+                    'terminal-snapshot',
+                    $executionId,
+                    $snapshotId,
+                    'execution-terminal-snapshot',
+                );
+                if ($snapshotExportId === null || !$this->authority->attest($snapshot, $snapshotExportId)) {
+                    $this->authority->reportUnverified(
+                        new RuntimeException('Terminal snapshot provenance verification failed.'),
+                    );
+
+                    return;
+                }
+            }
+
+            if (!$this->authority->verifyExportId($snapshotExportId, 'terminal-snapshot', $executionId)
+                || $this->authority->exportIdForArtifact($completed) !== $executionExportId
+                || $this->authority->exportIdentityFields($snapshot) === null
+            ) {
+                $this->authority->reportUnverified(
+                    new RuntimeException('Terminal snapshot provenance verification failed.'),
+                );
+
+                return;
+            }
+
             $this->safePublish($snapshot);
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
@@ -440,17 +516,6 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
         }
-    }
-
-    /**
-     * Finds the export ID bound to a business ID for the given execution context.
-     *
-     * Returns null when the business ID has no verified binding, which means the
-     * parent/linked relationship is unverified and must not be trusted.
-     */
-    private function findExportIdForBusinessId(string $businessId, string $currentExecutionId): ?string
-    {
-        return $this->authority->exportIdForBusinessIdExcluding($businessId, $currentExecutionId);
     }
 
     private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void

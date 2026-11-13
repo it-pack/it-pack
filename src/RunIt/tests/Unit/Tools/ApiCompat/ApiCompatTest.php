@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Tests\Unit\Tools\ApiCompat;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Domain\SequencedInterface;
 use JsonException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionException;
 use ReflectionMethod;
 use Tools\ApiCompat\ApiCompat;
 
+#[CoversClass(ApiCompat::class)]
 final class ApiCompatTest extends Unit
 {
     /**
@@ -48,9 +51,95 @@ final class ApiCompatTest extends Unit
         self::assertSame([], $this->compare($current, $baseline));
     }
 
+    public function testDiscoveryIncludesInheritedBuiltInInterfaceMethods(): void
+    {
+        $checker = $this->checker(['src/Contract/Domain', 'src/Common/Contract']);
+        $method = new ReflectionMethod(ApiCompat::class, 'buildApiMap');
+        $map = $method->invoke($checker);
+        $name = SequencedInterface::class;
+
+        self::assertIsArray($map);
+        self::assertArrayHasKey($name, $map);
+        $discovered = $map[$name];
+        self::assertIsArray($discovered);
+        $entry = [];
+        foreach ($discovered as $key => $value) {
+            self::assertIsString($key);
+            $entry[$key] = $value;
+        }
+
+        self::assertArrayHasKey('methods', $entry);
+        self::assertIsArray($entry['methods']);
+        self::assertArrayHasKey('count', $entry['methods']);
+        $baseline = [$name => $entry];
+        unset($baseline[$name]['methods']['count']);
+
+        self::assertSame([], $this->compare([$name => $entry], $baseline));
+
+        $baseline[$name]['implements'] = [];
+        self::assertContains([
+            'message' => "Added method to interface {$name}::count() (breaks third-party implementers)",
+            'symbol' => $name,
+            'severity' => 'break',
+        ], $this->compare([$name => $entry], $baseline));
+    }
+
+    public function testRecordedBuiltInMethodSignatureChangesRemainBreaks(): void
+    {
+        $baseline = ['Example' => $this->entry('interface', ['Countable'])];
+        $baseline['Example']['methods']['count'] = [
+            'static' => false,
+            'return' => 'int',
+            'params' => [],
+        ];
+        $current = $baseline;
+        $current['Example']['methods']['count']['return'] = 'string';
+        $current['Example']['methods']['count']['internalInterface'] = 'Countable';
+
+        self::assertContains([
+            'message' => 'Return type narrowed on Example::count(): int -> string',
+            'symbol' => 'Example',
+            'severity' => 'break',
+        ], $this->compare($current, $baseline));
+
+        unset($current['Example']['methods']['count']);
+        self::assertContains([
+            'message' => 'Removed method Example::count()',
+            'symbol' => 'Example',
+            'severity' => 'break',
+        ], $this->compare($current, $baseline));
+    }
+
+    public function testUserlandMethodAdditionIsNotHiddenByExistingBuiltInParent(): void
+    {
+        $baseline = ['Example' => $this->entry('interface', ['Countable'])];
+        $current = $baseline;
+        $current['Example']['methods']['count'] = ['static' => false, 'return' => 'int', 'params' => []];
+
+        self::assertContains([
+            'message' => 'Added method to interface Example::count() (breaks third-party implementers)',
+            'symbol' => 'Example',
+            'severity' => 'break',
+        ], $this->compare($current, $baseline));
+    }
+
+    /** @param list<string> $publicDirs */
+    private function checker(array $publicDirs = []): ApiCompat
+    {
+        return new ApiCompat(['api-compat.php'], [
+            'publicDirs' => $publicDirs,
+            'internalNamespaces' => [],
+            'baseline' => '',
+            'schema' => ['path' => '', 'baseline' => ''],
+        ]);
+    }
+
     /**
      * @param array<array-key, string> $interfaces
-     * @return array<string, mixed>
+     * @return array{
+     *     kind: string, extends: null, implements: array<array-key, string>, constants: array<mixed>,
+     *     methods: array<string, array<string, mixed>>, cases: list<string>
+     * }
      */
     private function entry(string $kind, array $interfaces): array
     {
@@ -74,7 +163,7 @@ final class ApiCompatTest extends Unit
     {
         $method = new ReflectionMethod(ApiCompat::class, 'compareApi');
 
-        $result = $method->invoke(new ApiCompat(['api-compat.php']), $current, $baseline);
+        $result = $method->invoke($this->checker(), $current, $baseline);
         self::assertIsArray($result);
 
         return $result;

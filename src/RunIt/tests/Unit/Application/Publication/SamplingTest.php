@@ -22,13 +22,20 @@ use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingDropException;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
+use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Domain\Activity\Activity;
+use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Measurement\Measurement;
@@ -37,10 +44,17 @@ use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Domain\Shared\Duration;
+use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use ItPack\RunIt\Domain\Snapshot\Snapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 use Throwable;
 
@@ -50,6 +64,7 @@ use Throwable;
  */
 #[CoversClass(PublisherStackFactory::class)]
 #[CoversClass(AlwaysSamplePolicy::class)]
+#[CoversClass(ClassifyingArtifactPublisher::class)]
 #[CoversClass(ErrorOverrideSamplePolicy::class)]
 #[CoversClass(ExecutionKindSamplePolicy::class)]
 #[CoversClass(HeadBasedSamplingPolicy::class)]
@@ -62,6 +77,7 @@ use Throwable;
 #[UsesClass(DefaultArtifactRedactor::class)]
 #[UsesClass(RedactedArtifact::class)]
 #[UsesClass(RedactingArtifactPublisher::class)]
+#[UsesClass(VerifiedArtifactProjection::class)]
 #[UsesClass(ExecutionId::class)]
 #[UsesClass(ExecutionKind::class)]
 #[UsesClass(Observation::class)]
@@ -70,6 +86,153 @@ use Throwable;
 #[UsesClass(SecurityLimits::class)]
 final class SamplingTest extends Unit
 {
+    public function testVerifiedUnredactedProjectionRetainsSamplingBehavior(): void
+    {
+        $info = new VerifiedArtifactProjection(['execution_id' => 'exec-1', 'level' => 200], 'observation');
+        $error = new VerifiedArtifactProjection(['execution_id' => 'exec-1', 'level' => 400], 'observation');
+        $inner = $this->createMock(SamplingPolicyInterface::class);
+        $inner->expects(self::once())->method('sample')->willReturn(false);
+        $head = new HeadBasedSamplingPolicy($inner);
+        self::assertFalse($head->sample($info));
+        self::assertFalse($head->sample($error));
+
+        $override = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
+        self::assertFalse($override->sample($info));
+        self::assertTrue($override->sample($error));
+        $severity = new SeveritySamplePolicy(400);
+        self::assertFalse($severity->sample($info));
+        self::assertTrue($severity->sample($error));
+
+        $kind = new ExecutionKindSamplePolicy(
+            static fn (ExecutionIdInterface $id): ?ExecutionKind => $id->toString() === 'exec-1'
+                ? ExecutionKind::fromString('job') : null,
+            ['job' => true],
+        );
+        self::assertTrue($kind->sample($info));
+    }
+
+    public function testClassifierPreservesTypedActivityDuration(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $activity = RunItArtifactFactory::activity('act-1', 'exec-1', 'work', 'task', 'running')
+            ->complete(ActivityStatus::Succeeded, null, Instant::of(1_200), Duration::ofNanoseconds(123))
+        ;
+
+        new ClassifyingArtifactPublisher($sink)->publish($activity);
+
+        $published = $sink->published()[0];
+        self::assertInstanceOf(Activity::class, $published);
+        self::assertSame(123, $published->duration()?->nanoseconds());
+    }
+
+    public function testClassifierReconstructsLifecycleArtifactsAndSnapshot(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new ClassifyingArtifactPublisher($sink);
+        $execution = RunItArtifactFactory::execution('exec-1', 'job', 'task', 'failed');
+        $activity = RunItArtifactFactory::activity('act-1', 'exec-1', 'work', 'task', 'failed');
+        $snapshot = RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['safe' => 'value']);
+        foreach ([$execution, $activity, $snapshot] as $artifact) {
+            $classifier->publish($artifact);
+        }
+
+        foreach ([ExecutionInterface::class, ActivityInterface::class, SnapshotInterface::class] as $i => $type) {
+            self::assertInstanceOf($type, $sink->published()[$i]);
+            self::assertSame([$execution, $activity, $snapshot][$i]->normalize(), $sink->published()[$i]->normalize());
+            self::assertNotSame([$execution, $activity, $snapshot][$i], $sink->published()[$i]);
+        }
+
+        $fields = $snapshot->normalize();
+        $fields['content_hash'] = 'invalid';
+        $classifier->publish(new RedactedArtifact($fields, 'snapshot'));
+        self::assertInstanceOf(SnapshotInterface::class, $sink->published()[3]);
+        self::assertSame('invalid', $sink->published()[3]->contentHash());
+    }
+
+    public function testClassifierPreservesCustomSnapshotHash(): void
+    {
+        $snapshot = Snapshot::create(
+            SnapshotId::fromString('snap-custom'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('checkpoint'),
+            1,
+            ['safe' => 'value'],
+            new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return hash('sha512', $content);
+                }
+            },
+        );
+        $sink = new InMemoryArtifactPublisher();
+        new ClassifyingArtifactPublisher($sink)->publish($snapshot);
+
+        self::assertCount(1, $sink->published());
+        self::assertInstanceOf(SnapshotInterface::class, $sink->published()[0]);
+        self::assertSame($snapshot->normalize(), $sink->published()[0]->normalize());
+        self::assertSame($snapshot->contentHash(), $sink->published()[0]->contentHash());
+    }
+
+    public function testClassifierRejectsUnsupportedArtifactsWithoutExposingPayload(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $health = $this->createMock(InternalHealthReporterInterface::class);
+        $health->expects(self::exactly(3))->method('report')->willReturnCallback(
+            static function (Throwable $error, ExecutionArtifactInterface $artifact): void {
+                self::assertStringNotContainsString('secret', $error->getMessage());
+                self::assertStringNotContainsString('secret', json_encode($artifact->normalize(), JSON_THROW_ON_ERROR));
+            },
+        );
+        $classifier = new ClassifyingArtifactPublisher($sink, $health);
+        $classifier->publish(new ClassifiedArtifact(['secret' => str_repeat('x', 10000)], 'unsupported'));
+        $classifier->publish(new RedactedArtifact(['secret' => new stdClass()], 'execution_definition'));
+        $classifier->publish(new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                throw new RuntimeException('secret should not be normalized');
+            }
+        });
+
+        self::assertSame([], $sink->published());
+    }
+
+    public function testClassifierBoundsTrustedProjection(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $fields = ['id' => 'obs-1', 'execution_id' => 'exec-1', 'message' => str_repeat('x', 5000)];
+        new ClassifyingArtifactPublisher($sink)->publish(new ClassifiedArtifact($fields, 'observation'));
+
+        self::assertCount(1, $sink->published());
+        self::assertSame(str_repeat('x', 4096), $sink->published()[0]->normalize()['message']);
+    }
+
+    public function testClassifierReconstructsOnlySanitizedThrowableDescriptions(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new ClassifyingArtifactPublisher($sink);
+        $original = Observation::error(
+            ObservationId::fromString('obs-1'),
+            ExecutionId::fromString('exec-1'),
+            'message',
+            throwableDescription: ThrowableDescription::create('Exception', 'secret', 1, null, 'trace-secret'),
+        );
+        $fields = $original->normalize();
+        self::assertIsArray($fields['throwable']);
+        $fields['throwable']['message'] = '[redacted]';
+        $fields['throwable']['trace'] = null;
+        $classifier->publish(new RedactedArtifact($fields, 'observation'));
+        $published = $sink->published()[0];
+        self::assertInstanceOf(ObservationInterface::class, $published);
+        $throwable = $published->throwableDescription();
+        self::assertNotNull($throwable);
+        self::assertSame('[redacted]', $throwable->message());
+        self::assertNull($throwable->trace());
+        self::assertStringNotContainsString('secret', json_encode($published->normalize(), JSON_THROW_ON_ERROR));
+        unset($fields['throwable']['code']);
+        $classifier->publish(new RedactedArtifact($fields, 'observation'));
+        self::assertInstanceOf(ClassifiedArtifact::class, $sink->published()[1]);
+    }
+
     public function testClassifierReconstructsMeasurementsFromSanitizedFields(): void
     {
         $sink = new InMemoryArtifactPublisher();
@@ -132,7 +295,7 @@ final class SamplingTest extends Unit
         $classifier->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['safe' => 'value']));
         $classifier->publish(new RedactedArtifact([
             'id' => 'snap-2', 'execution_id' => 'exec-1', 'content_hash' => 'hash',
-            'payload' => ['large' => str_repeat('x', 4097)],
+            'payload' => ['large' => str_repeat('x', 262144)],
         ], 'snapshot'));
         $snapshot = RunItArtifactFactory::snapshot('snap-3', 'exec-1', ['password' => 'secret']);
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveDataKeys: ['password']));
@@ -142,6 +305,92 @@ final class SamplingTest extends Unit
         self::assertArrayNotHasKey('content_hash', $sink->published()[1]->normalize());
         self::assertSame(['password' => '[redacted]'], $sink->published()[1]->normalize()['payload']);
         self::assertSame($snapshot->normalize()['content_hash'], $snapshot->contentHash());
+    }
+
+    public function testClassifierPreservesSnapshotPayloadBeyondAttributeCount(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $payload = array_fill_keys(array_map(static fn (int $i): string => 'key' . $i, range(1, 65)), 'value');
+        $fields = ['id' => 'snap-many', 'execution_id' => 'exec-1', 'payload' => $payload, 'content_hash' => 'hash'];
+
+        new ClassifyingArtifactPublisher($sink)->publish(new RedactedArtifact($fields, 'snapshot'));
+
+        self::assertCount(1, $sink->published());
+        self::assertSame($fields, $sink->published()[0]->normalize());
+    }
+
+    public function testClassifierPreservesLongAndDeepSnapshotPayloadWithinLimits(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $payload = str_repeat('x', 5000);
+        for ($i = 0; $i < 20; ++$i) {
+            $payload = ['a' => $payload];
+        }
+
+        $fields = ['id' => 'snap-1', 'execution_id' => 'exec-1', 'content_hash' => 'hash', 'payload' => $payload];
+
+        new ClassifyingArtifactPublisher($sink)->publish(new RedactedArtifact($fields, 'snapshot'));
+
+        self::assertCount(1, $sink->published());
+        self::assertSame($fields, $sink->published()[0]->normalize());
+    }
+
+    public function testClassifierEnforcesSnapshotPayloadByteAndDepthLimits(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $health = $this->createMock(InternalHealthReporterInterface::class);
+        $health->expects(self::exactly(4))->method('report');
+        $classifier = new ClassifyingArtifactPublisher(
+            $sink,
+            $health,
+            new SecurityLimits(maxSnapshotPayloadBytes: 5, maxSerializationDepth: 2),
+        );
+        foreach ([['a' => '1234'], ['a' => ['b' => '123']]] as $payload) {
+            $classifier->publish(new RedactedArtifact([
+                'id' => 'snap-1', 'execution_id' => 'exec-1', 'payload' => $payload, 'content_hash' => 'hash',
+            ], 'snapshot'));
+        }
+
+        foreach ([['a' => '12345'], ['a' => ['b' => []]], ['a' => new stdClass()], ['a' => INF]] as $payload) {
+            $classifier->publish(new RedactedArtifact([
+                'id' => 'snap-2', 'execution_id' => 'exec-1', 'payload' => $payload, 'content_hash' => 'hash',
+            ], 'snapshot'));
+        }
+
+        self::assertCount(2, $sink->published());
+        self::assertSame(['a' => '1234'], $sink->published()[0]->normalize()['payload']);
+        self::assertSame(['a' => ['b' => '123']], $sink->published()[1]->normalize()['payload']);
+    }
+
+    public function testSnapshotPayloadDoesNotUseGenericNodeOrTotalByteBudgets(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new ClassifyingArtifactPublisher(
+            $sink,
+            limits: new SecurityLimits(maxSnapshotPayloadBytes: 1_200_000),
+        );
+        foreach ([array_fill(0, 1100, null), str_repeat('x', 1_100_000)] as $payload) {
+            $classifier->publish(new RedactedArtifact([
+                'id' => 'snap-1', 'execution_id' => 'exec-1', 'content_hash' => 'hash', 'payload' => $payload,
+            ], 'snapshot'));
+        }
+
+        self::assertCount(2, $sink->published());
+        self::assertSame(array_fill(0, 1100, null), $sink->published()[0]->normalize()['payload']);
+        self::assertSame(str_repeat('x', 1_100_000), $sink->published()[1]->normalize()['payload']);
+    }
+
+    public function testClassifierDropsChangedHashlessRedactedSnapshotPayload(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $health = $this->createMock(InternalHealthReporterInterface::class);
+        $health->expects(self::once())->method('report');
+        $classifier = new ClassifyingArtifactPublisher($sink, $health);
+        $classifier->publish(new RedactedArtifact([
+            'id' => 'snap-1', 'execution_id' => 'exec-1', 'payload' => ['large' => str_repeat('x', 262144)],
+        ], 'snapshot'));
+
+        self::assertSame([], $sink->published());
     }
 
     public function testClassifierPreservesRequiredFieldsAndBoundsNestedMaps(): void
@@ -168,8 +417,8 @@ final class SamplingTest extends Unit
             self::assertSame('obs-1', $projection['id']);
             self::assertSame('exec-1', $projection['execution_id']);
             self::assertSame(['first' => 'kept'], $projection['attributes']);
-            self::assertArrayNotHasKey('message', $projection);
-            self::assertCount(3, $projection);
+            self::assertSame('message', $projection['message']);
+            self::assertCount(4, $projection);
         }
     }
 

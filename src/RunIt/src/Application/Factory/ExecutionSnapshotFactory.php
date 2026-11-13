@@ -62,13 +62,14 @@ final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterfac
         // Only when an authority is supplied (the SDK shares its own); custom
         // factories constructed without one never accumulate unreleased records.
         if ($this->authority instanceof ProvenanceAuthority) {
-            $this->authority->bindArtifact(
+            $exportId = $this->authority->bindArtifact(
                 'snapshot',
                 'terminal-snapshot',
                 $execution->executionId()->toString(),
                 $id->toString(),
                 'execution-terminal-snapshot',
             );
+            $this->authority->attest($snapshot, $exportId);
         }
 
         return $snapshot;

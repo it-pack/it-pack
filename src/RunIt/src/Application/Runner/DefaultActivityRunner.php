@@ -72,7 +72,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         // execution. Register the execution→activity relationship edge so it can be
         // verified at publication; an activity definition's parent ID alone is not
         // trusted without a recorded edge.
-        $this->authority->bindArtifact(
+        $exportId = $this->authority->bindArtifact(
             'activity',
             'activity',
             $this->executionId->toString(),
@@ -81,6 +81,8 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         );
 
         $activity = Activity::start($activityId, $this->executionId, $definition, $startedAt, $sequence);
+        $this->authority->attest($activity, $exportId);
+        $this->authority->bindActivityRelationship($exportId, $definition->parentActivityId()?->toString(), true);
 
         $this->scope->trackOpenActivity($activity);
         $previousActivityId = $this->scope->currentActivityId();
@@ -97,12 +99,14 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
                 description: null,
                 startedAtMonotonic: $startedAtMonotonic,
             );
+            $this->authority->attestSuccessor($activity, $completed);
             $this->publisher->publish($completed);
 
             return $result;
         } catch (Throwable $throwable) {
             $description = $this->throwableMapper->describe($throwable);
             $completed = $this->complete($activity, ActivityStatus::Failed, $description, $startedAtMonotonic);
+            $this->authority->attestSuccessor($activity, $completed);
             $this->publisher->publish($completed);
 
             throw $throwable;

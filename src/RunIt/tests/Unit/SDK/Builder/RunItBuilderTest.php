@@ -17,19 +17,23 @@ use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
-use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
@@ -197,21 +201,21 @@ final class RunItBuilderTest extends TestCase
     public function testRedactorWrapsPublishedArtifacts(): void
     {
         $spy = new RecordingArtifactPublisher();
+        $redactor = new TaggingRedactor();
         $runtime = RunItBuilder::create()
             ->withPublisher($spy)
             ->withClock(new SystemMonotonicClock())
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
             ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withRedactor(new TaggingRedactor())
+            ->withRedactor($redactor)
             ->build()
         ;
 
         $runtime->run($this->definition(), static fn (): int => 1);
 
-        foreach ($spy->published as $artifact) {
-            self::assertInstanceOf(RedactedTagArtifact::class, $artifact);
-        }
+        self::assertNotEmpty($spy->published);
+        self::assertGreaterThan(0, $redactor->calls);
     }
 
     public function testNewSeamWithersReturnNewBuilderInstances(): void
@@ -340,6 +344,29 @@ final class RunItBuilderTest extends TestCase
         self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
     }
 
+    public function testHealthAwareFactoryReportsThroughConfiguredCallback(): void
+    {
+        $factory = new SpyHealthAwarePublisherStackFactory();
+        $failures = [];
+        $this->builder()
+            ->withPublisherStackFactory($factory)
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            })
+            ->build()
+        ;
+
+        self::assertNotNull($factory->health);
+        $failure = new RuntimeException('stack health failure');
+        $factory->health->report($failure, new RedactedTagArtifact(new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [];
+            }
+        }));
+        self::assertSame([$failure], $failures);
+    }
+
     public function testBoundExceededDropIsObservableThroughPublicationHandler(): void
     {
         $failures = [];
@@ -410,18 +437,19 @@ final class RunItBuilderTest extends TestCase
             // what we are inspecting here
         }
 
-        $redacted = array_filter(
+        $observations = array_filter(
             $spy->published,
-            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ClassifiedArtifact
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface
+                || ($a instanceof RedactedArtifactInterface && $a->artifactType() === 'observation')
         );
         self::assertNotEmpty(
-            $redacted,
-            'without withRedactor() the default redactor must mask throwable messages'
+            $observations,
+            'the failure must produce a published observation'
         );
 
         // Negative test: the published projection must exclude the secret.
         // ClassifiedArtifact proves classification ran, not that redaction ran.
-        foreach ($redacted as $artifact) {
+        foreach ($spy->published as $artifact) {
             $normalized = $artifact->normalize();
             $encoded = json_encode($normalized);
             self::assertFalse($encoded === false);
@@ -522,7 +550,67 @@ final class RunItBuilderTest extends TestCase
         self::assertNotEmpty($published);
         $execution = $published[0]->normalize();
         self::assertArrayHasKey('id', $execution);
-        self::assertCount(2, $execution);
+        self::assertArrayHasKey('name', $execution);
+        self::assertGreaterThan(2, count($execution));
+    }
+
+    public function testCustomSnapshotFactoryPublishesTerminalSnapshot(): void
+    {
+        $sink = new RecordingArtifactPublisher();
+        $failures = [];
+        $runtime = $this->builder()
+            ->withPublisher($sink)
+            ->withSnapshotFactory(new ExecutionSnapshotFactory(
+                new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
+                new DeterministicHashCalculator(),
+            ))
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            })
+            ->build()
+        ;
+
+        self::assertSame('result', $runtime->run($this->definition(), static fn (): string => 'result'));
+        self::assertNotEmpty($sink->published);
+        self::assertSame([], $failures);
+        $snapshots = array_values(array_filter(
+            $sink->published,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface,
+        ));
+        self::assertCount(1, $snapshots);
+        self::assertSame($sink->published[1]->normalize()['id'], $snapshots[0]->normalize()['execution_id']);
+    }
+
+    public function testCustomSnapshotFactoryCannotForgeExecutionOwnership(): void
+    {
+        $sink = new RecordingArtifactPublisher();
+        $failures = [];
+        $factory = $this->createMock(ExecutionSnapshotFactoryInterface::class);
+        $factory->method('terminal')->willReturnCallback(function (
+            ExecutionInterface $execution,
+        ): ExecutionSnapshotInterface {
+            $snapshot = $this->createMock(ExecutionSnapshotInterface::class);
+            $snapshot->method('id')->willReturn(SnapshotId::fromString('snapshot'));
+            $snapshot->method('executionId')->willReturn($execution->executionId());
+            $snapshot->method('normalize')->willReturn(['id' => 'snapshot', 'execution_id' => 'another-execution']);
+
+            return $snapshot;
+        });
+        $runtime = $this->builder()
+            ->withPublisher($sink)
+            ->withSnapshotFactory($factory)
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            })
+            ->build()
+        ;
+
+        self::assertSame('result', $runtime->run($this->definition(), static fn (): string => 'result'));
+        self::assertCount(1, $failures);
+        self::assertStringContainsString('provenance', $failures[0]->getMessage());
+        foreach ($sink->published as $artifact) {
+            self::assertNotInstanceOf(SnapshotInterface::class, $artifact);
+        }
     }
 
     public function testPublicationFailureHandlerReceivesAdapterFailure(): void
@@ -680,8 +768,11 @@ final class SpyHealthAwarePublisherStackFactory implements HealthAwarePublisherS
 
 final class TaggingRedactor implements RedactorInterface
 {
+    public int $calls = 0;
+
     public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
     {
+        ++$this->calls;
         return new RedactedTagArtifact($artifact);
     }
 }

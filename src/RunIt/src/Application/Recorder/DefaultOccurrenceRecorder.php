@@ -78,13 +78,17 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
         // execution→occurrence edge so provenance can be verified at publication.
         $rawId = $occurrence->normalize()[ArtifactField::ID] ?? null;
         $businessId = is_string($rawId) ? $rawId : 'unknown';
-        $this->authority->bindArtifact(
+        $exportId = $this->authority->bindArtifact(
             'occurrence',
             'occurrence',
             $this->executionId->toString(),
             $businessId,
             'execution-occurrence',
         );
+
+        $this->authority->attest($occurrence, $exportId);
+        $activityId = $occurrence->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
+        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
 
         $this->publisher->publish($occurrence);
 

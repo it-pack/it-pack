@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\OpenTelemetry\Metrics;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
+use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
@@ -17,8 +22,10 @@ use OpenTelemetry\SDK\Metrics\Data\Gauge;
 use OpenTelemetry\SDK\Metrics\Data\Histogram;
 use OpenTelemetry\SDK\Metrics\Data\Metric;
 use OpenTelemetry\SDK\Metrics\Data\Sum;
+use RuntimeException;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Throwable;
 
 /**
  * M9.5 — Measurements to metrics.
@@ -193,5 +200,96 @@ final class MeasurementInstrumentMapperTest extends Unit
         ));
 
         self::assertCount(0, $this->kit->collectMetrics());
+    }
+
+    public function testPublisherWiresPayloadFreeHealthForNonnumericValue(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<array{string, array<string, mixed>}> */
+            public array $reports = [];
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                $this->reports[] = [$error->getMessage(), $artifact->normalize()];
+            }
+        };
+        $publisher = TelemetryPublisher::fromConfig(
+            BridgeConfig::builder()->withMeterProvider($this->kit->meterProvider)->build(),
+            health: $health,
+        );
+        $publisher->publish(new RedactedArtifact([
+            'name' => 'private_metric', 'value' => 'secret-value', 'id' => 'secret-id',
+        ], 'measurement'));
+
+        self::assertSame([[
+            'Redacted measurement has a nonnumeric value.',
+            ['id' => 'redacted', 'type' => 'runit.artifact.redacted'],
+        ]], $health->reports);
+        self::assertNull($this->kit->metric('private_metric'));
+    }
+
+    public function testHealthFailureAndReentryAreContainedWithPayloadFreeFallback(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public ?DefaultMeasurementInstrumentMapper $mapper = null;
+
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+                $this->mapper?->mapRedactedMeasurement(['name' => 'nested', 'value' => 'nested-secret']);
+                throw new RuntimeException('reporter-secret');
+            }
+        };
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            $this->kit->meterProvider,
+            new InstrumentCache(64),
+            [],
+            $health,
+        );
+        $health->mapper = $mapper;
+        $log = tempnam(sys_get_temp_dir(), 'runit-health-');
+        self::assertNotFalse($log);
+        $previous = ini_get('error_log');
+        ini_set('error_log', $log);
+        try {
+            $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
+            $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
+            $contents = file_get_contents($log);
+        } finally {
+            ini_set('error_log', (string) $previous);
+            unlink($log);
+        }
+
+        self::assertSame(2, $health->calls);
+        self::assertIsString($contents);
+        self::assertSame(2, substr_count($contents, 'Redacted measurement has a nonnumeric value.'));
+        self::assertStringNotContainsString('secret', $contents);
+        self::assertNull($this->kit->metric('metric'));
+    }
+
+    public function testMissingHealthUsesFallbackButDisabledProviderDoesNotReport(): void
+    {
+        $log = tempnam(sys_get_temp_dir(), 'runit-health-');
+        self::assertNotFalse($log);
+        $previous = ini_get('error_log');
+        ini_set('error_log', $log);
+        try {
+            new DefaultMeasurementInstrumentMapper(null, new InstrumentCache(64), [])
+                ->mapRedactedMeasurement(['name' => 'metric', 'value' => 'secret'])
+            ;
+            new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, new InstrumentCache(64), [])
+                ->mapRedactedMeasurement(['name' => 'metric', 'value' => 'secret'])
+            ;
+            $contents = file_get_contents($log);
+        } finally {
+            ini_set('error_log', (string) $previous);
+            unlink($log);
+        }
+
+        self::assertIsString($contents);
+        self::assertSame(1, substr_count($contents, 'Redacted measurement has a nonnumeric value.'));
+        self::assertStringNotContainsString('secret', $contents);
     }
 }

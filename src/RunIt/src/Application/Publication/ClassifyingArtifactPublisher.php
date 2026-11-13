@@ -8,16 +8,31 @@ use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterfac
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Domain\Activity\Activity;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Activity\ActivityStatus;
+use ItPack\RunIt\Domain\Execution\Execution;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionFailure;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
@@ -29,8 +44,14 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Domain\Shared\Duration;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use ItPack\RunIt\Domain\Snapshot\Snapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
+use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
 use Throwable;
 
@@ -42,9 +63,11 @@ use Throwable;
  * fields known for that kind are preserved at the top level, all others are
  * dropped. Nested maps (attributes, data, payload, extension_attributes,
  * context, result) keep their keys but are bounded in depth, node count, and
- * string bytes. Budgets are applied across the whole projection: depth 16,
+ * string bytes. Budgets are applied across the rest of the projection: depth 16,
  * 1,024 nodes, 4,096 bytes per string, 1,048,576 bytes total, and field counts
- * capped by SecurityLimits. Objects, resources, and unknown fields are
+ * capped by SecurityLimits for nested maps other than snapshot payloads. Snapshot
+ * payloads use the configured snapshot byte and serialization depth limits.
+ * Objects, resources, and unknown fields are
  * rejected. On exhaustion, optional fields are omitted or replaced, required
  * fields cause the artifact to be dropped with a payload-free health report.
  *
@@ -86,7 +109,7 @@ final class ClassifyingArtifactPublisher implements
         ],
         'activity' => [
             'id', 'execution_id', 'name', 'kind', 'status', 'started_at',
-            'ended_at', 'parent_activity_id', 'sequence', 'attributes', 'throwable',
+            'ended_at', 'parent_activity_id', 'sequence', 'attributes', 'throwable', 'duration_ns',
         ],
         'activity_definition' => [
             'name', 'kind', 'parent_activity_id',
@@ -165,20 +188,27 @@ final class ClassifyingArtifactPublisher implements
         $kind = $this->artifactKind($artifact);
 
         if (!in_array($kind, self::SUPPORTED_KINDS, true)) {
-            $this->reportUnsupportedKind($kind);
+            $this->reportMissingRequiredField('unknown', 'supported artifact kind');
             return;
         }
 
         $normalized = $artifact->normalize();
+
+        $payloadBytes = 0;
+        if ($kind === 'snapshot' && array_key_exists('payload', $normalized)
+            && !$this->validSnapshotPayload($normalized['payload'], 1, $payloadBytes)) {
+            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+            return;
+        }
 
         $projected = $this->projectObject($normalized, $kind, 0);
 
         if ($kind === 'snapshot'
             && (!array_key_exists('payload', $normalized)
                 || !array_key_exists('payload', $projected)
+                || $normalized['payload'] !== $projected['payload']
                 || (isset($normalized['content_hash'])
                     && (!isset($projected['content_hash'])
-                        || $normalized['payload'] !== $projected['payload']
                         || $normalized['content_hash'] !== $projected['content_hash']))
                 || (!isset($normalized['content_hash']) && !$artifact instanceof RedactedArtifactInterface))) {
             $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
@@ -198,8 +228,14 @@ final class ClassifyingArtifactPublisher implements
             'measurement' => $this->typedMeasurement($projected),
             'occurrence' => $this->typedOccurrence($projected),
             'observation' => $this->typedObservation($projected),
-            default => null,
+            'activity' => $this->typedActivity($projected),
+            'snapshot' => $this->typedSnapshot($projected),
+            default => $this->typedExecution($projected),
         };
+        if ($artifact instanceof RedactedArtifactInterface && $classified instanceof Observation) {
+            $classified = new ClassifiedRedactedObservation($classified);
+        }
+
         $classified ??= new ClassifiedArtifact($projected, $kind);
         $this->inner->publish($classified);
     }
@@ -313,7 +349,7 @@ final class ClassifyingArtifactPublisher implements
             $sequence = ArtifactSequence::of($fields['sequence']);
             $attributes = AttributeCollection::fromArray($attributes);
             if (!is_string($fields['id']) || !is_string($fields['message'])
-                || !is_string($fields['severity']) || $fields['throwable'] !== null
+                || !is_string($fields['severity'])
                 || (!is_string($fields['diagnostic_code']) && $fields['diagnostic_code'] !== null)
                 || !in_array($fields['severity'], ['debug', 'info', 'notice', 'warning', 'error',
                     'critical', 'alert', 'emergency'], true)) {
@@ -330,6 +366,7 @@ final class ClassifyingArtifactPublisher implements
                 'alert' => Observation::alert(...),
                 'emergency' => Observation::emergency(...),
             };
+            $throwable = $this->typedThrowable($fields['throwable']);
             $artifact = $factory(
                 ObservationId::fromString($fields['id']),
                 $executionId,
@@ -337,7 +374,7 @@ final class ClassifyingArtifactPublisher implements
                 $activityId,
                 $fields['diagnostic_code'],
                 $attributes,
-                null,
+                $throwable,
                 $instant,
                 $sequence,
             );
@@ -345,10 +382,271 @@ final class ClassifyingArtifactPublisher implements
             ksort($normalized);
             ksort($fields);
 
-            return $normalized === $fields ? $artifact : null;
+            return ($fields['throwable'] === null
+                || $throwable instanceof ThrowableDescriptionInterface)
+                && $normalized === $fields ? $artifact : null;
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function typedThrowable(mixed $value): ?ThrowableDescriptionInterface
+    {
+        if (!is_array($value) || !isset($value['class'], $value['message'], $value['code'])
+            || !array_key_exists('previous', $value) || !array_key_exists('trace', $value)
+            || !is_string($value['class']) || !is_string($value['message']) || !is_int($value['code'])
+            || (!is_string($value['trace']) && $value['trace'] !== null)) {
+            return null;
+        }
+
+        $previous = $this->typedThrowable($value['previous']);
+        if ($value['previous'] !== null && !$previous instanceof ThrowableDescriptionInterface) {
+            return null;
+        }
+
+        $description = ThrowableDescription::create(
+            $value['class'],
+            $value['message'],
+            $value['code'],
+            $previous,
+            $value['trace'],
+        );
+        $normalized = $description->toArray();
+        ksort($normalized);
+        ksort($value);
+        return $normalized === $value ? $description : null;
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function typedExecution(array $fields): ?ExecutionInterface
+    {
+        foreach (['id', 'name', 'kind', 'status', 'started_at', 'ended_at', 'parent_execution_id',
+            'linked_execution_ids', 'sequence', 'context', 'result'] as $key) {
+            if (!array_key_exists($key, $fields)) {
+                return null;
+            }
+        }
+
+        // Normalization does not necessarily retain the original context classification.
+        if ($fields['context'] !== [] || !is_array($fields['linked_execution_ids'])
+            || !is_string($fields['id']) || !is_string($fields['name']) || !is_string($fields['kind'])
+            || !is_string($fields['status']) || !is_int($fields['started_at']) || !is_int($fields['sequence'])
+            || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
+            || (!is_string($fields['parent_execution_id']) && $fields['parent_execution_id'] !== null)) {
+            return null;
+        }
+
+        try {
+            $status = ExecutionStatus::tryFrom($fields['status']);
+            if ($status === null) {
+                return null;
+            }
+
+            $links = [];
+            foreach ($fields['linked_execution_ids'] as $link) {
+                if (!is_string($link)) {
+                    return null;
+                }
+
+                $links[] = ExecutionId::fromString($link);
+            }
+
+            $execution = Execution::create(
+                ExecutionId::fromString($fields['id']),
+                ExecutionDefinition::create(
+                    ExecutionName::fromString($fields['name']),
+                    ExecutionKind::fromString($fields['kind']),
+                    $fields['parent_execution_id'] === null
+                        ? null : ExecutionId::fromString($fields['parent_execution_id']),
+                    $links
+                ),
+                Instant::of($fields['started_at']),
+                ArtifactSequence::of($fields['sequence']),
+            );
+            if ($status !== ExecutionStatus::Created) {
+                $execution = $execution->beginRunning();
+            }
+
+            if ($status->isTerminal()) {
+                $result = $fields['result'];
+                if (!is_array($result) || !array_key_exists('throwable', $result) || !is_int($fields['ended_at'])) {
+                    return null;
+                }
+
+                $throwable = $this->typedThrowable($result['throwable']);
+                $isSuccessful = $status === ExecutionStatus::Succeeded;
+                if ($isSuccessful && $result['throwable'] !== null) {
+                    return null;
+                }
+
+                if (!$isSuccessful && !$throwable instanceof ThrowableDescriptionInterface) {
+                    return null;
+                }
+
+                $outcome = $isSuccessful
+                    ? ExecutionSuccess::create()
+                    : ExecutionFailure::of($status, $throwable);
+                $execution = $execution->complete($outcome, Instant::of($fields['ended_at']));
+            }
+
+            $normalized = $execution->normalize();
+            ksort($normalized);
+            ksort($fields);
+            return $normalized === $fields ? $execution : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function typedActivity(array $fields): ?ActivityInterface
+    {
+        foreach (['id', 'execution_id', 'name', 'kind', 'status', 'started_at', 'ended_at',
+            'parent_activity_id', 'sequence', 'attributes', 'throwable'] as $key) {
+            if (!array_key_exists($key, $fields)) {
+                return null;
+            }
+        }
+
+        if (!is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['name'])
+            || !is_string($fields['kind']) || !is_string($fields['status']) || !is_int($fields['started_at'])
+            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
+            || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
+            || (array_key_exists('duration_ns', $fields) && !is_int($fields['duration_ns']))
+            || (!is_string($fields['parent_activity_id']) && $fields['parent_activity_id'] !== null)) {
+            return null;
+        }
+
+        $attributes = $this->typedAttributes($fields['attributes']);
+        if ($attributes === null) {
+            return null;
+        }
+
+        try {
+            $status = ActivityStatus::tryFrom($fields['status']);
+            $throwable = $this->typedThrowable($fields['throwable']);
+            $throwableOk = $throwable instanceof ThrowableDescriptionInterface;
+            if ($status === null || ($fields['throwable'] !== null && !$throwableOk)) {
+                return null;
+            }
+
+            $activity = Activity::start(
+                ActivityId::fromString($fields['id']),
+                ExecutionId::fromString($fields['execution_id']),
+                ActivityDefinition::create(
+                    ActivityName::fromString($fields['name']),
+                    ActivityKind::fromString($fields['kind']),
+                    $fields['parent_activity_id'] === null
+                        ? null : ActivityId::fromString($fields['parent_activity_id'])
+                ),
+                Instant::of($fields['started_at']),
+                ArtifactSequence::of($fields['sequence']),
+                AttributeCollection::fromArray($attributes),
+            );
+            if ($status !== ActivityStatus::Running) {
+                if (!is_int($fields['ended_at'])) {
+                    return null;
+                }
+
+                $activity = $activity->complete(
+                    $status,
+                    $throwable,
+                    Instant::of($fields['ended_at']),
+                    isset($fields['duration_ns']) ? Duration::ofNanoseconds($fields['duration_ns']) : null,
+                );
+            }
+
+            $normalized = $activity->normalize();
+            ksort($normalized);
+            ksort($fields);
+            return $normalized === $fields ? $activity : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function typedSnapshot(array $fields): ?SnapshotInterface
+    {
+        foreach (['id', 'execution_id', 'activity_id', 'type', 'classification',
+            'schema_version', 'created_at', 'content_type', 'content_hash', 'predecessor_id',
+            'sequence', 'payload', 'attributes'] as $key) {
+            if (!array_key_exists($key, $fields)) {
+                return null;
+            }
+        }
+
+        if (!is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['type'])
+            || !is_string($fields['classification']) || !is_int($fields['schema_version'])
+            || !is_int($fields['created_at']) || !is_string($fields['content_type'])
+            || !is_string($fields['content_hash'])
+            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
+            || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)
+            || (!is_string($fields['predecessor_id']) && $fields['predecessor_id'] !== null)) {
+            return null;
+        }
+
+        $attributes = $this->typedAttributes($fields['attributes']);
+        if ($attributes === null) {
+            return null;
+        }
+
+        try {
+            $classification = SnapshotClassification::tryFrom($fields['classification']);
+            if ($classification === null) {
+                return null;
+            }
+
+            $snapshot = Snapshot::create(
+                SnapshotId::fromString($fields['id']),
+                ExecutionId::fromString($fields['execution_id']),
+                SnapshotType::fromString($fields['type']),
+                $fields['schema_version'],
+                $fields['payload'],
+                // Preserve the supplied hash; the original algorithm is not available here.
+                new readonly class ($fields['content_hash']) implements HashCalculatorInterface {
+                    public function __construct(private string $hash)
+                    {
+                    }
+
+                    public function calculate(string $content): string
+                    {
+                        return $this->hash;
+                    }
+                },
+                $fields['activity_id'] === null ? null : ActivityId::fromString($fields['activity_id']),
+                $fields['predecessor_id'] === null ? null : SnapshotId::fromString($fields['predecessor_id']),
+                $classification,
+                Instant::of($fields['created_at']),
+                $fields['content_type'],
+                AttributeCollection::fromArray($attributes),
+                ArtifactSequence::of($fields['sequence']),
+            );
+            $normalized = $snapshot->normalize();
+            ksort($normalized);
+            ksort($fields);
+            return $normalized === $fields ? $snapshot : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param array<mixed> $values
+     * @return array<string, array<mixed>|bool|float|int|string|null>|null
+     */
+    private function typedAttributes(array $values): ?array
+    {
+        $attributes = [];
+        foreach ($values as $key => $value) {
+            if (!is_string($key) || !(is_scalar($value) || is_array($value) || $value === null)) {
+                return null;
+            }
+
+            $attributes[$key] = $value;
+        }
+
+        return $attributes;
     }
 
     /** @param array<string, mixed> $fields */
@@ -439,7 +737,8 @@ final class ClassifyingArtifactPublisher implements
             return 'snapshot';
         }
 
-        if ($artifact instanceof RedactedArtifactInterface) {
+        if ($artifact instanceof RedactedArtifactInterface || $artifact instanceof TrustedArtifactProjectionInterface
+            || $artifact instanceof VerifiedArtifactProjection) {
             $type = $artifact->artifactType();
             if (array_key_exists($type, self::FIELD_ALLOWLIST)) {
                 return $type;
@@ -473,23 +772,19 @@ final class ClassifyingArtifactPublisher implements
 
         $allowlist = self::FIELD_ALLOWLIST[$kind] ?? [];
         $result = [];
-        $optionalCount = 0;
-
         $value = array_replace(array_intersect_key($value, array_flip(self::REQUIRED_FIELDS[$kind])), $value);
         foreach ($value as $key => $val) {
             if (!in_array($key, $allowlist, true)) {
                 continue;
             }
 
-            $required = in_array($key, self::REQUIRED_FIELDS[$kind], true);
-            if (!$required && $optionalCount >= $this->limits->maxAttributeCount) {
-                continue;
-            }
-
-            $projected = $this->projectValue($val, $depth + 1);
+            $projected = $kind === 'snapshot' && $key === 'payload'
+                ? $val : $this->projectValue($val, $depth + 1);
 
             $this->totalBytes += strlen($key);
-            $this->totalBytes += $this->byteLength($projected);
+            if ($kind !== 'snapshot' || $key !== 'payload') {
+                $this->totalBytes += $this->byteLength($projected);
+            }
 
             $this->nodeCount++;
             if ($this->nodeCount > self::MAX_NODES || $this->totalBytes > self::MAX_TOTAL_BYTES) {
@@ -498,9 +793,6 @@ final class ClassifyingArtifactPublisher implements
             }
 
             $result[$key] = $projected;
-            if (!$required) {
-                $optionalCount++;
-            }
         }
 
         return $result;
@@ -580,6 +872,39 @@ final class ClassifyingArtifactPublisher implements
         return $result;
     }
 
+    private function validSnapshotPayload(mixed $value, int $depth, int &$bytes): bool
+    {
+        if (is_array($value)) {
+            if ($depth > $this->limits->maxSerializationDepth) {
+                return false;
+            }
+
+            foreach ($value as $key => $member) {
+                $bytes += is_string($key) ? strlen($key) : 8;
+                if ($bytes > $this->limits->maxSnapshotPayloadBytes
+                    || !$this->validSnapshotPayload($member, $depth + 1, $bytes)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        $size = match (true) {
+            is_string($value) => strlen($value),
+            is_int($value), is_float($value) && is_finite($value) => 8,
+            is_bool($value) => 1,
+            $value === null => 0,
+            default => -1,
+        };
+        if ($size < 0) {
+            return false;
+        }
+
+        $bytes += $size;
+        return $bytes <= $this->limits->maxSnapshotPayloadBytes;
+    }
+
     private function reportMissingRequiredField(string $kind, string $field): void
     {
         if (!$this->health instanceof InternalHealthReporterInterface) {
@@ -609,45 +934,6 @@ final class ClassifyingArtifactPublisher implements
             try {
                 new FallbackErrorLogReporter()->report(
                     new RuntimeException('Required field missing in classified projection: ' . $kind . '.' . $field),
-                    $throwable,
-                );
-            } catch (Throwable) {
-                // No further independent sink remains; preserve the business outcome.
-            }
-        } finally {
-            $this->publishingHealthReport = false;
-        }
-    }
-
-    private function reportUnsupportedKind(string $kind): void
-    {
-        if (!$this->health instanceof InternalHealthReporterInterface) {
-            new FallbackErrorLogReporter()->report(
-                new RuntimeException('Unsupported artifact kind in classified projection: ' . $kind),
-                new RuntimeException('no health reporter configured'),
-            );
-
-            return;
-        }
-
-        if ($this->publishingHealthReport) {
-            return;
-        }
-
-        try {
-            $this->publishingHealthReport = true;
-            $this->health->report(
-                new RuntimeException('Unsupported artifact kind in classified projection: ' . $kind),
-                new ClassifiedArtifact([
-                    ArtifactField::ID => 'redacted',
-                    ArtifactField::TYPE => 'runit.artifact.redacted',
-                ], 'redacted'),
-            );
-        } catch (Throwable $throwable) {
-            // Contain health reporter failures so unsupported-kind drops stay fail-open.
-            try {
-                new FallbackErrorLogReporter()->report(
-                    new RuntimeException('Unsupported artifact kind in classified projection: ' . $kind),
                     $throwable,
                 );
             } catch (Throwable) {

@@ -18,6 +18,106 @@ use Throwable;
 #[UsesClass(RedactedArtifact::class)]
 final class ProvenanceAuthorityTest extends Unit
 {
+    public function testEvidenceIsBoundToExactObjectAndReleasedWithExecution(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $id = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $original = new RedactedArtifact(['id' => 'exec']);
+        $copy = new RedactedArtifact(['id' => 'exec']);
+
+        self::assertTrue($authority->attest($original, $id));
+        self::assertSame($id, $authority->exportIdForArtifact($original));
+        self::assertSame(
+            ['id' => $id],
+            $authority->exportIdentityFields($original),
+        );
+        self::assertNull($authority->exportIdForArtifact($copy));
+        self::assertNull($authority->exportIdentityFields($copy));
+        self::assertFalse($authority->attest(new RedactedArtifact(['id' => 'other']), $id));
+        $authority->releaseExecution('exec');
+        self::assertNull($authority->exportIdForArtifact($original));
+    }
+
+    public function testExportProjectionUsesRecordedEdgesAndOmitsUnverifiedActivity(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $root = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $child = $authority->bindArtifact('observation', 'observation', 'exec', 'obs', 'execution-observation');
+        $artifact = new RedactedArtifact(['id' => 'obs', 'execution_id' => 'exec', 'activity_id' => 'forged']);
+        self::assertTrue($authority->attest($artifact, $child));
+        self::assertSame(['id' => $child, 'execution_id' => $root], $authority->exportIdentityFields($artifact));
+    }
+
+    public function testActivityRelationshipsRequireUniqueSameExecutionEdges(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $root = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $parent = $authority->bindArtifact('activity', 'activity', 'exec', 'parent', 'execution-activity');
+        $child = $authority->bindArtifact('activity', 'activity', 'exec', 'child', 'execution-activity');
+        $observation = $authority->bindArtifact('observation', 'observation', 'exec', 'obs', 'execution-observation');
+        $activity = new RedactedArtifact(['id' => 'child', 'execution_id' => 'exec', 'parent_activity_id' => 'parent']);
+        $artifact = new RedactedArtifact(['id' => 'obs', 'execution_id' => 'exec', 'activity_id' => 'child']);
+        self::assertTrue($authority->attest($activity, $child));
+        self::assertTrue($authority->attest($artifact, $observation));
+        $authority->bindActivityRelationship($child, 'parent', true);
+        $authority->bindActivityRelationship($observation, 'child');
+        self::assertSame(
+            ['id' => $child, 'execution_id' => $root, 'parent_activity_id' => $parent],
+            $authority->exportIdentityFields($activity)
+        );
+        self::assertSame(
+            ['id' => $observation, 'execution_id' => $root, 'activity_id' => $child],
+            $authority->exportIdentityFields($artifact)
+        );
+
+        $authority->issueExportId('activity', 'activity', 'exec', 'parent');
+        $other = $authority->bindArtifact('activity', 'activity', 'exec', 'other', 'execution-activity');
+        $ambiguous = new RedactedArtifact([
+            'id' => 'other', 'execution_id' => 'exec', 'parent_activity_id' => 'parent',
+        ]);
+        self::assertTrue($authority->attest($ambiguous, $other));
+        $authority->bindActivityRelationship($other, 'parent', true);
+        self::assertSame(['id' => $other, 'execution_id' => $root], $authority->exportIdentityFields($ambiguous));
+
+        $foreign = $authority->issueExportId('activity', 'activity', 'foreign', 'foreign');
+        self::assertNotNull($observation);
+        self::assertFalse($authority->registerRelationship($foreign, $observation, 'activity-artifact'));
+        $authority->releaseExecution('exec');
+        self::assertNull($authority->exportIdentityFields($artifact));
+    }
+
+    public function testCapacityRejectsBindingsWithoutRetainingOrPublishingEvidence(): void
+    {
+        $authority = new ProvenanceAuthority(null, 2, 1, 1024);
+        $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        self::assertNotNull(
+            $authority->bindArtifact('observation', 'observation', 'exec', 'one', 'execution-observation'),
+        );
+        self::assertNull(
+            $authority->bindArtifact('observation', 'observation', 'exec', 'two', 'execution-observation'),
+        );
+        self::assertCount(2, $authority->allRecords());
+        $authority->releaseExecution('exec');
+        $authority->issueExportId('execution', 'execution', 'next', 'next');
+        self::assertNotNull(
+            $authority->bindArtifact('observation', 'observation', 'next', 'one', 'execution-observation'),
+        );
+    }
+
+    public function testIdentifierByteLimitRejectsOversizedIssuance(): void
+    {
+        $authority = new ProvenanceAuthority(null, 10, 10, 11);
+        $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        self::assertNull($authority->bindArtifact(
+            'observation',
+            'observation',
+            'exec',
+            '123456789012',
+            'execution-observation',
+        ));
+        self::assertCount(1, $authority->allRecords());
+    }
+
     public function testTerminalSnapshotRelationshipIsRecorded(): void
     {
         $authority = new ProvenanceAuthority();

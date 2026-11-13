@@ -23,6 +23,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Throwable;
 
 /**
@@ -76,13 +77,17 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
 
         // Issue an SDK-controlled export ID for the observation and register the
         // execution→observation edge so provenance can be verified at publication.
-        $this->authority->bindArtifact(
+        $exportId = $this->authority->bindArtifact(
             'observation',
             'observation',
             $this->executionId->toString(),
             $id->toString(),
             'execution-observation',
         );
+
+        $this->authority->attest($observation, $exportId);
+        $activityId = $observation->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
+        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
 
         $this->publisher->publish($observation);
 

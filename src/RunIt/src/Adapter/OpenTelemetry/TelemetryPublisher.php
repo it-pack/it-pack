@@ -80,6 +80,7 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
                 $config->meterProvider,
                 new InstrumentCache($config->maxInstrumentCacheSize),
                 $config->metricAttributeAllowList,
+                $health,
             ),
             new DefaultObservationLogMapper(
                 $config->mapObservationsToLogs ? $config->loggerProvider : null,
@@ -123,6 +124,12 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
         }
 
         if ($artifact instanceof ObservationInterface) {
+            if ($artifact instanceof RedactedArtifactInterface) {
+                $this->publishRedactedArtifact($artifact);
+
+                return;
+            }
+
             $this->observationMapper->map($artifact);
 
             return;

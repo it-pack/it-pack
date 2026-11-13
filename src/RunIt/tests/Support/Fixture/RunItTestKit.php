@@ -19,9 +19,11 @@ use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
+use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
@@ -112,6 +114,8 @@ final class RunItTestKit
         ?SecurityLimits $limits = null,
         ?NestedExecutionPolicyInterface $nestedPolicy = null,
         ?ExecutionSnapshotFactoryInterface $snapshotFactory = null,
+        ?ProvenanceAuthority $authority = null,
+        ?ExecutionFactoryInterface $executionFactory = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
@@ -146,7 +150,7 @@ final class RunItTestKit
             $this->storage,
             $this->publisher,
             new JsonSnapshotSerializer(),
-            new ExecutionFactory(),
+            $executionFactory ?? new ExecutionFactory(),
             $coordinator ?? new ExecutionLifecycleCoordinator(),
             $snapshotFactory ?? new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
             $nestedPolicy ?? new ChildExecutionPolicy(),
@@ -164,6 +168,7 @@ final class RunItTestKit
             $this->snapshotStore,
             $onSnapshotStoreFailure,
             limits: $limits ?? new SecurityLimits(),
+            authority: $authority ?? new ProvenanceAuthority(),
         );
     }
 
