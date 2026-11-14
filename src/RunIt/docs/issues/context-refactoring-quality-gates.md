@@ -29,4 +29,18 @@ are recorded observations, not proof that each diagnostic predates the work:
 - Re-run the affected package quality gates and record exact results, skipped
   stages and environment limitations in the respective documentation.
 
+## Current verification (2026-11-13)
+
+RunIt `composer quality --quiet` passed on PHP 8.4.27 and 8.5.12, including
+the strict API check; no baseline was regenerated. AsyncIt static analysis and
+architecture now pass after correcting type information and the architecture
+check's interface-name handling. AsyncIt `composer test --quiet` and `cs:check`
+also passed on PHP 8.5.12. AsyncIt `composer quality --quiet` stops at strict
+Composer validation because its existing `it-pack/run-it` `@dev` constraint is
+unbounded. Later stages were not run by that quality command; the separate
+checks above do not establish a complete quality pass. The separate Rector dry
+run now passes after making the fixture discoverable to PHPStan and using its
+canonical path. Resolve the dependency constraint and rerun the full gate without
+suppressing validation.
+
 **Reference:** [RunIt refactoring plan](../REFACTORING_PLAN.md#phase-1-compatibility-and-context-ownership).

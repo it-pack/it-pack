@@ -6,6 +6,7 @@ namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Fixture\ReferenceRuntimeFixture;
+use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Conformance\Verifier\AsyncRuntimeVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\ContextIsolationVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
@@ -46,7 +47,9 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
         self::assertFalse($result->isConformant());
         self::assertGreaterThanOrEqual(2, count($result->errors()));
-        self::assertSame('ctx-bleed', $result->errors()[0]->id);
+        $violation = $result->errors()[0];
+        self::assertInstanceOf(ConformanceViolation::class, $violation);
+        self::assertSame('ctx-bleed', $violation->id);
     }
 
     public function testReferenceRuntimeConforms(): void

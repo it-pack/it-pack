@@ -16,6 +16,8 @@ namespace ItPack\AsyncIt\Contract;
  * interacts with them through {@see \ItPack\AsyncIt\SDK\AsyncRuntime} methods
  * such as {@see \ItPack\AsyncIt\SDK\AsyncRuntime::race()}.
  *
+ * @template-covariant TResult
+ *
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-race
  * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-all
@@ -42,6 +44,8 @@ interface CombinatorInterface extends TaskInterface
      * - {@see AllGroup}: list of all results in spawn order
      * - {@see AnyGroup}: result of the first successful task
      * - {@see SelectGroup}: array with the winning task and its result
+     *
+     * @return TResult
      */
     public function await(): mixed;
 }

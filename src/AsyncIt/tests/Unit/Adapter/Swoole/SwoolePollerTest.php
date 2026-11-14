@@ -56,9 +56,7 @@ final class SwoolePollerTest extends TestCase
 
         $poller->await(0);
 
-        $ready = $poller->readyHandles();
-
-        self::assertIsArray($ready);
+        $poller->readyHandles();
         self::assertSame(2, $poller->activeHandleCount());
     }
 }

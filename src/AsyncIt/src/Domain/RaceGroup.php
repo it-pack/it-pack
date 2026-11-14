@@ -14,6 +14,8 @@ use LogicException;
  * Race combinator: waits for the first child task to complete, returns its
  * result, and cancels the remaining children.
  *
+ * @implements CombinatorInterface<mixed>
+ *
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-race
  * @see https://w3id.org/itpack/asyncit#CancellationScope

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
+use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Conformance\Result\ViolationSeverity;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
@@ -34,8 +35,10 @@ final class DeterministicCleanupVerifierTest extends TestCase
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('handle-leak', $result->errors()[0]->id);
-        self::assertSame(ViolationSeverity::Error, $result->errors()[0]->severity);
+        $violation = $result->errors()[0];
+        self::assertInstanceOf(ConformanceViolation::class, $violation);
+        self::assertSame('handle-leak', $violation->id);
+        self::assertSame(ViolationSeverity::Error, $violation->severity);
     }
 
     public function testPassesWhenHandleReleased(): void
