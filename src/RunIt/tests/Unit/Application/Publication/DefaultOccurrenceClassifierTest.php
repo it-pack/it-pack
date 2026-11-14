@@ -135,11 +135,11 @@ final class DefaultOccurrenceClassifierTest extends Unit
         self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
     }
 
-    public function testExplicitRedactorChoicesBypassDefaultOccurrencePolicy(): void
+    public function testExplicitRedactorChoicesStillApplyOccurrencePolicy(): void
     {
         foreach ([null, new DefaultArtifactRedactor()] as $redactor) {
             $authority = new ProvenanceAuthority();
-            $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+            $executionId = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
             $id = $authority->bindArtifact('occurrence', 'occurrence', 'exec', 'event', 'execution-occurrence');
             $occurrence = Occurrence::create(
                 OccurrenceId::fromString('event'),
@@ -159,16 +159,25 @@ final class DefaultOccurrenceClassifierTest extends Unit
                     return true;
                 }
             };
+            $sink = new InMemoryArtifactPublisher();
             $stack = new PublisherStackFactory()->compose(
-                new InMemoryArtifactPublisher(),
+                $sink,
                 $redactor,
                 $policy,
                 authority: $authority,
             );
             $stack->publish($occurrence);
-            self::assertNotNull($policy->seen);
-            self::assertSame('custom-source', $policy->seen->normalize()['source']);
-            self::assertSame(['nested' => ['value' => 'custom-value']], $policy->seen->normalize()['data']);
+            self::assertInstanceOf(OccurrenceInterface::class, $policy->seen);
+            self::assertCount(1, $sink->published());
+            foreach ([$policy->seen, $sink->published()[0]] as $artifact) {
+                $fields = $artifact->normalize();
+                self::assertSame($id, $fields['id']);
+                self::assertSame($executionId, $fields['execution_id']);
+                self::assertSame('runit.redacted.v1', $fields['type']);
+                self::assertSame('runit:redacted', $fields['source']);
+                self::assertNull($fields['data']);
+                self::assertStringNotContainsString('custom', json_encode($fields, JSON_THROW_ON_ERROR));
+            }
         }
     }
 

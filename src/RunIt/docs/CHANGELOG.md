@@ -2,8 +2,8 @@
 
 All notable changes to RunIt are documented in this file.
 
-RunIt is pre-release software. Until `1.0.0`, public APIs may change between
-pre-release versions.
+The release-candidate entries below are historical; current worktree behavior is
+described under `Unreleased` and may differ from earlier entries.
 
 ## 1.0.0-rc.1
 
@@ -28,17 +28,26 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Phase 2 is incomplete. The SDK builder checks provenance, invokes a configured
+  custom redactor on the original artifact, then verifies and projects its output
+  and applies strict classifiers before the configured stack, regardless of
+  whether the redactor is custom or null. Ordinary and health-aware custom stack
+  factories receive a null redactor and their stacks receive classified projections.
+  These extension behavior changes can require consumer migration. The standalone
+  pipeline remains unsafe without independent controls; planned configurable
+  alternative extension-input modes and classification/provenance bypasses are not
+  implemented. Affected downstream packages must not be released until their issues
+  are fixed and verified.
 - A failing health callback now produces fixed payload-free fallback diagnostics
   without logging exception messages or artifact identifiers. Configured callbacks
   still receive the original arguments.
 - The default SDK publication stack classifies observations before sampling,
   removing arbitrary attributes and diagnostic codes and masking messages while
-  retaining validated severity and bounded throwable class/code metadata. Explicitly
-  configured redactors and custom stacks retain their configured behavior.
+  retaining validated severity and bounded throwable class/code metadata, including
+  with custom or null redactors and custom stacks.
 - Default SDK publication reports and drops measurements before sampling until
-  their required names, units and values have an approved classification; custom
-  redactor configurations bypass this default guard. This can suppress all
-  measurements on the default path.
+  their required names, units and values have an approved classification. This
+  suppresses measurements on the SDK path, including with custom or null redactors.
 - Default SDK occurrences now use the fixed exported type `runit.redacted.v1`
   and source `runit:redacted`, with unclassified payload and attributes omitted.
   Consumers cannot route these projections by the original occurrence type.
@@ -48,9 +57,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   IDs must be migrated or they fail closed.
 - The default SDK path withholds snapshot payloads, hashes and unclassified
   metadata before sampling. Default snapshot exports are generic projections;
-  samplers and consumers requiring `SnapshotInterface` or those fields need an
-  explicit alternative policy. Explicit redactor overrides retain their existing
-  behavior.
+  samplers and consumers requiring `SnapshotInterface` or those fields must account
+  for their absence. No configured alternative mode is implemented yet.
 - Provenance retention is capped at 100,000 live records across each SDK
   authority as well as per execution. At capacity new bindings are dropped and
   reported through the configured health path; releasing executions frees capacity.
@@ -68,12 +76,11 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   `VerifiedArtifactProjection` and `ClassifiedArtifact`) through redacted mapper
   methods based on the trusted `artifactType()`, producing an observable
   payload-free delivery rather than silent loss.
-- Terminal snapshots omit `payload` and `content_hash` by default; they are
-  published as classified projections until an explicit opt-in rewrites them
-  as verified exports.
+- SDK terminal snapshots omit `payload` and `content_hash` and are published as
+  classified projections; an alternative export mode is not yet implemented.
 - `DefaultArtifactRedactor` masks throwable trace as null by default; a present
   trace is preserved as a null field in the normalized projection.
-- The default sampler receives redacted projections before classification, which
+- The SDK sampler receives projected, strictly classified artifacts, which
   can be generic rather than the original domain type, even when values are
   unchanged. Custom sampling policies relying on domain interfaces must account
   for projections. Resolving execution kinds from projected child export IDs to
@@ -90,10 +97,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   previously baselined optional fourth `health` parameter has been removed from
   the interface: consumers passing it directly must use the health-aware interface
   instead. The API baseline update was approved; downstream migration is pending.
-- A snapshot whose payload is redacted no longer exposes the original content
-  hash. Classification can publish the redacted payload without a hash, but drops
-  and reports a snapshot if it cannot preserve an accompanying hash and payload
-  unchanged. Consumers must tolerate hashless redacted snapshots.
+- SDK snapshot projections omit both payload and content hash. Standalone
+  redaction and adapter policies have different behavior and do not provide the
+  SDK projection boundary.
 - Explicit redacted-observation drop reporting now suppresses recursive reports
   from the same publisher and resets its guard after reporter failures. The
   publisher is no longer declared `readonly`; reflection-based consumers may
@@ -107,18 +113,16 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   attested execution and activity objects, not business-ID lookups. Duplicate
   live execution IDs are handled fail-open: telemetry is suppressed but the
   business operation still runs.
-- Provenance records are bounded per execution; edges and identifier bytes have
-  their own limits. Multiple live executions can exceed the per-execution record
-  limit in aggregate. Exceeding a limit drops telemetry with a payload-free notice and
+- Provenance records are bounded per execution and across the SDK authority; edges
+  and identifier bytes have their own limits. Exceeding a limit drops telemetry with a payload-free notice and
   preserves the business result. Release prunes incoming relationship edges from
   live records.
 - `DefaultExecutionRunner` setup complexity was reduced by extracting
   `setupExecutionScope()` and `registerExecutionEdges()` helpers, bringing
   control-flow complexity below the architecture threshold.
-- Typed publication now reconstructs classified executions, activities,
-  measurements, occurrences, observations (including redacted observations via
-  `ClassifiedRedactedObservation`), and snapshots solely from sanitized
-  projected values. Typed reconstruction requires exact normalized equality;
+- Generic classification can reconstruct typed artifacts solely from projected
+  values when representable. SDK measurements are dropped and SDK snapshots omit
+  payload and hash, so those snapshots remain generic. Typed reconstruction requires exact normalized equality;
   incomplete or unverifiable projections fall back to generic `ClassifiedArtifact`
   delivery. Activity duration (`duration_ns`) is preserved through
   classification. Unknown artifact kinds are dropped with a payload-free health
@@ -135,9 +139,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   the optional `RedactedMeasurementInstrumentMapperInterface`. Custom mappers
   without this capability drop redacted measurements with a payload-free health
   report; their existing `MeasurementInstrumentMapperInterface` remains unchanged.
-  The classified publisher stack reconstructs typed executions, activities,
-  occurrences, measurements, observations, and snapshots when their projected
-  fields can be represented without change. Other artifacts and incomplete
+  The generic classifier reconstructs typed artifacts when their projected fields
+  can be represented without change; SDK measurements are dropped. Other artifacts and incomplete
   projections remain generic; consumers relying on typed dispatch must account
   for those cases.
 - `ExecutionSnapshotFactory` no longer constructs a default
@@ -159,8 +162,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 - `ClassifyingArtifactPublisher` truncates multibyte strings at a UTF-8
   character boundary using `mb_strcut()`, preventing invalid UTF-8 in projected
   values that would cause JSON encoders to throw.
-- Sampling wraps the classifier in the default stack, so classification runs
-  after sampling. Redaction wraps both and runs first.
+- In the SDK stack, redaction and strict classifiers run before sampling; an
+  additional generic classifier runs after sampling.
 - `HeadBasedSamplingPolicy` docblock aligned with the key derivation: the
   execution key comes from `ExecutionOwnedInterface::executionId()` when
   available, otherwise from the trusted `execution_id` field of
@@ -196,8 +199,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   4,096 bytes per string, 1 MiB total, nested attribute map counts capped by
   `SecurityLimits::maxAttributeCount`. Objects, resources, and unknown fields
   are rejected; on exhaustion, optional fields are omitted, required fields
-  cause drop-and-report. The classifier runs even when the deny-list redactor
-  returns the artifact unchanged.
+  cause drop-and-report. SDK-specific strict classifiers also run before sampling,
+  even when the redactor is null or leaves the artifact unchanged.
 - Adds `TrustedArtifactProjectionInterface` (extends `RedactedArtifactInterface`)
   as a marker for SDK-created classified projections. Sampling predicates also
   accept unmarked `RedactedArtifactInterface` instances and may use their
@@ -249,9 +252,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   `redactObservationMessages: false` as the explicit opt-in to publish raw observation
   messages; this is a breaking default change for consumers that previously relied on
   raw messages being exposed, since observation messages can carry secrets or PII.
-- The default publication stack applies redaction before sampling and classification.
-  Redactors can leave fields unchanged, so samplers must still treat their input as
-  potentially sensitive.
+- The SDK stack applies redaction, provenance projection and strict classification
+  before sampling. Standalone compositions do not automatically provide that
+  boundary, and redactors alone can leave fields unchanged.
 
 - Bound redacted throwable cause traversal to 16 levels, replace traces with
   null, and omit unrecognized throwable fields and invalid class or code values.

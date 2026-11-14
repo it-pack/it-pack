@@ -286,12 +286,18 @@ Other entry points: [glossary](docs/glossary.md), [vocabulary](docs/vocabulary.m
 ## Security and Privacy
 
 Context, observations, occurrences, measurements, and snapshots are potential data
-exfiltration paths. The default SDK stack applies redaction and field classification,
-but custom redactors and publisher stacks are responsible for their own policies.
-Not every composition is a complete security boundary. The default policy currently
-reports and drops measurements with unclassified values, replaces occurrence types,
-and emits payload-free snapshot projections; consumers must account for those changes.
-See the security documentation for current limits and remaining gaps.
+exfiltration paths. The SDK checks provenance, invokes a configured custom redactor
+on the original artifact, then projects and strictly classifies its output before
+the configured publisher stack, even when the redactor is null. Custom redactors
+must therefore be trusted with raw data. Custom stack factories receive a null
+redactor and their stacks receive classified projections. SDK measurements are
+reported and dropped, occurrence types are replaced, and snapshot projections omit
+payload and hash; consumers must account for these delivery changes.
+
+The standalone pipeline remains unsafe without independent controls. Phase 2 is
+incomplete, and the planned configurable alternative input and bypass modes are not
+yet implemented. Affected downstream packages must not be released until their
+issues are fixed and verified. See the security documentation for remaining gaps.
 
 - Threat model and supply chain: [`docs/SECURITY.md`](docs/SECURITY.md), [`docs/security/`](docs/security/threat-model.md).
 - Classification and redaction behavior: [`docs/architecture/security.md`](docs/architecture/security.md).

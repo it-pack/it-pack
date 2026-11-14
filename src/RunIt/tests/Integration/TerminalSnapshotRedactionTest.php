@@ -95,7 +95,7 @@ final class TerminalSnapshotRedactionTest extends Unit
         $snapshots = [];
         foreach ($kit->logs() as $record) {
             if ($record->getEventName() === 'runit.snapshot') {
-                self::assertSame($mask ? 'execution.terminal' : AttributeValues::REDACTED_TYPE, $record->getBody());
+                self::assertSame(AttributeValues::REDACTED_TYPE, $record->getBody());
                 $snapshots[] = $record->getAttributes()->toArray();
             }
         }

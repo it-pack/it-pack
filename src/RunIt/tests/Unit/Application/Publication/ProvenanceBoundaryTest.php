@@ -57,7 +57,7 @@ final class ProvenanceBoundaryTest extends Unit
         new ProvenanceArtifactPublisher($authority, $inner)->publish($deferred);
 
         self::assertCount(1, $reports);
-        self::assertSame('Artifact provenance verification failed.', $reports[0][0]);
+        self::assertSame('provenance verification or issuance failed.', $reports[0][0]);
         self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0][1]);
         self::assertStringNotContainsString('exec-1', serialize($reports));
     }

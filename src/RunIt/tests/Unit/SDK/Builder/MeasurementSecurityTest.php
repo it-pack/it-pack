@@ -9,8 +9,10 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
@@ -18,14 +20,16 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 #[CoversClass(RunItBuilder::class)]
 final class MeasurementSecurityTest extends TestCase
 {
-    public function testDefaultDropsMeasurementsBeforeSamplerAndExplicitNullOptOutDoesNot(): void
+    public function testMeasurementsAreDroppedBeforeSamplingForAllRedactorModes(): void
     {
-        foreach ([false, true] as $optOut) {
+        foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
+            $health = [];
             $sampler = new class () implements SamplingPolicyInterface {
                 /** @var list<ExecutionArtifactInterface> */
                 public array $seen = [];
@@ -43,9 +47,16 @@ final class MeasurementSecurityTest extends TestCase
                 ->withSnapshotSerializer(new JsonSnapshotSerializer())
                 ->withIdentifierGenerator(new RandomIdentifierGenerator())
                 ->withSamplingPolicy($sampler)
+                ->withPublicationFailureHandler(
+                    static function (Throwable $error, ?ExecutionArtifactInterface $artifact = null) use (
+                        &$health,
+                    ): void {
+                        $health[] = [$error->getMessage(), $artifact?->normalize()];
+                    }
+                )
             ;
-            if ($optOut) {
-                $builder = $builder->withRedactor(null);
+            if ($mode !== 'default') {
+                $builder = $builder->withRedactor($mode === 'null' ? null : new DefaultArtifactRedactor());
             }
 
             $builder->build()->run(
@@ -56,16 +67,22 @@ final class MeasurementSecurityTest extends TestCase
             );
 
             foreach ([$sampler->seen, $sink->published()] as $artifacts) {
+                self::assertNotEmpty($artifacts, $mode);
                 $encoded = json_encode(array_map(
                     static fn (ExecutionArtifactInterface $artifact): array => $artifact->normalize(),
                     $artifacts,
                 ), JSON_THROW_ON_ERROR);
-                if ($optOut) {
-                    self::assertStringContainsString('secret-metric', $encoded);
-                } else {
-                    self::assertStringNotContainsString('secret-metric', $encoded);
+                self::assertStringNotContainsString('secret-metric', $encoded, $mode);
+                foreach ($artifacts as $artifact) {
+                    self::assertNotSame('measurement', ArtifactType::type($artifact), $mode);
+                    self::assertArrayNotHasKey('value', $artifact->normalize(), $mode);
                 }
             }
+
+            self::assertSame([[
+                'Default measurement classification dropped an unclassified measurement.',
+                ['id' => 'redacted', 'type' => 'runit.artifact.redacted'],
+            ]], $health, $mode);
         }
     }
 }

@@ -6,6 +6,26 @@ changes.
 
 ## Public API scope
 
+### Current Phase 2 publication behavior
+
+The SDK builder invokes a configured custom redactor on the original artifact
+after an initial provenance check, then verifies and projects its output and
+applies strict classifiers before the configured publisher stack. This also
+applies when the redactor is explicitly null. Ordinary and health-aware custom
+stack factories now receive `null` for the redactor and their stacks receive
+classified projections, rather than raw artifacts. Factories that depended on
+the redactor argument, original domain types, business IDs, or unclassified
+fields need migration. SDK snapshot projections omit payload and content hash;
+SDK measurements are dropped and reported, including with custom or null
+redactors. Occurrence routing by the original type is unavailable on this path.
+
+Standalone pipeline composition remains unsafe without independent controls.
+The planned configurable extension-input modes and independent classification
+and provenance bypasses are not implemented. Phase 2 is incomplete; affected
+downstream packages must not be released until their issues are fixed and
+verified. These behavioral changes require compatibility review alongside any
+API and schema differences; no baseline update is implied.
+
 The public API is the set of symbols under these source directories:
 
 - `src/Domain` — domain value objects, entities, and contracts.
@@ -108,9 +128,10 @@ enforced structurally by the aggregate:
 
 - **Default redactor:** `RunItBuilder::build()` now installs a default
   redactor unless `withRedactor()` was explicitly called — including the
-  explicit opt-out `withRedactor(null)`. Matching top-level throwable messages
-  and failed execution `result.throwable` are masked, and configured sampling
-  runs before redaction. Occurrence/snapshot
+  explicit opt-out `withRedactor(null)` for the redactor itself. Matching top-level
+  throwable messages and failed execution `result.throwable` are masked by the
+  default redactor. Sampling now follows SDK projection and strict classification.
+  Occurrence/snapshot
   payload masking is key-driven via a custom redactor. See `SECURITY.md` for
   current limitations before relying on this behavior.
 - `BridgeConfig`/`BridgeConfigBuilder` gained

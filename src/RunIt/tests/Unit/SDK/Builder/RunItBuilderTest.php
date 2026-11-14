@@ -424,7 +424,10 @@ final class RunItBuilderTest extends TestCase
         foreach ($executions as $execution) {
             self::assertInstanceOf(ExecutionInterface::class, $execution);
             self::assertNotSame($businessId, $execution->id()->toString());
-            self::assertStringNotContainsString('synthetic-secret-identity-', json_encode($execution->normalize(), JSON_THROW_ON_ERROR));
+            self::assertStringNotContainsString(
+                'synthetic-secret-identity-',
+                json_encode($execution->normalize(), JSON_THROW_ON_ERROR),
+            );
         }
     }
 
@@ -614,7 +617,10 @@ final class RunItBuilderTest extends TestCase
         foreach ($observations as $observation) {
             self::assertInstanceOf(ObservationInterface::class, $observation);
             self::assertSame('[redacted]', $observation->message());
-            self::assertStringNotContainsString('raw observation source', json_encode($observation->normalize(), JSON_THROW_ON_ERROR));
+            self::assertStringNotContainsString(
+                'raw observation source',
+                json_encode($observation->normalize(), JSON_THROW_ON_ERROR),
+            );
         }
     }
 
@@ -756,7 +762,7 @@ final class RunItBuilderTest extends TestCase
 
         self::assertSame('result', $runtime->run($this->definition(), static fn (): string => 'result'));
         self::assertCount(1, $failures);
-        self::assertStringContainsString('provenance', $failures[0]->getMessage());
+        self::assertSame('provenance verification or issuance failed.', $failures[0]->getMessage());
         foreach ($sink->published as $artifact) {
             self::assertNotInstanceOf(SnapshotInterface::class, $artifact);
             self::assertFalse(

@@ -281,6 +281,7 @@ final class ProvenanceAuthorityTest extends Unit
     {
         $health = new class () implements InternalHealthReporterInterface {
             public ?ProvenanceAuthority $authority = null;
+
             /** @var list<array{string, array<string, mixed>}> */
             public array $reports = [];
 

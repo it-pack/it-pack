@@ -155,12 +155,11 @@ final class SamplingTest extends Unit
         new PublisherStackFactory()->compose($optOutSink, null, $policy, authority: $authority)
             ->publish($snapshot)
         ;
-        self::assertSame(['id' => 'business-secret'], $policy->seen[1]['payload']);
-        self::assertSame('secret-hash', $policy->seen[1]['content_hash']);
-        self::assertSame('secret-snapshot-type', $policy->seen[1]['type']);
-        self::assertSame('secret-content-type', $policy->seen[1]['content_type']);
-        self::assertSame(['secret-key' => 'secret-attribute'], $policy->seen[1]['attributes']);
-        self::assertSame('secret-extra-value', $policy->seen[1]['extra_secret']);
+        self::assertCount(2, $policy->seen);
+        self::assertCount(1, $optOutSink->published());
+        self::assertEquals($policy->seen[0], $policy->seen[1]);
+        self::assertEquals($policy->seen[1], $optOutSink->published()[0]->normalize());
+        self::assertStringNotContainsString('secret', json_encode($policy->seen[1], JSON_THROW_ON_ERROR));
     }
 
     public function testVerifiedCustomSnapshotClassificationOmitsUnclassifiedPayload(): void
@@ -245,8 +244,14 @@ final class SamplingTest extends Unit
                     new PublisherStackFactory()->compose($optOutSink, $redactor, $policy, authority: $authority)
                         ->publish($snapshot)
                     ;
-                    self::assertSame(['secret' => 'business-secret'], $policy->seen[$index + 1]['payload']);
-                    self::assertSame('secret-hash', $policy->seen[$index + 1]['content_hash']);
+                    self::assertArrayNotHasKey('payload', $policy->seen[$index + 1]);
+                    self::assertArrayNotHasKey('content_hash', $policy->seen[$index + 1]);
+                    self::assertSame($executionId, $policy->seen[$index + 1]['execution_id']);
+                    self::assertSame($snapshotId, $policy->seen[$index + 1]['id']);
+                    self::assertStringNotContainsString(
+                        'secret',
+                        json_encode($policy->seen[$index + 1], JSON_THROW_ON_ERROR),
+                    );
                     self::assertEquals($policy->seen[$index + 1], $optOutSink->published()[0]->normalize());
                 }
             }
@@ -258,7 +263,8 @@ final class SamplingTest extends Unit
         $health = $this->createMock(InternalHealthReporterInterface::class);
         $health->expects($this->once())->method('report')->willReturnCallback(
             static function (Throwable $failure, ExecutionArtifactInterface $notice): void {
-                self::assertSame('Redaction provenance verification failed.', $failure->getMessage());
+                self::assertStringContainsString('provenance', strtolower($failure->getMessage()));
+                self::assertStringNotContainsString('secret', $failure->getMessage());
                 self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $notice->normalize());
             },
         );

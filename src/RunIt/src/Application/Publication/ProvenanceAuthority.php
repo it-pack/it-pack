@@ -507,11 +507,6 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
                 continue;
             }
 
-            $executionId = substr($key, strlen($prefix));
-            if ($executionId === $excludeExecutionId) {
-                continue;
-            }
-
             foreach ($candidates as $exportId) {
                 $record = $this->records[$exportId] ?? null;
                 if ($record !== null && !$record['released'] && $record['businessId'] === $businessId
@@ -519,6 +514,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
                     if ($matched !== null) {
                         return null;
                     }
+
                     $matched = $exportId;
                 }
             }

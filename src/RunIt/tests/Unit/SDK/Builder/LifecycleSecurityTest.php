@@ -29,6 +29,7 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Throwable;
 
 #[CoversClass(RunItBuilder::class)]
 final class LifecycleSecurityTest extends TestCase
@@ -37,6 +38,7 @@ final class LifecycleSecurityTest extends TestCase
     {
         foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
+            $health = [];
             $sampler = new class () implements SamplingPolicyInterface {
                 /** @var list<ExecutionArtifactInterface> */
                 public array $seen = [];
@@ -52,6 +54,9 @@ final class LifecycleSecurityTest extends TestCase
                 ->withSnapshotSerializer(new JsonSnapshotSerializer())
                 ->withIdentifierGenerator(new RandomIdentifierGenerator())
                 ->withSamplingPolicy($sampler)
+                ->withPublicationFailureHandler(static function (Throwable $error) use (&$health): void {
+                    $health[] = $error->getMessage();
+                })
             ;
             if ($mode !== 'default') {
                 $builder = $builder->withRedactor($mode === 'null' ? null : new DefaultArtifactRedactor());
@@ -93,7 +98,7 @@ final class LifecycleSecurityTest extends TestCase
                     $a instanceof ActivityInterface
                     || ($a instanceof VerifiedArtifactProjection && $a->artifactType() === 'activity')));
                 self::assertNotEmpty($executions, $mode);
-                self::assertNotEmpty($activities, $mode);
+                self::assertGreaterThanOrEqual(2, count($activities), $mode);
                 $execution = $executions[0]->normalize();
                 $outer = $activities[0]->normalize();
                 $inner = $activities[1]->normalize();
@@ -103,13 +108,23 @@ final class LifecycleSecurityTest extends TestCase
                 self::assertNotSame($business[0], $execution['id']);
                 self::assertNotSame($business[1], $outer['id']);
                 $encoded = json_encode([$execution, $outer, $inner], JSON_THROW_ON_ERROR);
-                if ($mode === 'default') {
-                    self::assertStringNotContainsString('secret-', $encoded);
-                } else {
-                    self::assertStringContainsString('secret-execution', $encoded);
-                    self::assertStringContainsString('secret-inner', $encoded);
+                foreach ([$execution, $outer, $inner] as $fields) {
+                    self::assertSame('runit.redacted', $fields['name'], $mode);
+                    self::assertSame('runit.redacted', $fields['kind'], $mode);
+                }
+
+                self::assertStringNotContainsString('secret-', $encoded, $mode);
+                self::assertStringNotContainsString($business[0], $encoded, $mode);
+                self::assertStringNotContainsString($business[1], $encoded, $mode);
+                foreach (array_merge($executions, $activities) as $artifact) {
+                    $fields = $artifact->normalize();
+                    self::assertSame('runit.redacted', $fields['name'], $mode);
+                    self::assertSame('runit.redacted', $fields['kind'], $mode);
+                    self::assertStringNotContainsString('secret-', json_encode($fields, JSON_THROW_ON_ERROR), $mode);
                 }
             }
+
+            self::assertSame([], $health, $mode);
         }
     }
 
