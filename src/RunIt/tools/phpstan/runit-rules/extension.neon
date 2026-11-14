@@ -121,4 +121,4 @@ services:
     # Threshold is tuned to the current worst offender so nothing is flagged today
     # (verified), but newly-added over-complex methods are caught. Adjust only
     # with a recorded reason in docs/qa.md.
-    - { class: Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule, arguments: { srcRoot: %currentWorkingDirectory%/src, threshold: 19 }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule, arguments: { srcRoot: %currentWorkingDirectory%/src, threshold: 15 }, tags: [phpstan.rules.rule] }
