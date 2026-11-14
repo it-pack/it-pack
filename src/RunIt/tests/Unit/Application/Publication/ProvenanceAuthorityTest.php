@@ -285,9 +285,13 @@ final class ProvenanceAuthorityTest extends Unit
             /** @var list<array{string, array<string, mixed>}> */
             public array $reports = [];
 
+            /** @var list<Throwable> */
+            public array $errors = [];
+
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->reports[] = [$error->getMessage(), $artifact->normalize()];
+                $this->errors[] = $error;
                 $this->authority?->reportUnverified(new RuntimeException('nested-secret'), 'nested-secret');
             }
         };
@@ -296,6 +300,11 @@ final class ProvenanceAuthorityTest extends Unit
         $authority->reportUnverified(new RuntimeException('exception-secret'), 'identifier-secret');
         self::assertCount(1, $health->reports);
         self::assertStringNotContainsString('secret', serialize($health->reports));
+        foreach ($health->errors as $error) {
+            self::assertStringNotContainsString('secret', serialize($error->getTrace()));
+            self::assertStringNotContainsString('identifier-secret', serialize($error->getTrace()));
+        }
+
         $authority->reportUnverified(new RuntimeException('again'));
         self::assertCount(2, $health->reports);
     }

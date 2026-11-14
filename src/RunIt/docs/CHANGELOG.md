@@ -248,10 +248,14 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 - Redaction traversal limits (16 levels, 1,024 nodes) that exceed the budget now
   report truncation through the health path as a bounded, payload-free notice.
 - `ArtifactRedactionConfig::$redactObservationMessages` defaults to `true` (deny-by-default
-  redaction: observation messages are masked unless explicitly opted out). Set
-  `redactObservationMessages: false` as the explicit opt-in to publish raw observation
-  messages; this is a breaking default change for consumers that previously relied on
-  raw messages being exposed, since observation messages can carry secrets or PII.
+  redaction: observation messages are masked unless explicitly opted out). The opt-out
+  applies only to standalone redaction: the SDK stack applies its own classifier that
+  masks observation messages even with a custom or null redactor, so setting
+  `redactObservationMessages: false` does not publish raw observation messages through
+  the SDK path. Set `redactObservationMessages: false` as the explicit opt-in to publish
+  raw observation messages in standalone compositions; this is a breaking default change
+  for consumers that previously relied on raw messages being exposed, since observation
+  messages can carry secrets or PII.
 - The SDK stack applies redaction, provenance projection and strict classification
   before sampling. Standalone compositions do not automatically provide that
   boundary, and redactors alone can leave fields unchanged.
