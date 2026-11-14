@@ -60,34 +60,35 @@ data-exfiltration paths and applies defense-in-depth:
 
 Provenance records are owned by the SDK execution runner and released after
 terminal publication and context cleanup, not after asynchronous delivery.
-The default builder stack verifies and classifies before calling its base
-publisher, so a buffer there can retain the resulting projection without retaining
-provenance. Custom stacks can instead receive raw business artifacts; deferring
-their verification beyond cleanup causes a reported drop, while directly exporting
-them bypasses the default projection and its field restrictions. See
+The SDK builder checks provenance, invokes the configured redactor on the original
+artifact, then verifies its output and applies provenance projection and strict
+classifiers before the configured stack. A custom redactor is therefore a trusted
+raw-input processor. Ordinary and health-aware custom stack factories receive a
+null redactor and their resulting stacks receive classified projections; the SDK
+does not ask the factory to apply the configured redactor again. A buffer in that
+stack can retain the resulting projection without retaining provenance. Deferring
+raw artifacts beyond cleanup leaves their provenance unavailable. See
 [`architecture/publication.md`](architecture/publication.md#provenance-lifetime-and-asynchronous-delivery)
 for ownership, bounds, and composition limitations.
 
-The SDK builder installs the default redactor unless explicitly overridden, and
-the publication stack applies redaction before sampling. On the default SDK
-stack, observations are also classified before sampling: arbitrary messages,
+The SDK builder installs the default redactor unless explicitly overridden.
+An explicit `withRedactor(null)` disables that redactor, not the SDK provenance
+projection or strict classifiers; a custom redactor likewise does not bypass them.
+On the SDK path, observations are classified before the configured stack and
+sampling: arbitrary messages,
 attributes and diagnostic codes are replaced or removed; validated severity,
 verified identities, bounded timing and throwable class/code metadata are retained.
-Trace observations retain their typed severity on this path. Explicitly configured redactors and custom stack
-factories do not acquire this default observation classification automatically.
-Default SDK occurrences retain verified IDs and timing, but use a fixed type and
+Trace observations retain their typed severity on this path. SDK occurrences retain
+verified IDs and timing, but use a fixed type and
 source and omit unclassified data and attributes. This prevents routing by the
-original occurrence type. Other artifact types may still carry unclassified fields
-to samplers and sinks.
-On the default SDK stack, measurements are currently dropped with a payload-free
-health report because their required names, units and values are unclassified.
-This is a delivery loss, not a numeric-value redaction; explicit redactor
-overrides bypass this default guard.
-Default snapshot projections omit payloads, hashes and unclassified metadata
+original occurrence type.
+SDK measurements are currently dropped with a payload-free health report because
+their required names, units and values are unclassified. This is a delivery loss,
+not a numeric-value redaction, including with null or custom redactors.
+SDK snapshot projections omit payloads, hashes and unclassified metadata
 before sampling. They retain verified relationships and validated structural
-fields, but do not implement `SnapshotInterface`; explicitly configured redactors
-are responsible for their own policy.
-Default execution and activity projections replace names and kinds, omit
+fields, but do not implement `SnapshotInterface`.
+SDK execution and activity projections replace names and kinds, omit
 unclassified context and attributes, and retain verified relationships, validated
 statuses, timing, and bounded throwable class/code metadata. A sampling resolver
 keyed by business execution IDs will not match the export IDs it receives.
@@ -95,6 +96,14 @@ The default
 redactor examines a top-level `throwable` and a failed execution's
 `result.throwable`. It masks throwable messages, replaces traces with null, omits
 unknown throwable fields, and limits throwable cause traversal to 16 levels.
+
+The standalone publication pipeline does not automatically have the SDK's issuing
+authority or strict SDK classification boundary and remains unsafe for untrusted
+artifacts or sensitive data without independently verified controls. Phase 2 is
+incomplete: the planned configurable extension-input modes and independent
+classification and provenance bypasses are not yet implemented. These incremental
+changes do not establish the full Phase 2 security guarantees. Affected downstream
+packages must not be released until their issues are fixed and verified.
 
 A redacted artifact carries a trusted `artifactType()` signal set by the redactor,
 so adapters route it by signal instead of inferring kind from user-controlled
@@ -138,14 +147,13 @@ untrusted artifact implementations. Built-in occurrence and snapshot constructor
 validate payload values; custom implementations must honor the bounded, recursively
 primitive `NormalizableInterface` contract.
 
-Direct execution throwable redaction therefore also protects snapshot payloads under
-the default configuration: the redactor traverses array payloads to find
-throwable-shaped arrays even without configured sensitive keys.
+The standalone redactor traverses array snapshot payloads to find throwable-shaped
+arrays even without configured sensitive keys; this does not make those payloads
+safe. The SDK projection instead omits snapshot payload and hash.
 
-When a publication health callback fails, the fallback reporter can log both
-exception messages and the artifact ID. Those diagnostics may contain sensitive
-data; treat the fallback log as sensitive and avoid placing secrets in exception
-messages or identifiers.
+When a publication health callback fails, fallback diagnostics are fixed and
+payload-free; configured callbacks still receive their original arguments and must
+be treated as a sensitive boundary.
 
 Do not publish through the same fail-safe publisher from its health reporter.
 The recursion guard reports each nested attempt through that reporter, which can

@@ -101,8 +101,8 @@ final class DefaultObservationClassifier implements
     {
         return !is_string($fields['id'] ?? null)
             || !is_string($fields['execution_id'] ?? null)
-            || !is_int($fields['timestamp'] ?? null)
-            || !is_int($fields['sequence'] ?? null)
+            || !is_int($fields['timestamp'] ?? null) || $fields['timestamp'] < 0
+            || !is_int($fields['sequence'] ?? null) || $fields['sequence'] < 0
             || (!is_string($fields['activity_id'] ?? null) && ($fields['activity_id'] ?? null) !== null);
     }
 }

@@ -2,6 +2,12 @@
 
 **GitHub issue:** https://github.com/it-pack/it-pack/issues/39
 
+**Scope update (2026-11-14):** RunIt-owned quality and API work remains in scope.
+AsyncIt-specific failures, dependency constraints and quality-gate follow-up are
+deferred to the monorepo-wide dependent-package strategy. They remain open in
+development and must be fixed and verified before releasing the affected package;
+the deferral does not make its quality gate green.
+
 ## Problem
 
 Quality checks during the Phase 1 context-ownership work did not all pass. These
@@ -40,7 +46,7 @@ Composer validation because its existing `it-pack/run-it` `@dev` constraint is
 unbounded. Later stages were not run by that quality command; the separate
 checks above do not establish a complete quality pass. The separate Rector dry
 run now passes after making the fixture discoverable to PHPStan and using its
-canonical path. Resolve the dependency constraint and rerun the full gate without
-suppressing validation.
+canonical path. The dependency constraint and full AsyncIt gate remain deferred;
+they must be resolved and rerun without suppressing validation before release.
 
 **Reference:** [RunIt refactoring plan](../REFACTORING_PLAN.md#phase-1-compatibility-and-context-ownership).

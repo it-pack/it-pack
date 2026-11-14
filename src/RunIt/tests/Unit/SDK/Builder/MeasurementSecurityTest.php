@@ -9,6 +9,8 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -18,14 +20,16 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 #[CoversClass(RunItBuilder::class)]
 final class MeasurementSecurityTest extends TestCase
 {
-    public function testDefaultDropsMeasurementsBeforeSamplerAndExplicitNullOptOutDoesNot(): void
+    public function testValidMeasurementsAreDroppedForAllRedactorModes(): void
     {
-        foreach ([false, true] as $optOut) {
+        foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
+            $health = [];
             $sampler = new class () implements SamplingPolicyInterface {
                 /** @var list<ExecutionArtifactInterface> */
                 public array $seen = [];
@@ -43,29 +47,42 @@ final class MeasurementSecurityTest extends TestCase
                 ->withSnapshotSerializer(new JsonSnapshotSerializer())
                 ->withIdentifierGenerator(new RandomIdentifierGenerator())
                 ->withSamplingPolicy($sampler)
+                ->withPublicationFailureHandler(
+                    static function (Throwable $error, ?ExecutionArtifactInterface $artifact = null) use (
+                        &$health,
+                    ): void {
+                        $health[] = [$error->getMessage(), $artifact?->normalize()];
+                    }
+                )
             ;
-            if ($optOut) {
-                $builder = $builder->withRedactor(null);
+            if ($mode !== 'default') {
+                $builder = $builder->withRedactor($mode === 'null' ? null : new DefaultArtifactRedactor());
             }
 
             $builder->build()->run(
                 ExecutionDefinition::create(ExecutionName::fromString('test'), ExecutionKind::fromString('operation')),
                 static function (ExecutionScopeInterface $scope): void {
-                    $scope->measurements()->counter('secret-metric', 123);
+                    $scope->measurements()->counter('dogfood-metric', 123);
                 },
             );
 
-            foreach ([$sampler->seen, $sink->published()] as $artifacts) {
-                $encoded = json_encode(array_map(
-                    static fn (ExecutionArtifactInterface $artifact): array => $artifact->normalize(),
-                    $artifacts,
-                ), JSON_THROW_ON_ERROR);
-                if ($optOut) {
-                    self::assertStringContainsString('secret-metric', $encoded);
-                } else {
-                    self::assertStringNotContainsString('secret-metric', $encoded);
-                }
-            }
+            // Valid measurements are dropped before sampling in all redactor modes.
+            // Non-measurement artifacts (executions, occurrences, snapshots) are
+            // still delivered; only measurements are dropped.
+            $samplerMeasurements = array_filter(
+                $sampler->seen,
+                static fn (ExecutionArtifactInterface $artifact): bool => DefaultMeasurementClassifier::isMeasurement($artifact)
+            );
+            $sinkMeasurements = array_filter(
+                $sink->published(),
+                static fn (ExecutionArtifactInterface $artifact): bool => DefaultMeasurementClassifier::isMeasurement($artifact)
+            );
+            self::assertEmpty($samplerMeasurements, $mode);
+            self::assertEmpty($sinkMeasurements, $mode);
+
+            // A drop notice is reported for each dropped measurement.
+            self::assertNotEmpty($health, $mode);
+            self::assertStringContainsString('classification dropped', $health[0][0]);
         }
     }
 }

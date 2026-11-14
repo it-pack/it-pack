@@ -2,6 +2,12 @@
 
 **GitHub issue:** https://github.com/it-pack/it-pack/issues/40
 
+**Scope update (2026-11-14):** RunIt-owned runtime, storage and conformance
+verification remains in scope. Dependent-package fixes and their compatibility
+checks are deferred to the monorepo-wide strategy and are not passing results.
+Affected dependent packages must not be released until relevant issues are fixed
+and verified.
+
 ## Problem
 
 Phase 0 is complete as a documented baseline with the limitations in the plan.

@@ -48,15 +48,22 @@ final class SwoolePollerTest extends TestCase
     public function testReadyHandlesReturnsReadyStreams(): void
     {
         $poller = new SwoolePoller();
-        $readable = fopen('php://memory', 'rb+');
-        $writable = fopen('php://memory', 'rb+');
+        $pair = stream_socket_pair(STREAM_PF_UNIX, SOCK_STREAM, STREAM_IPPROTO_IP);
+        self::assertIsResource($pair[0]);
+        self::assertIsResource($pair[1]);
 
-        $poller->register($readable);
-        $poller->register($writable);
+        fwrite($pair[0], 'ready');
+
+        $handle = $poller->register($pair[1]);
 
         $poller->await(0);
 
-        $poller->readyHandles();
-        self::assertSame(2, $poller->activeHandleCount());
+        $ready = $poller->readyHandles();
+
+        self::assertCount(1, $ready);
+        self::assertSame($handle->id, $ready[0]->id);
+
+        fclose($pair[0]);
+        fclose($pair[1]);
     }
 }

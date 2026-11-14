@@ -71,8 +71,8 @@ final class DefaultOccurrenceClassifier implements
         return !is_string($fields['id'] ?? null)
             || !is_string($fields['execution_id'] ?? null)
             || (!is_string($fields['activity_id'] ?? null) && ($fields['activity_id'] ?? null) !== null)
-            || !is_int($fields['time'] ?? null)
-            || !is_int($fields['sequence'] ?? null);
+            || !is_int($fields['time'] ?? null) || $fields['time'] < 0
+            || !is_int($fields['sequence'] ?? null) || $fields['sequence'] < 0;
     }
 
     /**

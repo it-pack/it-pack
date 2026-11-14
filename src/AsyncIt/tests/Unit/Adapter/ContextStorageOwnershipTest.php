@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter;
 
-use Swoole\Coroutine;
-use function Swoole\Coroutine\run;
 use Fiber;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
@@ -18,6 +16,10 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use LogicException;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
+
+use function Swoole\Coroutine\run;
+
 use WeakMap;
 use WeakReference;
 

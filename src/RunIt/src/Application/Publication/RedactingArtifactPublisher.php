@@ -158,7 +158,7 @@ final class RedactingArtifactPublisher implements
                 throw new RuntimeException();
             }
 
-            if ($this->redactor instanceof DefaultSdkRedactor && $artifact instanceof SnapshotInterface) {
+            if ($artifact instanceof SnapshotInterface) {
                 if (!$this->validSnapshotStructure($artifact, $normalized)) {
                     throw new RuntimeException();
                 }
@@ -170,7 +170,7 @@ final class RedactingArtifactPublisher implements
                 $exportFields,
                 $kind,
                 $redacted instanceof RedactedArtifactInterface,
-                $this->redactor instanceof DefaultSdkRedactor && $artifact instanceof SnapshotInterface,
+                $artifact instanceof SnapshotInterface,
             );
         } catch (Throwable) {
             $authority->reportUnverified(new RuntimeException('Redaction provenance verification failed.'));

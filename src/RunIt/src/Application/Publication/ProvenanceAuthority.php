@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Random\RandomException;
 use RuntimeException;
+use SensitiveParameter;
 use Throwable;
 use WeakMap;
 
@@ -110,6 +111,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     private array $incoming = [];
 
     private bool $releasing = false;
+
+    private bool $reporting = false;
 
     private int $edgeCount = 0;
 
@@ -281,7 +284,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     public function issueExportId(
         string $kind,
         string $role,
+        #[SensitiveParameter]
         string $executionId,
+        #[SensitiveParameter]
         string $businessId,
         array $relationships = [],
     ): string {
@@ -342,8 +347,13 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * endpoint is unknown or released, so callers can treat the relationship
      * as unverified and drop-and-report.
      */
-    public function registerRelationship(string $fromExportId, string $toExportId, string $relationshipType): bool
-    {
+    public function registerRelationship(
+        #[SensitiveParameter]
+        string $fromExportId,
+        #[SensitiveParameter]
+        string $toExportId,
+        string $relationshipType,
+    ): bool {
         $from = $this->records[$fromExportId] ?? null;
         $to = $this->records[$toExportId] ?? null;
 
@@ -475,7 +485,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $matched = null;
         foreach ($candidates as $exportId) {
             $record = $this->records[$exportId] ?? null;
-            if ($record !== null && !$record['released'] && ($role === null || $record['role'] === $role)) {
+            if ($record !== null && !$record['released'] && $record['businessId'] === $businessId
+                && $record['executionId'] === $executionId && ($role === null || $record['role'] === $role)) {
                 if ($matched !== null) {
                     return null;
                 }
@@ -498,25 +509,26 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     {
         $prefix = $businessId . "\0";
 
+        $matched = null;
         foreach ($this->byBusinessExecution as $key => $candidates) {
             if (!str_starts_with($key, $prefix)) {
                 continue;
             }
 
-            $executionId = substr($key, strlen($prefix));
-            if ($executionId === $excludeExecutionId) {
-                continue;
-            }
-
             foreach ($candidates as $exportId) {
                 $record = $this->records[$exportId] ?? null;
-                if ($record !== null && !$record['released'] && $record['executionId'] !== $excludeExecutionId) {
-                    return $exportId;
+                if ($record !== null && !$record['released'] && $record['businessId'] === $businessId
+                    && $record['executionId'] !== $excludeExecutionId && $record['role'] === 'execution') {
+                    if ($matched !== null) {
+                        return null;
+                    }
+
+                    $matched = $exportId;
                 }
             }
         }
 
-        return null;
+        return $matched;
     }
 
     /**
@@ -559,7 +571,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     public function bindArtifact(
         string $kind,
         string $role,
+        #[SensitiveParameter]
         string $executionId,
+        #[SensitiveParameter]
         string $businessId,
         string $relationshipType = '',
     ): ?string {
@@ -610,8 +624,10 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * binding drop and report. Re-entry is guarded so concurrent interleaving
      * cannot partially release an independent execution.
      */
-    public function releaseExecution(string $executionId): void
-    {
+    public function releaseExecution(
+        #[SensitiveParameter]
+        string $executionId,
+    ): void {
         if ($this->releasing) {
             return;
         }
@@ -673,16 +689,32 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * is written through the payload-free error-log fallback so the drop remains
      * observable instead of being silently dropped.
      */
-    public function reportUnverified(Throwable $failure, ?string $artifactId = null): void
-    {
-        $artifactId ??= 'redacted';
+    public function reportUnverified(
+        #[SensitiveParameter]
+        Throwable $failure,
+        #[SensitiveParameter]
+        ?string $artifactId = null,
+    ): void {
+        if ($this->reporting) {
+            return;
+        }
 
+        $this->reporting = true;
+        try {
+            $this->reportUnverifiedSafely();
+        } finally {
+            $this->reporting = false;
+        }
+    }
+
+    private function reportUnverifiedSafely(): void
+    {
         if ($this->health instanceof InternalHealthReporterInterface) {
             try {
                 $this->health->report(
-                    $failure,
+                    new RuntimeException('provenance verification or issuance failed.'),
                     $this->redactedFactory->create([
-                        ArtifactField::ID => $artifactId,
+                        ArtifactField::ID => 'redacted',
                         ArtifactField::TYPE => 'runit.artifact.redacted',
                     ])
                 );

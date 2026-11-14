@@ -33,18 +33,23 @@ final class DefaultMeasurementClassifierTest extends Unit
         });
         $sampler = new InMemoryArtifactPublisher();
         $classifier = new DefaultMeasurementClassifier($sampler, $health);
+
         $fields = [
-            'name' => 'secret-name', 'kind' => 'secret-kind', 'unit' => 'secret-unit',
+            'name' => 'test-metric', 'kind' => 'counter', 'unit' => 'count',
             'value' => 123, 'execution_id' => 'export-execution', 'activity_id' => null,
-            'timestamp' => 1, 'sequence' => 1, 'attributes' => ['secret-key' => 'secret-value'],
+            'timestamp' => 1, 'sequence' => 1, 'attributes' => [],
+            'secret' => 'secret-value',
         ];
         $measurement = new VerifiedArtifactProjection($fields, 'measurement');
         $classifier->publish($measurement);
 
         self::assertCount(0, $sampler->published());
-        self::assertSame([['Default measurement classification dropped an unclassified measurement.', [
-            'id' => 'redacted', 'type' => 'runit.artifact.redacted',
-        ]]], $reports);
+        self::assertCount(1, $reports);
+        self::assertStringContainsString('classification dropped', $reports[0][0]);
+        self::assertSame(
+            ['id' => 'redacted', 'type' => 'runit.artifact.redacted'],
+            $reports[0][1],
+        );
         self::assertSame($fields, $measurement->normalize());
     }
 

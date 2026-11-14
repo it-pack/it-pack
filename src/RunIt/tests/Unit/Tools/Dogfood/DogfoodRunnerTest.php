@@ -22,9 +22,8 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
-use Tools\Dogfood\Process\ProcessResult;
+use Tests\Support\Fixture\Dogfood\FakeProcessRunner;
 use Tools\Dogfood\Process\ProcessRunnerInterface;
-use Tools\Dogfood\Report\DogfoodReport;
 use Tools\Dogfood\Run\DogfoodRunner;
 use Tools\Dogfood\Tool\DevTool;
 use Tools\Dogfood\Tool\PredefinedTools;
@@ -79,13 +78,15 @@ final class DogfoodRunnerTest extends Unit
 
         // Bounded emission per tool proves the dogfooding path does not recurse:
         // the Execution artifact is emitted a small, fixed number of times per run.
+        // Bounded emission per tool proves the dogfooding path does not recurse:
+        // the Execution artifact is emitted a small, fixed number of times per run.
         self::assertGreaterThanOrEqual(1, $executionsPerTool);
         self::assertLessThanOrEqual(
             4,
             $executionsPerTool,
             'Execution emission per tool must stay bounded (no recursion).'
         );
-        self::assertSame(0, $measurementsPerTool, 'Default SDK drops all unclassified measurements.');
+        self::assertSame(0, $measurementsPerTool, 'Measurements are dropped before sampling by default.');
         self::assertSame(1, $occurrencesPerTool, 'One completion occurrence per tool.');
         self::assertSame(2, $snapshotsPerTool, 'SDK completion snapshot plus the dogfood summary snapshot.');
 
@@ -101,7 +102,6 @@ final class DogfoodRunnerTest extends Unit
             new DevTool('runit.dogfood.cs', 'echo cs', 'cli.command', 'runit.dogfood.cs', 'runit.dogfood.cs.summary'),
         ]);
 
-        self::assertInstanceOf(DogfoodReport::class, $report);
         self::assertSame(0, $report->exitCode());
         self::assertCount(2, $report->outcomes);
 
@@ -111,33 +111,6 @@ final class DogfoodRunnerTest extends Unit
         self::assertSame(2 * $measurementsPerTool, $this->countArtifacts(MeasurementInterface::class));
         self::assertSame(2 * $occurrencesPerTool, $this->countArtifacts(OccurrenceInterface::class));
         self::assertSame(2 * $snapshotsPerTool, $this->countArtifacts(SnapshotInterface::class));
-    }
-
-    /**
-     * @param class-string $type
-     */
-    private function countArtifacts(string $type): int
-    {
-        $count = 0;
-        $kindMap = [
-            ExecutionInterface::class => 'execution',
-            MeasurementInterface::class => 'measurement',
-            OccurrenceInterface::class => 'occurrence',
-            SnapshotInterface::class => 'snapshot',
-        ];
-        $kind = $kindMap[$type] ?? null;
-
-        foreach ($this->recorder->published() as $artifact) {
-            if ($artifact instanceof $type) {
-                $count++;
-            } elseif ($kind !== null
-                && $artifact instanceof ClassifiedArtifact
-                && $artifact->artifactType() === $kind) {
-                $count++;
-            }
-        }
-
-        return $count;
     }
 
     public function testNonZeroExitRecordsFailedOccurrenceAndFailingOutcome(): void
@@ -173,11 +146,37 @@ final class DogfoodRunnerTest extends Unit
         self::assertNotNull($failed, 'A warning observation was recorded for the failed tool.');
     }
 
+    public function testMeasurementsAreDroppedByDefault(): void
+    {
+        $runner = $this->buildRunner(new FakeProcessRunner());
+        $runner->runAll([
+            new DevTool(
+                'runit.dogfood.stderr',
+                'echo stderr',
+                'cli.command',
+                'runit.dogfood.stderr',
+                'runit.dogfood.stderr.summary'
+            ),
+        ]);
+
+        $measurements = [];
+        foreach ($this->recorder->published() as $artifact) {
+            if ($artifact instanceof MeasurementInterface) {
+                $measurements[] = $artifact;
+            } elseif ($artifact instanceof ClassifiedArtifact
+                && $artifact->artifactType() === 'measurement') {
+                $measurements[] = $artifact;
+            }
+        }
+
+        self::assertEmpty($measurements, 'Measurements are dropped before sampling by default.');
+    }
+
     public function testPredefinedToolsHaveValidNamesAndOccurrenceTypes(): void
     {
         $tools = PredefinedTools::all();
 
-        self::assertCount(6, $tools);
+        self::assertCount(10, $tools);
 
         foreach ($tools as $tool) {
             ExecutionName::fromString($tool->name);
@@ -187,21 +186,30 @@ final class DogfoodRunnerTest extends Unit
             self::assertStringStartsWith('runit.dogfood.', $tool->name);
         }
     }
-}
 
-final readonly class FakeProcessRunner implements ProcessRunnerInterface
-{
     /**
-     * @param array<string, int> $exitCodes
+     * @param class-string $type
      */
-    public function __construct(private array $exitCodes = [])
+    private function countArtifacts(string $type): int
     {
-    }
+        $count = 0;
+        $kindMap = [
+            ExecutionInterface::class => 'execution',
+            MeasurementInterface::class => 'measurement',
+            OccurrenceInterface::class => 'occurrence',
+            SnapshotInterface::class => 'snapshot',
+        ];
+        $kind = $kindMap[$type] ?? null;
 
-    public function run(string $command, string $workingDirectory): ProcessResult
-    {
-        $exit = $this->exitCodes[$command] ?? 0;
+        foreach ($this->recorder->published() as $artifact) {
+            if ($artifact instanceof $type) {
+                $count++;
+            } elseif ($artifact instanceof ClassifiedArtifact
+                && $artifact->artifactType() === $kind) {
+                $count++;
+            }
+        }
 
-        return new ProcessResult($command, $exit, 'stdout', $exit === 0 ? '' : 'boom', 1234);
+        return $count;
     }
 }

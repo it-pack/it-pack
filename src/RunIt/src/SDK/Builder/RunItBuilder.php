@@ -15,7 +15,6 @@ use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
-use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
 use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
 use ItPack\RunIt\Application\Publication\ProvenanceArtifactPublisher;
@@ -177,8 +176,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
 
     public function withRedactor(?RedactorInterface $redactor): RunItBuilder
     {
-        // Recording the explicit call is what distinguishes an opt-out
-        // (`withRedactor(null)`) from "never configured" (deny-by-default).
+        // Explicit null disables the redactor, not the SDK classification boundary.
         $clone = clone $this;
         $clone->redactor = $redactor;
         $clone->redactorConfigured = true;
@@ -275,9 +273,9 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
     }
 
     /**
-     * Overrides how the redaction/sampling stack is composed around the base
-     * publisher. The default factory applies redaction before sampling, so the
-     * sampler receives redacted artifacts; overriding must preserve that ordering.
+     * Overrides how the publisher stack is composed around the base publisher.
+     * The SDK applies its redactor and classification before the custom stack;
+     * custom factories receive null for the redactor argument.
      */
     public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilder
     {
@@ -351,14 +349,9 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             ($this->concurrencyValidator)($capability, $contextStorage);
         }
 
-        // Unless the consumer explicitly configured a redactor, including an
-        // explicit `withRedactor(null)` opt-out,
-        // the default redactor is installed. Its current coverage is limited, and the
-        // default publisher stack calls the sampler after redaction, but unchanged
-        // fields may still be sensitive. Occurrence-data and snapshot-payload
-        // masking require configured sensitive keys.
+        // Explicit null disables the redactor but retains classification.
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
-        $redactor = $this->resolveRedactor($publisherStackFactory);
+        $redactor = $this->resolveRedactor();
 
         $composedPublisher = match (true) {
             $publisherStackFactory instanceof PublisherStackFactory => $publisherStackFactory->compose(
@@ -372,12 +365,25 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             $publisherStackFactory instanceof HealthAwarePublisherStackFactoryInterface =>
                 $publisherStackFactory->composeWithHealth(
                     $publisher,
-                    $redactor,
+                    null,
                     $this->samplingPolicy,
                     $health,
                 ),
-            default => $publisherStackFactory->compose($publisher, $redactor, $this->samplingPolicy),
+            default => $publisherStackFactory->compose($publisher, null, $this->samplingPolicy),
         };
+
+        if (!$publisherStackFactory instanceof PublisherStackFactory) {
+            // The SDK owns the boundary. Custom factories receive already classified
+            // artifacts and a null redactor so the configured redactor runs only once.
+            $composedPublisher = new PublisherStackFactory()->compose(
+                $composedPublisher,
+                $redactor,
+                null,
+                $health,
+                $this->limits,
+                $authority,
+            );
+        }
 
         $composedPublisher = new ProvenanceArtifactPublisher($authority, $composedPublisher);
 
@@ -411,15 +417,13 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return new DefaultRunIt($runner, $currentExecution);
     }
 
-    private function resolveRedactor(PublisherStackFactoryInterface $factory): ?RedactorInterface
+    private function resolveRedactor(): ?RedactorInterface
     {
         if ($this->redactorConfigured) {
             return $this->redactor;
         }
 
-        return $factory instanceof PublisherStackFactory
-            ? new DefaultSdkRedactor()
-            : new DefaultArtifactRedactor();
+        return new DefaultSdkRedactor();
     }
 
     private function healthReporter(): InternalHealthReporterInterface

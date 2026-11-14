@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
+use SensitiveParameterValue;
 use Throwable;
 
 #[CoversClass(ProvenanceAuthority::class)]
@@ -160,7 +161,7 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertNull($authority->exportIdentityFields($artifact));
         self::assertNull($authority->exportIdForBusinessId('secret', 'second'));
         self::assertCount(2, $authority->allRecords());
-        self::assertSame('Provenance issuance rejected.', $reports[0][0]);
+        self::assertSame('provenance verification or issuance failed.', $reports[0][0]);
         self::assertStringNotContainsString('secret', serialize($reports));
 
         $authority->releaseExecution('first');
@@ -243,7 +244,7 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertCount(1, $authority->allRecords());
         self::assertCount(2, $reports);
         foreach ($reports as [$message, $artifact]) {
-            self::assertSame('Provenance relationship rejected.', $message);
+            self::assertSame('provenance verification or issuance failed.', $message);
             self::assertStringNotContainsString('secret-id', serialize($artifact));
         }
     }
@@ -261,6 +262,61 @@ final class ProvenanceAuthorityTest extends Unit
             'execution-observation:' . $first,
             'execution-observation:' . $second,
         ], $authority->allRecords()[$execution]['relationships']);
+    }
+
+    public function testBusinessLookupRejectsCompositeKeyCollisionsAndAmbiguousExecutions(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $first = $authority->issueExportId('execution', 'execution', "b\0c", 'a');
+        $second = $authority->issueExportId('execution', 'execution', 'c', "a\0b");
+        self::assertSame($first, $authority->exportIdForBusinessId('a', "b\0c", 'execution'));
+        self::assertSame($second, $authority->exportIdForBusinessId("a\0b", 'c', 'execution'));
+        self::assertSame($first, $authority->exportIdForBusinessIdExcluding('a', 'other'));
+        $authority->issueExportId('execution', 'execution', 'another', 'a');
+        self::assertNull($authority->exportIdForBusinessIdExcluding('a', 'other'));
+        $authority->releaseExecution('another');
+        self::assertSame($first, $authority->exportIdForBusinessIdExcluding('a', 'other'));
+    }
+
+    public function testUnverifiedReportContainsNoCallerPayloadAndGuardsReentry(): void
+    {
+        $previousIgnoreArgs = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            $health = new class () implements InternalHealthReporterInterface {
+                public ?ProvenanceAuthority $authority = null;
+
+                /** @var list<array{string, array<string, mixed>}> */
+                public array $reports = [];
+
+                /** @var list<Throwable> */
+                public array $errors = [];
+
+                public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+                {
+                    $this->reports[] = [$error->getMessage(), $artifact->normalize()];
+                    $this->errors[] = $error;
+                    $this->authority?->reportUnverified(new RuntimeException('nested-secret'), 'nested-secret');
+                }
+            };
+            $authority = new ProvenanceAuthority($health);
+            $health->authority = $authority;
+            $authority->reportUnverified(new RuntimeException('exception-secret'), 'identifier-secret');
+            self::assertCount(1, $health->reports);
+            self::assertStringNotContainsString('secret', serialize($health->reports));
+            foreach ($health->errors as $error) {
+                $this->assertTraceContainsNoSecrets($error->getTrace(), 'secret', 'identifier-secret');
+            }
+
+            $authority->reportUnverified(new RuntimeException('again'));
+            self::assertCount(2, $health->reports);
+        } finally {
+            if ($previousIgnoreArgs === false) {
+                ini_restore('zend.exception_ignore_args');
+            } else {
+                ini_set('zend.exception_ignore_args', $previousIgnoreArgs);
+            }
+        }
     }
 
     public function testReleasePrunesIncomingEdgesWithoutRemovingOtherEdges(): void
@@ -334,5 +390,40 @@ final class ProvenanceAuthorityTest extends Unit
         $authority = new ProvenanceAuthority();
         $authority->reportUnverified(new RuntimeException('unverified'), 'redacted');
         $authority->reportUnverified(new RuntimeException('still unverified'), 'redacted');
+    }
+
+    /**
+     * Recursively inspects exception trace arguments for secret values.
+     * SensitiveParameterValue instances are treated as redacted and skipped.
+     *
+     * @param array<array-key, mixed> $trace
+     */
+    private function assertTraceContainsNoSecrets(array $trace, string ...$needles): void
+    {
+        foreach ($trace as $frame) {
+            if (!is_array($frame)) {
+                continue;
+            }
+
+            $args = $frame['args'] ?? [];
+            if (!is_array($args)) {
+                continue;
+            }
+
+            foreach ($args as $arg) {
+                if ($arg instanceof SensitiveParameterValue) {
+                    continue;
+                }
+
+                if (is_array($arg)) {
+                    $this->assertTraceContainsNoSecrets([['args' => $arg]], ...$needles);
+                } elseif (is_scalar($arg) || $arg === null) {
+                    $value = var_export($arg, true);
+                    foreach ($needles as $needle) {
+                        self::assertStringNotContainsString($needle, $value);
+                    }
+                }
+            }
+        }
     }
 }
