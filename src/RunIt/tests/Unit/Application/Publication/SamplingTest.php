@@ -262,6 +262,7 @@ final class SamplingTest extends Unit
     {
         $captured = new class () {
             public ?Throwable $failure = null;
+
             public ?ExecutionArtifactInterface $notice = null;
         };
         $health = $this->createMock(InternalHealthReporterInterface::class);
