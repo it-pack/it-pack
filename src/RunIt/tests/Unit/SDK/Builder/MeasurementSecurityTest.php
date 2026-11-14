@@ -10,10 +10,10 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -71,11 +71,11 @@ final class MeasurementSecurityTest extends TestCase
             // still delivered; only measurements are dropped.
             $samplerMeasurements = array_filter(
                 $sampler->seen,
-                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface
+                static fn (ExecutionArtifactInterface $artifact): bool => DefaultMeasurementClassifier::isMeasurement($artifact)
             );
             $sinkMeasurements = array_filter(
                 $sink->published(),
-                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface
+                static fn (ExecutionArtifactInterface $artifact): bool => DefaultMeasurementClassifier::isMeasurement($artifact)
             );
             self::assertEmpty($samplerMeasurements, $mode);
             self::assertEmpty($sinkMeasurements, $mode);

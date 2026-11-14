@@ -29,20 +29,20 @@ final class DefaultMeasurementClassifier implements
     ) {
     }
 
+    public static function isMeasurement(ExecutionArtifactInterface $artifact): bool
+    {
+        return $artifact instanceof MeasurementInterface
+            || ($artifact instanceof TypedExecutionArtifactInterface && $artifact->artifactType() === 'measurement');
+    }
+
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        if (!$this->isMeasurement($artifact)) {
+        if (!self::isMeasurement($artifact)) {
             $this->inner->publish($artifact);
 
             return;
         }
 
         $this->reportDrop('Default measurement classification dropped an unclassified measurement.');
-    }
-
-    private function isMeasurement(ExecutionArtifactInterface $artifact): bool
-    {
-        return $artifact instanceof MeasurementInterface
-            || ($artifact instanceof TypedExecutionArtifactInterface && $artifact->artifactType() === 'measurement');
     }
 }
