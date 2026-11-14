@@ -554,9 +554,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             $execution = $executionExportId !== null ? ($this->records[$executionExportId] ?? null) : null;
             $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
             if ($execution === null || $execution['released'] || $roles === null
+                || $this->edgeCount >= $this->maxEdges
                 || !in_array($execution['role'], $roles['from'], true)
                 || !in_array($role, $roles['to'], true)
-                || $this->edgeCount >= $this->maxEdges
             ) {
                 $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
 
@@ -606,40 +606,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             $candidates = $this->byExecution[$executionId] ?? [];
 
             foreach ($candidates as $exportId) {
-                $record = $this->records[$exportId] ?? null;
-                foreach ($this->outgoing[$exportId] ?? [] as $type => $targets) {
-                    foreach ($targets as $target => $_) {
-                        unset($this->incoming[$target][$type][$exportId]);
-                        --$this->edgeCount;
-                    }
-                }
-
-                foreach ($this->incoming[$exportId] ?? [] as $type => $sources) {
-                    foreach ($sources as $source => $_) {
-                        unset($this->outgoing[$source][$type][$exportId]);
-                        $edge = $type . ':' . $exportId;
-                        $this->records[$source]['relationships'] = array_values(array_filter(
-                            $this->records[$source]['relationships'],
-                            static fn (string $item): bool => $item !== $edge,
-                        ));
-                        --$this->edgeCount;
-                    }
-                }
-
-                unset($this->outgoing[$exportId], $this->incoming[$exportId], $this->records[$exportId]);
-                // Remove from byBusinessExecution index directly via the record's
-                // businessId/executionId key instead of scanning every bucket.
-                if ($record !== null) {
-                    $bizKey = $record['businessId'] . "\0" . $record['executionId'];
-                    $cands = $this->byBusinessExecution[$bizKey] ?? [];
-                    $pos = array_search($exportId, $cands, true);
-                    if ($pos !== false) {
-                        array_splice($this->byBusinessExecution[$bizKey], $pos, 1);
-                        if ([] === $this->byBusinessExecution[$bizKey]) {
-                            unset($this->byBusinessExecution[$bizKey]);
-                        }
-                    }
-                }
+                $this->releaseCandidate($exportId);
             }
 
             unset($this->byExecution[$executionId]);
@@ -702,6 +669,31 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             );
         } catch (Throwable) {
             // No further independent sink remains; preserve the business outcome.
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     */
+    private function removeBusinessExecutionIndex(array $record, string $exportId): void
+    {
+        $businessId = $record['businessId'];
+        $executionId = $record['executionId'];
+        if (!is_string($businessId) || !is_string($executionId)) {
+            return;
+        }
+
+        $bizKey = $businessId . "\0" . $executionId;
+        $pos = array_search(
+            $exportId,
+            $this->byBusinessExecution[$bizKey] ?? [],
+            true
+        );
+        if ($pos !== false) {
+            array_splice($this->byBusinessExecution[$bizKey], $pos, 1);
+            if ([] === $this->byBusinessExecution[$bizKey]) {
+                unset($this->byBusinessExecution[$bizKey]);
+            }
         }
     }
 
@@ -824,5 +816,35 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
 
         return $output;
+    }
+
+    private function releaseCandidate(string $exportId): void
+    {
+        $record = $this->records[$exportId] ?? null;
+
+        foreach ($this->outgoing[$exportId] ?? [] as $type => $targets) {
+            foreach ($targets as $target => $_) {
+                unset($this->incoming[$target][$type][$exportId]);
+                --$this->edgeCount;
+            }
+        }
+
+        foreach ($this->incoming[$exportId] ?? [] as $type => $sources) {
+            foreach ($sources as $source => $_) {
+                unset($this->outgoing[$source][$type][$exportId]);
+                $edge = $type . ':' . $exportId;
+                $this->records[$source]['relationships'] = array_values(array_filter(
+                    $this->records[$source]['relationships'],
+                    static fn (string $item): bool => $item !== $edge,
+                ));
+                --$this->edgeCount;
+            }
+        }
+
+        unset($this->outgoing[$exportId], $this->incoming[$exportId], $this->records[$exportId]);
+
+        if ($record !== null) {
+            $this->removeBusinessExecutionIndex($record, $exportId);
+        }
     }
 }

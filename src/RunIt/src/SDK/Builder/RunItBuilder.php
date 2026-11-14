@@ -31,8 +31,10 @@ use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -302,42 +304,36 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         $serializer = $this->requireSerializer();
         $generator = $this->requireGenerator();
 
-        $contextStorage = $this->contextStorage ?? new StackContextStorage();
-        $throwableMapper = $this->throwableMapper ?? new DefaultThrowableMapper();
-        $nestedPolicy = $this->nestedPolicy ?? new ChildExecutionPolicy();
-        $completionPolicy = $this->completionPolicy ?? new AutoFailOpenActivitiesPolicy();
+        $contextStorage = $this->resolveContextStorage();
+        $throwableMapper = $this->resolveThrowableMapper();
+        $nestedPolicy = $this->resolveNestedPolicy();
+        $completionPolicy = $this->resolveCompletionPolicy();
 
-        $hashCalculator = $this->hashCalculator ?? new DeterministicHashCalculator();
+        $hashCalculator = $this->resolveHashCalculator();
         $executionIdFactory = new StringIdentifierFactory(ExecutionId::fromString(...), $generator);
         $activityIdFactory = new StringIdentifierFactory(ActivityId::fromString(...), $generator);
         $observationIdFactory = new StringIdentifierFactory(ObservationId::fromString(...), $generator);
         $occurrenceIdFactory = new StringIdentifierFactory(OccurrenceId::fromString(...), $generator);
         $snapshotIdFactory = new StringIdentifierFactory(SnapshotId::fromString(...), $generator);
 
-        $executionFactory = $this->executionFactory ?? new ExecutionFactory();
-        $coordinator = $this->coordinator ?? new ExecutionLifecycleCoordinator();
+        $executionFactory = $this->resolveExecutionFactory();
+        $coordinator = $this->resolveCoordinator();
 
         $health = $this->healthReporter();
         $authority = new ProvenanceAuthority($health);
 
-        $snapshotFactory = $this->snapshotFactory
-            ?? new ExecutionSnapshotFactory(
-                $snapshotIdFactory,
-                $hashCalculator,
-                null,
-                $authority,
-            );
+        $snapshotFactory = $this->resolveSnapshotFactory($snapshotIdFactory, $hashCalculator, $authority);
 
         $currentExecution = new CurrentExecution($contextStorage);
 
-        $engine = $this->engine ?? new SynchronousExecutionEngine();
+        $engine = $this->resolveEngine();
 
         $capability = $engine->capability();
         $this->validateConcurrentContextStorage($capability, $contextStorage);
         $this->applyConcurrencyValidator($capability, $contextStorage);
 
         // Explicit null disables the redactor but retains classification.
-        $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
+        $publisherStackFactory = $this->resolvePublisherStackFactory();
         $redactor = $this->resolveRedactor();
 
         $composedPublisher = $this->composePublisherStack(
@@ -381,11 +377,73 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             snapshotStore: $this->snapshotStore,
             onSnapshotStoreFailure: $this->onSnapshotStoreFailure,
             engine: $engine,
-            limits: $this->limits ?? new SecurityLimits(),
+            limits: $this->resolveLimits(),
             authority: $authority,
         );
 
         return new DefaultRunIt($runner, $currentExecution);
+    }
+
+    private function resolveContextStorage(): ContextStorageInterface
+    {
+        return $this->contextStorage ?? new StackContextStorage();
+    }
+
+    private function resolveThrowableMapper(): ThrowableMapperInterface
+    {
+        return $this->throwableMapper ?? new DefaultThrowableMapper();
+    }
+
+    private function resolveNestedPolicy(): NestedExecutionPolicyInterface
+    {
+        return $this->nestedPolicy ?? new ChildExecutionPolicy();
+    }
+
+    private function resolveCompletionPolicy(): ExecutionCompletionPolicyInterface
+    {
+        return $this->completionPolicy ?? new AutoFailOpenActivitiesPolicy();
+    }
+
+    private function resolveHashCalculator(): HashCalculatorInterface
+    {
+        return $this->hashCalculator ?? new DeterministicHashCalculator();
+    }
+
+    private function resolveExecutionFactory(): ExecutionFactoryInterface
+    {
+        return $this->executionFactory ?? new ExecutionFactory();
+    }
+
+    private function resolveCoordinator(): ExecutionLifecycleCoordinatorInterface
+    {
+        return $this->coordinator ?? new ExecutionLifecycleCoordinator();
+    }
+
+    /**
+     * @param StringIdentifierFactoryInterface<SnapshotIdInterface> $snapshotIdFactory
+     */
+    private function resolveSnapshotFactory(
+        StringIdentifierFactoryInterface $snapshotIdFactory,
+        HashCalculatorInterface $hashCalculator,
+        ProvenanceAuthority $authority,
+    ): ExecutionSnapshotFactoryInterface {
+        return $this->snapshotFactory
+            ?? new ExecutionSnapshotFactory($snapshotIdFactory, $hashCalculator, null, $authority);
+    }
+
+    private function resolveEngine(): ExecutionEngineInterface
+    {
+        return $this->engine ?? new SynchronousExecutionEngine();
+    }
+
+    private function resolvePublisherStackFactory(): PublisherStackFactoryInterface
+    {
+        return $this->publisherStackFactory ?? new PublisherStackFactory();
+    }
+
+    private function resolveLimits(): SecurityLimits
+    {
+        return $this->limits ?? new SecurityLimits();
     }
 
     private function validateConcurrentContextStorage(

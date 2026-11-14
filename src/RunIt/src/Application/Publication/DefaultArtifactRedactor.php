@@ -77,59 +77,42 @@ final class DefaultArtifactRedactor implements RedactorInterface
         $normalized = $artifact->normalize();
 
         $changed = false;
-        $truncated = false;
 
         [$normalized, $masked, $truncated] = $this->maskFieldAttributes(
             ArtifactField::ATTRIBUTES,
             $normalized,
-            $truncated,
+            false,
         );
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskFieldAttributes(
             ArtifactField::EXTENSION_ATTRIBUTES,
             $normalized,
             $truncated,
         );
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskThrowableField($normalized, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskObservationMessage($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskMeasurementValue($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskExecutionResultThrowable($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskSnapshotAttributes($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskOccurrenceData($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskSnapshotPayload($normalized, $artifact, $truncated);
+        $this->trackMasked($masked, $changed);
         if ($masked) {
-            $changed = true;
             // The original hash no longer describes the redacted payload.
             unset($normalized[ArtifactField::CONTENT_HASH]);
         }
@@ -143,6 +126,13 @@ final class DefaultArtifactRedactor implements RedactorInterface
         }
 
         return $this->redactedFactory->create($normalized, $this->artifactType($artifact));
+    }
+
+    private function trackMasked(bool $masked, bool &$changed): void
+    {
+        if ($masked) {
+            $changed = true;
+        }
     }
 
     /**
@@ -229,8 +219,8 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactMeasurementValues
-            || !$this->isTypeOf($artifact, 'measurement')
             || !isset($normalized[ArtifactField::VALUE])
+            || !$this->isTypeOf($artifact, 'measurement')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -277,9 +267,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if ($this->config->sensitiveAttributeKeys === []
-            || !$this->isTypeOf($artifact, 'snapshot')
             || !isset($normalized[ArtifactField::ATTRIBUTES])
             || !is_array($normalized[ArtifactField::ATTRIBUTES])
+            || !$this->isTypeOf($artifact, 'snapshot')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -299,9 +289,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
     private function maskOccurrenceData(array $normalized, ExecutionArtifactInterface $artifact, bool $truncated): array
     {
         if (!$this->config->redactOccurrenceData
-            || !$this->isTypeOf($artifact, 'occurrence')
             || !isset($normalized[ArtifactField::DATA])
             || !is_array($normalized[ArtifactField::DATA])
+            || !$this->isTypeOf($artifact, 'occurrence')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -329,9 +319,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactSnapshotPayloads
-            || !$this->isTypeOf($artifact, 'snapshot')
             || !isset($normalized[ArtifactField::PAYLOAD])
             || !is_array($normalized[ArtifactField::PAYLOAD])
+            || !$this->isTypeOf($artifact, 'snapshot')
         ) {
             return [$normalized, false, $truncated];
         }

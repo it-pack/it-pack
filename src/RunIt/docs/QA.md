@@ -602,15 +602,37 @@ left in place. Do not "fix" this by removing `$clock`.
 `runit.complexity` (rule `Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule`, registered in
 `tools/phpstan/runit-rules/extension.neon`) counts branch-bearing nodes (`if`/`elseif`/`else`,
 `switch`/`case`, loops, `try`/`catch`, ternary, coalesce, `match` arms) per `src/` method as a
-proxy for cognitive complexity. A method above the configured **threshold (15)** is flagged.
+proxy for cognitive complexity. A method above the configured **threshold (10)** is flagged.
 
-The threshold was lowered from 19 to 15 to tighten control-flow complexity as part of the
-complexity-rules tightening initiative. All methods previously scoring above 15 were refactored
-by extracting conditionals into small private helpers (builder construction, ended-at resolution,
-name resolution, attribute building, throwable masking, identity-field export, redaction
-verification, and publisher stack composition). Nothing in the tree is flagged today at
-threshold 15. Lower it further only with a recorded reason here. No method exemptions are
-needed at threshold 15 (the wide builders/runner are below it).
+The threshold was lowered from 15 to 10 to tighten control-flow complexity as part of the
+complexity-rules tightening initiative. All 19 methods previously scoring above 10 were refactored
+by extracting conditionals into small private helpers:
+
+- `DefaultCloudEventToOccurrenceMapper::map` — execution ID, activity ID, sequence, and attribute collection extracted.
+- `JsonSnapshotSerializer::assertSafe` — cyclic-reference depth check extracted to `assertJsonSerializableObject`.
+- `DefaultActivitySpanMapper::mapRedactedActivity` — parent ID, status, throwable, and activity ID recording extracted.
+- `ClassifyingArtifactPublisher::publish` — snapshot payload checks, classification dispatch, and redacted wrapping extracted.
+- `ClassifyingArtifactPublisher::typedMeasurement` — component resolution extracted to `resolveMeasurementComponents`.
+- `ClassifyingArtifactPublisher::typedObservation` — activity ID resolution extracted to `resolveTypedActivityId`.
+- `ClassifyingArtifactPublisher::resolveObservationFactory` — severity match extracted to `observationFactoryBySeverity`.
+- `ClassifyingArtifactPublisher::typedExecution` — terminal execution completion extracted to `completeTerminalExecution`.
+- `ClassifyingArtifactPublisher::typedActivity` — activity completion extracted to `completeTypedActivity`.
+- `ClassifyingArtifactPublisher::validSnapshotPayload` — member/scalar size computation extracted to `computeMemberSize`/`computeSnapshotScalarSize`.
+- `DefaultArtifactRedactor::redact` — masked-change tracking extracted to `trackMasked`.
+- `HeadBasedSamplingPolicy::__construct` — key resolution extracted to `resolveKey`.
+- `PayloadSectionByteEstimator::sizeOf` — key/scalar byte computation extracted to `keyBytes`/`scalarBytes`.
+- `ProvenanceAuthority::releaseExecution` — candidate release and business-index removal extracted to `releaseCandidate`/`removeBusinessExecutionIndex`.
+- `DefaultExecutionRunner::setupExecutionScope` — parent/link ID resolution, export ID issuance, scope authority resolution extracted.
+- `ContextStorageVerifier::verify` — attach/detach extraction to `attachOrNull`/`detachOrNull`.
+- `MeasurementUnit::symbol` — match replaced with `SYMBOLS` lookup array.
+- `SecurityLimits::with` — coalesce chain replaced with `array_replace` on a defaults array.
+- `RunItBuilder::build` — eleven `??` coalesces extracted to `resolve*` helpers.
+
+Nothing in the tree is flagged today at threshold 10. Lower it further only with a recorded reason here. No method exemptions are needed at threshold 10.
+
+Previously at threshold 15, all methods were below threshold with no exemptions needed. The
+refactoring added no `@phpstan-ignore`, no baselines, and no type widening; public contracts,
+serialized formats, and security defaults are unchanged.
 
 ### Final-class exemptions
 

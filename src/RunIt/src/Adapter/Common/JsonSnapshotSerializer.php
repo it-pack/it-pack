@@ -118,30 +118,7 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         }
 
         if ($value instanceof JsonSerializable) {
-            if ($depth > $this->limits->maxSerializationDepth) {
-                throw new SerializationException(
-                    sprintf(
-                        'Unable to serialize snapshot payload: maximum depth %d exceeded.',
-                        $this->limits->maxSerializationDepth
-                    ),
-                );
-            }
-
-            $ancestors ??= new WeakMap();
-
-            if (isset($ancestors[$value])) {
-                throw new SerializationException(
-                    'Unable to serialize snapshot payload: cyclic object reference detected.'
-                );
-            }
-
-            $ancestors[$value] = true;
-
-            try {
-                $this->assertSafe($value->jsonSerialize(), $depth + 1, $ancestors);
-            } finally {
-                unset($ancestors[$value]);
-            }
+            $this->assertJsonSerializableObject($value, $depth, $ancestors ?? new WeakMap());
 
             return;
         }
@@ -173,6 +150,36 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
             foreach ($value as $member) {
                 $this->assertSafe($member, $depth + 1, $ancestors);
             }
+        }
+    }
+
+    /**
+     * @param JsonSerializable $value value known to implement JsonSerializable
+     * @param WeakMap<object, mixed> $ancestors ancestor set used to detect cyclic object references
+     */
+    private function assertJsonSerializableObject(JsonSerializable $value, int $depth, WeakMap $ancestors): void
+    {
+        if ($depth > $this->limits->maxSerializationDepth) {
+            throw new SerializationException(
+                sprintf(
+                    'Unable to serialize snapshot payload: maximum depth %d exceeded.',
+                    $this->limits->maxSerializationDepth
+                ),
+            );
+        }
+
+        if (isset($ancestors[$value])) {
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: cyclic object reference detected.'
+            );
+        }
+
+        $ancestors[$value] = true;
+
+        try {
+            $this->assertSafe($value->jsonSerialize(), $depth + 1, $ancestors);
+        } finally {
+            unset($ancestors[$value]);
         }
     }
 }

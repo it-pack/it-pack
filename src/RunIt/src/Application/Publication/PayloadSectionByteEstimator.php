@@ -62,22 +62,29 @@ final readonly class PayloadSectionByteEstimator implements ArtifactByteEstimato
 
         if (is_array($value)) {
             if ($depth > $this->limits->maxSerializationDepth) {
-                // Depth cap: stop walking and charge the subtree as opaque, so a
-                // deeply nested (or cyclic, were validation ever bypassed)
-                // structure cannot recurse without bound.
                 return self::OPAQUE_VALUE_BYTES;
             }
 
             $bytes = 0;
 
             foreach ($value as $key => $member) {
-                $bytes += is_string($key) ? strlen($key) : self::INT_BYTES;
+                $bytes += $this->keyBytes($key);
                 $bytes += $this->sizeOf($member, $depth + 1);
             }
 
             return $bytes;
         }
 
+        return $this->scalarBytes($value);
+    }
+
+    private function keyBytes(mixed $key): int
+    {
+        return is_string($key) ? strlen($key) : self::INT_BYTES;
+    }
+
+    private function scalarBytes(mixed $value): int
+    {
         return match (true) {
             is_int($value) => self::INT_BYTES,
             is_float($value) => self::FLOAT_BYTES,

@@ -88,29 +88,65 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
         $attributes = $this->buildRedactedActivityAttributes($normalized, $name);
 
-        $parentActivityId = $normalized['parent_activity_id'] ?? null;
-        if (is_string($parentActivityId)) {
-            $attributes[AttributeKeys::ACTIVITY_PARENT_ID] = $parentActivityId;
-        }
+        $attributes = $this->setRedactedParentActivity($normalized, $attributes);
 
         $span->setAttributes($attributes);
 
-        if (is_string($normalized['status'] ?? null)) {
-            $this->setRedactedStatus($span, $normalized['status']);
-        }
+        $this->applyRedactedStatus($span, $normalized);
 
         $snapshotAttributes = $normalized['attributes'] ?? null;
         /** @var array<array-key, mixed>|null $snapshotAttributes */
         $this->setRedactedAttributes($span, $snapshotAttributes);
 
-        $throwable = $normalized['throwable'] ?? null;
-        /** @var array<string, mixed>|null $throwable */
-        $throwable = is_array($throwable) ? $throwable : null;
-        $this->recordRedactedThrowable($span, $throwable === null ? null : ['throwable' => $throwable]);
+        $this->recordRedactedThrowableFromNormalized($span, $normalized);
 
         $endedAt = $this->resolveRedactedEndedAt($normalized);
         $this->endSpanAt($span, $endedAt);
 
+        $this->recordRedactedActivityId($span, $normalized);
+    }
+
+    /**
+     * @param array<array-key, mixed> $normalized
+     * @param array<non-empty-string, string> $attributes
+     * @return array<non-empty-string, string>
+     */
+    private function setRedactedParentActivity(array $normalized, array $attributes): array
+    {
+        $parentActivityId = $normalized['parent_activity_id'] ?? null;
+        if (is_string($parentActivityId)) {
+            $attributes[AttributeKeys::ACTIVITY_PARENT_ID] = $parentActivityId;
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param array<array-key, mixed> $normalized
+     */
+    private function applyRedactedStatus(SpanInterface $span, array $normalized): void
+    {
+        if (is_string($normalized['status'] ?? null)) {
+            $this->setRedactedStatus($span, $normalized['status']);
+        }
+    }
+
+    /**
+     * @param array<array-key, mixed> $normalized
+     */
+    private function recordRedactedThrowableFromNormalized(SpanInterface $span, array $normalized): void
+    {
+        $throwable = $normalized['throwable'] ?? null;
+        /** @var array<string, mixed>|null $throwable */
+        $throwable = is_array($throwable) ? $throwable : null;
+        $this->recordRedactedThrowable($span, $throwable === null ? null : ['throwable' => $throwable]);
+    }
+
+    /**
+     * @param array<array-key, mixed> $normalized
+     */
+    private function recordRedactedActivityId(SpanInterface $span, array $normalized): void
+    {
         $activityId = $normalized['id'] ?? null;
         if (is_string($activityId)) {
             $this->store->recordActivity($activityId, $span->getContext());

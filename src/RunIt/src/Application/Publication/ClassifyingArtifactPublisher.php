@@ -211,16 +211,9 @@ final class ClassifyingArtifactPublisher implements
 
         $normalized = $artifact->normalize();
 
-        $omittedSnapshotPayload = $kind === 'snapshot'
-            && !array_key_exists(ArtifactField::PAYLOAD, $normalized)
-            && !array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
-            && ($artifact instanceof RedactedArtifactInterface || $artifact instanceof VerifiedArtifactProjection);
+        $omittedSnapshotPayload = $this->isSnapshotPayloadOmitted($kind, $normalized, $artifact);
 
-        $payloadBytes = 0;
-        if (!$omittedSnapshotPayload
-            && $kind === 'snapshot' && array_key_exists(ArtifactField::PAYLOAD, $normalized)
-            && !$this->validSnapshotPayload($normalized[ArtifactField::PAYLOAD], 1, $payloadBytes)) {
-            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+        if (!$this->verifySnapshotPayloadUnchanged($kind, $normalized, $omittedSnapshotPayload)) {
             return;
         }
 
@@ -231,46 +224,23 @@ final class ClassifyingArtifactPublisher implements
             return;
         }
 
-        if (!$omittedSnapshotPayload && $kind === 'snapshot'
-            && (!array_key_exists(ArtifactField::PAYLOAD, $normalized)
-                || !array_key_exists(ArtifactField::PAYLOAD, $projected)
-                || $normalized[ArtifactField::PAYLOAD] !== $projected[ArtifactField::PAYLOAD]
-                || (array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
-                    && (!array_key_exists(ArtifactField::CONTENT_HASH, $projected)
-                        || $normalized[ArtifactField::CONTENT_HASH] !== $projected[ArtifactField::CONTENT_HASH]))
-                || (!array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
-                    && !$artifact instanceof RedactedArtifactInterface))) {
-            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+        if (!$this->verifySnapshotPayloadAndContentHash(
+            $kind,
+            $normalized,
+            $projected,
+            $omittedSnapshotPayload,
+            $artifact,
+        )) {
             return;
         }
 
-        // Verify required fields are present and safely represented.
-        $required = self::REQUIRED_FIELDS[$kind];
-
-        foreach ($required as $field) {
-            if (!array_key_exists($field, $projected) || $projected[$field] === null) {
-                $this->reportMissingRequiredField($kind, $field);
-                return;
-            }
+        if (!$this->verifyRequiredFieldsPresent($projected, $kind)) {
+            return;
         }
 
-        $classified = match ($kind) {
-            'measurement' => $this->typedMeasurement($projected),
-            'occurrence' => $this->typedOccurrence($projected),
-            'observation' => $this->typedObservation($projected, $artifact instanceof RedactedArtifactInterface),
-            'activity' => $this->typedActivity($projected),
-            'snapshot' => $this->typedSnapshot($projected),
-            default => $this->typedExecution($projected),
-        };
-        if ($artifact instanceof RedactedArtifactInterface && $classified instanceof Observation) {
-            $classified = new ClassifiedRedactedObservation($classified);
-        }
+        $classified = $this->classifyArtifact($projected, $kind, $artifact);
+        $classified = $this->wrapRedactedClassified($classified, $artifact);
 
-        if ($artifact instanceof RedactedArtifactInterface && $classified instanceof Occurrence) {
-            $classified = new ClassifiedRedactedOccurrence($classified);
-        }
-
-        $classified ??= new ClassifiedArtifact($projected, $kind);
         $this->inner->publish($classified);
     }
 
@@ -286,6 +256,117 @@ final class ClassifyingArtifactPublisher implements
         if ($this->inner instanceof CloseablePublisherInterface) {
             $this->inner->close();
         }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function isSnapshotPayloadOmitted(
+        string $kind,
+        array $normalized,
+        ExecutionArtifactInterface $artifact,
+    ): bool {
+        return $kind === 'snapshot'
+            && !array_key_exists(ArtifactField::PAYLOAD, $normalized)
+            && !array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
+            && ($artifact instanceof RedactedArtifactInterface || $artifact instanceof VerifiedArtifactProjection);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function verifySnapshotPayloadUnchanged(string $kind, array $normalized, bool $omittedSnapshotPayload): bool
+    {
+        $payloadBytes = 0;
+        if (!$omittedSnapshotPayload
+            && $kind === 'snapshot'
+            && array_key_exists(ArtifactField::PAYLOAD, $normalized)
+            && !$this->validSnapshotPayload($normalized[ArtifactField::PAYLOAD], 1, $payloadBytes)) {
+            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @param array<string, mixed> $projected
+     */
+    private function verifySnapshotPayloadAndContentHash(
+        string $kind,
+        array $normalized,
+        array $projected,
+        bool $omittedSnapshotPayload,
+        ExecutionArtifactInterface $artifact,
+    ): bool {
+        if (!$omittedSnapshotPayload && $kind === 'snapshot'
+            && (!array_key_exists(ArtifactField::PAYLOAD, $normalized)
+                || !array_key_exists(ArtifactField::PAYLOAD, $projected)
+                || $normalized[ArtifactField::PAYLOAD] !== $projected[ArtifactField::PAYLOAD]
+                || (array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
+                    && (!array_key_exists(ArtifactField::CONTENT_HASH, $projected)
+                        || $normalized[ArtifactField::CONTENT_HASH] !== $projected[ArtifactField::CONTENT_HASH]))
+                || (!array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
+                    && !$artifact instanceof RedactedArtifactInterface))) {
+            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $projected
+     */
+    private function verifyRequiredFieldsPresent(array $projected, string $kind): bool
+    {
+        $required = self::REQUIRED_FIELDS[$kind];
+
+        foreach ($required as $field) {
+            if (!array_key_exists($field, $projected) || $projected[$field] === null) {
+                $this->reportMissingRequiredField($kind, $field);
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $projected
+     */
+    private function classifyArtifact(
+        array $projected,
+        string $kind,
+        ExecutionArtifactInterface $artifact,
+    ): ExecutionArtifactInterface {
+        return match ($kind) {
+            'measurement' => $this->typedMeasurement($projected),
+            'occurrence' => $this->typedOccurrence($projected),
+            'observation' => $this->typedObservation($projected, $artifact instanceof RedactedArtifactInterface),
+            'activity' => $this->typedActivity($projected),
+            'snapshot' => $this->typedSnapshot($projected),
+            default => $this->typedExecution($projected),
+        } ?? new ClassifiedArtifact($projected, $kind);
+    }
+
+    private function wrapRedactedClassified(
+        ExecutionArtifactInterface $classified,
+        ExecutionArtifactInterface $artifact,
+    ): ExecutionArtifactInterface {
+        if ($artifact instanceof RedactedArtifactInterface && $classified instanceof Observation) {
+            $classified = new ClassifiedRedactedObservation($classified);
+        }
+
+        if ($artifact instanceof RedactedArtifactInterface && $classified instanceof Occurrence) {
+            $classified = new ClassifiedRedactedOccurrence($classified);
+        }
+
+        return $classified;
     }
 
     /**
@@ -333,36 +414,27 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        $value = $fields['value'];
         $unit = $this->resolveMeasurementUnit($fields);
         if (!$unit instanceof MeasurementUnit) {
             return null;
         }
 
-        $value = $this->resolveValidatedMeasurementValue($value, $kind);
-        if ($value === null) {
-            return null;
-        }
-
-        $attributes = $this->buildMeasurementAttributes($fields['attributes']);
-        if ($attributes === null) {
-            return null;
-        }
-
-        $identifiers = $this->extractTypedMeasurementIdentifiers($fields);
-        if ($identifiers === null) {
+        $components = $this->resolveMeasurementComponents($fields, $kind);
+        if ($components === null) {
             return null;
         }
 
         try {
+            $activityId = $this->resolveTypedActivityId($components['identifiers']);
+
             $measurement = $factory(
-                MeasurementName::fromString($identifiers['name']),
-                ExecutionId::fromString($identifiers['execution_id']),
-                $value,
-                $identifiers['activity_id'] === null ? null : ActivityId::fromString($identifiers['activity_id']),
-                Instant::of($identifiers['timestamp']),
-                ArtifactSequence::of($identifiers['sequence']),
-                AttributeCollection::fromArray($attributes),
+                MeasurementName::fromString($components['identifiers']['name']),
+                ExecutionId::fromString($components['identifiers']['execution_id']),
+                $components['value'],
+                $activityId,
+                Instant::of($components['identifiers']['timestamp']),
+                ArtifactSequence::of($components['identifiers']['sequence']),
+                AttributeCollection::fromArray($components['attributes']),
                 $unit,
             );
             if (!$measurement instanceof MeasurementInterface) {
@@ -377,6 +449,30 @@ final class ClassifyingArtifactPublisher implements
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return array{value: int|float|null, attributes: array<string, int|float|string|bool|null|array<int|string, mixed>>, identifiers: array{name: string, execution_id: string, activity_id: string|null, timestamp: int, sequence: int}}|null
+     */
+    private function resolveMeasurementComponents(array $fields, mixed $kind): ?array
+    {
+        $value = $this->resolveValidatedMeasurementValue($fields['value'], $kind);
+        if ($value === null) {
+            return null;
+        }
+
+        $attributes = $this->buildMeasurementAttributes($fields['attributes']);
+        if ($attributes === null) {
+            return null;
+        }
+
+        $identifiers = $this->extractTypedMeasurementIdentifiers($fields);
+        if ($identifiers === null) {
+            return null;
+        }
+
+        return ['value' => $value, 'attributes' => $attributes, 'identifiers' => $identifiers];
     }
 
     /**
@@ -550,11 +646,7 @@ final class ClassifyingArtifactPublisher implements
 
         try {
             $executionId = ExecutionId::fromString($identifiers['execution_id']);
-            $activityId = null;
-            if ($identifiers['activity_id'] !== null) {
-                $activityId = ActivityId::fromString($identifiers['activity_id']);
-            }
-
+            $activityId = $this->resolveTypedActivityId($identifiers);
             $instant = Instant::of($identifiers['timestamp']);
             $sequence = ArtifactSequence::of($identifiers['sequence']);
             $attributes = AttributeCollection::fromArray($attributes);
@@ -586,6 +678,19 @@ final class ClassifyingArtifactPublisher implements
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $identifiers
+     */
+    private function resolveTypedActivityId(array $identifiers): ?ActivityId
+    {
+        $activityIdValue = $identifiers['activity_id'];
+        if (is_string($activityIdValue)) {
+            return ActivityId::fromString($activityIdValue);
+        }
+
+        return null;
     }
 
     /**
@@ -628,6 +733,11 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
+        return $this->observationFactoryBySeverity($severity);
+    }
+
+    private function observationFactoryBySeverity(string $severity): ?Closure
+    {
         return match ($severity) {
             'debug' => Observation::debug(...),
             'info' => Observation::info(...),
@@ -750,7 +860,6 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        // Normalization does not necessarily retain the original context classification.
         if ($fields['context'] !== [] || !is_array($fields['linked_execution_ids'])
             || !is_string($fields['id']) || !is_string($fields['name']) || !is_string($fields['kind'])
             || !is_string($fields['status']) || !is_int($fields['started_at']) || !is_int($fields['sequence'])
@@ -765,13 +874,9 @@ final class ClassifyingArtifactPublisher implements
                 return null;
             }
 
-            $links = [];
-            foreach ($fields['linked_execution_ids'] as $link) {
-                if (!is_string($link)) {
-                    return null;
-                }
-
-                $links[] = ExecutionId::fromString($link);
+            $links = $this->buildExecutionLinks($fields['linked_execution_ids']);
+            if ($links === null) {
+                return null;
             }
 
             $execution = Execution::create(
@@ -779,8 +884,7 @@ final class ClassifyingArtifactPublisher implements
                 ExecutionDefinition::create(
                     ExecutionName::fromString($fields['name']),
                     ExecutionKind::fromString($fields['kind']),
-                    $fields['parent_execution_id'] === null
-                        ? null : ExecutionId::fromString($fields['parent_execution_id']),
+                    $this->resolveParentExecutionId($fields['parent_execution_id']),
                     $links
                 ),
                 Instant::of($fields['started_at']),
@@ -790,35 +894,87 @@ final class ClassifyingArtifactPublisher implements
                 $execution = $execution->beginRunning();
             }
 
-            if ($status->isTerminal()) {
-                $result = $fields['result'];
-                if (!is_array($result) || !array_key_exists('throwable', $result) || !is_int($fields['ended_at'])) {
-                    return null;
-                }
-
-                $throwable = $this->typedThrowable($result['throwable']);
-                $isSuccessful = $status === ExecutionStatus::Succeeded;
-                if ($isSuccessful && $result['throwable'] !== null) {
-                    return null;
-                }
-
-                if (!$isSuccessful && !$throwable instanceof ThrowableDescriptionInterface) {
-                    return null;
-                }
-
-                $outcome = $isSuccessful
-                    ? ExecutionSuccess::create()
-                    : ExecutionFailure::of($status, $throwable);
-                $execution = $execution->complete($outcome, Instant::of($fields['ended_at']));
+            $execution = $this->completeTerminalExecution(
+                $execution,
+                $status,
+                $fields['result'],
+                $fields['ended_at'],
+            );
+            if (!$execution instanceof Execution) {
+                return null;
             }
 
             $normalized = $execution->normalize();
             ksort($normalized);
             ksort($fields);
-            return $normalized === $fields ? $execution : null;
+            if ($normalized !== $fields) {
+                return null;
+            }
+
+            return $execution;
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function completeTerminalExecution(
+        Execution $execution,
+        ExecutionStatus $status,
+        mixed $result,
+        ?int $endedAt,
+    ): ?Execution {
+        if (!$status->isTerminal()) {
+            return $execution;
+        }
+
+        if (!is_array($result) || !array_key_exists('throwable', $result)) {
+            return null;
+        }
+
+        $throwable = $this->typedThrowable($result['throwable']);
+        $isSuccessful = $status === ExecutionStatus::Succeeded;
+        if ($isSuccessful && $result['throwable'] !== null) {
+            return null;
+        }
+
+        if (!$isSuccessful && !$throwable instanceof ThrowableDescriptionInterface) {
+            return null;
+        }
+
+        $outcome = $isSuccessful
+            ? ExecutionSuccess::create()
+            : ExecutionFailure::of($status, $throwable);
+
+        if ($endedAt === null) {
+            return null;
+        }
+
+        return $execution->complete($outcome, Instant::of($endedAt));
+    }
+
+    /**
+     * @param array<int|string, mixed> $linkedIds
+     * @return list<ExecutionId>|null
+     */
+    private function buildExecutionLinks(array $linkedIds): ?array
+    {
+        $links = [];
+        foreach ($linkedIds as $link) {
+            if (!is_string($link)) {
+                return null;
+            }
+
+            $links[] = ExecutionId::fromString($link);
+        }
+
+        return $links;
+    }
+
+    private function resolveParentExecutionId(mixed $parentId): ?ExecutionId
+    {
+        return !is_string($parentId)
+            ? null
+            : ExecutionId::fromString($parentId);
     }
 
     /** @param array<string, mixed> $fields */
@@ -868,17 +1024,9 @@ final class ClassifyingArtifactPublisher implements
                 ArtifactSequence::of($fields['sequence']),
                 AttributeCollection::fromArray($attributes),
             );
-            if ($status !== ActivityStatus::Running) {
-                if (!is_int($fields['ended_at'])) {
-                    return null;
-                }
-
-                $activity = $activity->complete(
-                    $status,
-                    $throwable,
-                    Instant::of($fields['ended_at']),
-                    isset($fields['duration_ns']) ? Duration::ofNanoseconds($fields['duration_ns']) : null,
-                );
+            $activity = $this->completeTypedActivity($activity, $status, $throwable, $fields);
+            if (!$activity instanceof Activity) {
+                return null;
             }
 
             $normalized = $activity->normalize();
@@ -888,6 +1036,42 @@ final class ClassifyingArtifactPublisher implements
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function completeTypedActivity(
+        Activity $activity,
+        ActivityStatus $status,
+        ?ThrowableDescriptionInterface $throwable,
+        array $fields,
+    ): ?Activity {
+        if ($status !== ActivityStatus::Running) {
+            $endedAt = $fields['ended_at'];
+            if (!is_int($endedAt)) {
+                return null;
+            }
+
+            $durationNs = null;
+            if (array_key_exists('duration_ns', $fields)) {
+                $durationNsValue = $fields['duration_ns'];
+                if (!is_int($durationNsValue)) {
+                    return null;
+                }
+
+                $durationNs = Duration::ofNanoseconds($durationNsValue);
+            }
+
+            return $activity->complete(
+                $status,
+                $throwable,
+                Instant::of($endedAt),
+                $durationNs,
+            );
+        }
+
+        return $activity;
     }
 
     /** @param array<string, mixed> $fields */
@@ -1242,19 +1426,24 @@ final class ClassifyingArtifactPublisher implements
             return true;
         }
 
-        $size = match (true) {
-            is_string($value) => strlen($value),
-            is_int($value), is_float($value) && is_finite($value) => 8,
-            is_bool($value) => 1,
-            $value === null => 0,
-            default => -1,
-        };
+        $size = $this->computeSnapshotScalarSize($value);
         if ($size < 0) {
             return false;
         }
 
         $bytes += $size;
         return $bytes <= $this->limits->maxSnapshotPayloadBytes;
+    }
+
+    private function computeSnapshotScalarSize(mixed $value): int
+    {
+        return match (true) {
+            is_string($value) => strlen($value),
+            is_int($value), is_float($value) && is_finite($value) => 8,
+            is_bool($value) => 1,
+            $value === null => 0,
+            default => -1,
+        };
     }
 
     private function reportMissingRequiredField(string $kind, string $field): void

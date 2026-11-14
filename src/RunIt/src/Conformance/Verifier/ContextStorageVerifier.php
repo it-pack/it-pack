@@ -35,32 +35,19 @@ final class ContextStorageVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        try {
-            $token = $storage->attach($scope);
-        } catch (Throwable $throwable) {
-            return $result->add(new ConformanceViolation('attach.throws', sprintf(
-                'attach() threw: %s',
-                $throwable->getMessage()
-            )));
+        [$token, $result] = $this->attachOrNull($storage, $scope, $result);
+        if ($token === null) {
+            return $result;
         }
 
-        $top = $storage->current();
-        if ($top !== $scope) {
+        if ($storage->current() !== $scope) {
             $result = $result->add(new ConformanceViolation(
                 'current.after-attach',
                 'current() did not return the attached scope'
             ));
         }
 
-        try {
-            $secondToken = $storage->attach($scope);
-        } catch (Throwable $throwable) {
-            $secondToken = null;
-            $result = $result->add(new ConformanceViolation('attach.throws', sprintf(
-                'attach() threw: %s',
-                $throwable->getMessage()
-            )));
-        }
+        [$secondToken, $result] = $this->attachOrNull($storage, $scope, $result);
 
         if ($secondToken instanceof ContextTokenInterface) {
             if ($storage->current() !== $scope) {
@@ -70,14 +57,7 @@ final class ContextStorageVerifier implements VerifierInterface
                 ));
             }
 
-            try {
-                $storage->detach($secondToken);
-            } catch (Throwable $e) {
-                $result = $result->add(new ConformanceViolation('detach.throws', sprintf(
-                    'detach() threw: %s',
-                    $e->getMessage()
-                )));
-            }
+            $result = $this->detachOrNull($storage, $secondToken, $result);
 
             if ($storage->current() !== $scope) {
                 $result = $result->add(new ConformanceViolation(
@@ -87,6 +67,45 @@ final class ContextStorageVerifier implements VerifierInterface
             }
         }
 
+        $result = $this->detachOrNull($storage, $token, $result);
+
+        if ($storage->current() instanceof ExecutionScopeInterface) {
+            $result = $result->add(new ConformanceViolation(
+                'detach.incomplete',
+                'current() still returned a scope after detaching the last one'
+            ));
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array{0: ContextTokenInterface|null, 1: ConformanceResult}
+     */
+    private function attachOrNull(
+        ContextStorageInterface $storage,
+        ExecutionScopeInterface $scope,
+        ConformanceResult $result,
+    ): array {
+        try {
+            return [$storage->attach($scope), $result];
+        } catch (Throwable $throwable) {
+            return [null, $result->add(new ConformanceViolation('attach.throws', sprintf(
+                'attach() threw: %s',
+                $throwable->getMessage()
+            )))];
+        }
+    }
+
+    private function detachOrNull(
+        ContextStorageInterface $storage,
+        ?ContextTokenInterface $token,
+        ConformanceResult $result,
+    ): ConformanceResult {
+        if (!$token instanceof ContextTokenInterface) {
+            return $result;
+        }
+
         try {
             $storage->detach($token);
         } catch (Throwable $throwable) {
@@ -94,13 +113,6 @@ final class ContextStorageVerifier implements VerifierInterface
                 'detach() threw: %s',
                 $throwable->getMessage()
             )));
-        }
-
-        if ($storage->current() instanceof ExecutionScopeInterface) {
-            $result = $result->add(new ConformanceViolation(
-                'detach.incomplete',
-                'current() still returned a scope after detaching the last one'
-            ));
         }
 
         return $result;
