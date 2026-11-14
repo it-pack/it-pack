@@ -25,7 +25,7 @@ use Throwable;
 #[CoversClass(RunItBuilder::class)]
 final class MeasurementSecurityTest extends TestCase
 {
-    public function testValidMeasurementsAreClassifiedAndDeliveredForAllRedactorModes(): void
+    public function testValidMeasurementsAreDroppedForAllRedactorModes(): void
     {
         foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
@@ -66,10 +66,9 @@ final class MeasurementSecurityTest extends TestCase
                 },
             );
 
-            // Valid measurements are classified and delivered to both sampler and sink.
-            self::assertNotEmpty($sampler->seen, $mode);
-            self::assertNotEmpty($sink->published(), $mode);
-
+            // Valid measurements are dropped before sampling in all redactor modes.
+            // Non-measurement artifacts (executions, occurrences, snapshots) are
+            // still delivered; only measurements are dropped.
             $samplerMeasurements = array_filter(
                 $sampler->seen,
                 static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface
@@ -78,30 +77,12 @@ final class MeasurementSecurityTest extends TestCase
                 $sink->published(),
                 static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface
             );
+            self::assertEmpty($samplerMeasurements, $mode);
+            self::assertEmpty($sinkMeasurements, $mode);
 
-            self::assertNotEmpty($samplerMeasurements, $mode);
-            self::assertNotEmpty($sinkMeasurements, $mode);
-
-            $foundInSampler = false;
-            foreach ($samplerMeasurements as $artifact) {
-                if ($artifact->value() === 123) {
-                    $foundInSampler = true;
-                    break;
-                }
-            }
-            self::assertTrue($foundInSampler, 'Sampler must contain a measurement with value 123.');
-
-            $foundInSink = false;
-            foreach ($sinkMeasurements as $artifact) {
-                if ($artifact->value() === 123) {
-                    $foundInSink = true;
-                    break;
-                }
-            }
-            self::assertTrue($foundInSink, 'Sink must contain a measurement with value 123.');
-
-            // No drop notice for valid measurements.
-            self::assertSame([], $health, $mode);
+            // A drop notice is reported for each dropped measurement.
+            self::assertNotEmpty($health, $mode);
+            self::assertStringContainsString('classification dropped', $health[0][0]);
         }
     }
 }

@@ -23,7 +23,6 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use Tests\Support\Fixture\Dogfood\FakeProcessRunner;
-use Tools\Dogfood\Process\ProcessResult;
 use Tools\Dogfood\Process\ProcessRunnerInterface;
 use Tools\Dogfood\Run\DogfoodRunner;
 use Tools\Dogfood\Tool\DevTool;
@@ -79,13 +78,15 @@ final class DogfoodRunnerTest extends Unit
 
         // Bounded emission per tool proves the dogfooding path does not recurse:
         // the Execution artifact is emitted a small, fixed number of times per run.
+        // Bounded emission per tool proves the dogfooding path does not recurse:
+        // the Execution artifact is emitted a small, fixed number of times per run.
         self::assertGreaterThanOrEqual(1, $executionsPerTool);
         self::assertLessThanOrEqual(
             4,
             $executionsPerTool,
             'Execution emission per tool must stay bounded (no recursion).'
         );
-        self::assertSame(4, $measurementsPerTool, 'Four classified measurements per tool.');
+        self::assertSame(0, $measurementsPerTool, 'Measurements are dropped before sampling by default.');
         self::assertSame(1, $occurrencesPerTool, 'One completion occurrence per tool.');
         self::assertSame(2, $snapshotsPerTool, 'SDK completion snapshot plus the dogfood summary snapshot.');
 
@@ -145,21 +146,9 @@ final class DogfoodRunnerTest extends Unit
         self::assertNotNull($failed, 'A warning observation was recorded for the failed tool.');
     }
 
-    public function testStderrBytesReportsFullLengthBeyondTruncation(): void
+    public function testMeasurementsAreDroppedByDefault(): void
     {
-        $longStderr = str_repeat('x', 2500);
-        $processRunner = new class ($longStderr) implements ProcessRunnerInterface {
-            public function __construct(private string $stderr)
-            {
-            }
-
-            public function run(string $command, string $workingDirectory): ProcessResult
-            {
-                return new ProcessResult($command, 0, '', $this->stderr, 1000);
-            }
-        };
-
-        $runner = $this->buildRunner($processRunner);
+        $runner = $this->buildRunner(new FakeProcessRunner());
         $runner->runAll([
             new DevTool(
                 'runit.dogfood.stderr',
@@ -170,19 +159,17 @@ final class DogfoodRunnerTest extends Unit
             ),
         ]);
 
-        $found = false;
+        $measurements = [];
         foreach ($this->recorder->published() as $artifact) {
-            if (!($artifact instanceof MeasurementInterface)) {
-                continue;
-            }
-            if ($artifact->name()->toString() === 'runit.dogfood.tool.stderr_bytes') {
-                $found = true;
-                self::assertSame(2500, $artifact->value());
-                self::assertSame('bytes', $artifact->unit()->label());
+            if ($artifact instanceof MeasurementInterface) {
+                $measurements[] = $artifact;
+            } elseif ($artifact instanceof ClassifiedArtifact
+                && $artifact->artifactType() === 'measurement') {
+                $measurements[] = $artifact;
             }
         }
 
-        self::assertTrue($found, 'stderr_bytes measurement must report full stderr length.');
+        self::assertEmpty($measurements, 'Measurements are dropped before sampling by default.');
     }
 
     public function testPredefinedToolsHaveValidNamesAndOccurrenceTypes(): void

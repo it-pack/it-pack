@@ -660,7 +660,7 @@ final class RunItBuilderTest extends TestCase
         }
     }
 
-    public function testNullRedactorDeliversClassifiedMeasurements(): void
+    public function testNullRedactorStillDropsUnclassifiedMeasurements(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $failures = [];
@@ -685,12 +685,8 @@ final class RunItBuilderTest extends TestCase
         $published = $sink->published();
         $measurements = array_values(array_filter($published, static fn (ExecutionArtifactInterface $artifact): bool =>
             ($artifact->normalize()['name'] ?? null) === 'limit.test'));
-        self::assertNotEmpty($measurements, 'Measurements are classified and delivered even with null redactor.');
-        self::assertCount(1, $measurements);
-        $normalized = $measurements[0]->normalize();
-        $attributes = $normalized['attributes'] ?? [];
-        self::assertTrue(is_array($attributes), 'Attributes should be an array.');
-        self::assertSame(1, count($attributes), 'Attribute count is bounded by security limits.');
+        self::assertSame([], $measurements);
+        self::assertNotEmpty($failures);
     }
 
     public function testCustomSnapshotFactoryPublishesTerminalSnapshot(): void
