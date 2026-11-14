@@ -21,6 +21,7 @@ use ItPack\RunIt\Application\Publication\ProvenanceArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\EngineCapability;
+use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
@@ -332,58 +333,28 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         $engine = $this->engine ?? new SynchronousExecutionEngine();
 
         $capability = $engine->capability();
-
-        // A shared synchronous stack must not be paired with an engine that
-        // declares concurrent execution: interleaved runs would share and
-        // corrupt ambient scope. Reject at setup, before any attach.
-        if ($capability instanceof EngineCapability
-            && $capability->concurrent
-            && $contextStorage instanceof StackContextStorage
-        ) {
-            throw IncompatibleContextStorageException::sharedStackWithConcurrentEngine();
-        }
-
-        // Opt-in assembly-boundary hook for custom composition. The built-in
-        // check above runs first and cannot be overridden.
-        if ($this->concurrencyValidator instanceof Closure) {
-            ($this->concurrencyValidator)($capability, $contextStorage);
-        }
+        $this->validateConcurrentContextStorage($capability, $contextStorage);
+        $this->applyConcurrencyValidator($capability, $contextStorage);
 
         // Explicit null disables the redactor but retains classification.
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
         $redactor = $this->resolveRedactor();
 
-        $composedPublisher = match (true) {
-            $publisherStackFactory instanceof PublisherStackFactory => $publisherStackFactory->compose(
-                $publisher,
-                $redactor,
-                $this->samplingPolicy,
-                $health,
-                $this->limits,
-                $authority,
-            ),
-            $publisherStackFactory instanceof HealthAwarePublisherStackFactoryInterface =>
-                $publisherStackFactory->composeWithHealth(
-                    $publisher,
-                    null,
-                    $this->samplingPolicy,
-                    $health,
-                ),
-            default => $publisherStackFactory->compose($publisher, null, $this->samplingPolicy),
-        };
+        $composedPublisher = $this->composePublisherStack(
+            $publisher,
+            $redactor,
+            $health,
+            $authority,
+            $publisherStackFactory,
+        );
 
-        if (!$publisherStackFactory instanceof PublisherStackFactory) {
-            // The SDK owns the boundary. Custom factories receive already classified
-            // artifacts and a null redactor so the configured redactor runs only once.
-            $composedPublisher = new PublisherStackFactory()->compose(
-                $composedPublisher,
-                $redactor,
-                null,
-                $health,
-                $this->limits,
-                $authority,
-            );
-        }
+        $composedPublisher = $this->wrapPublisherStackForCustomFactory(
+            $composedPublisher,
+            $redactor,
+            $health,
+            $authority,
+            $publisherStackFactory,
+        );
 
         $composedPublisher = new ProvenanceArtifactPublisher($authority, $composedPublisher);
 
@@ -415,6 +386,75 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         );
 
         return new DefaultRunIt($runner, $currentExecution);
+    }
+
+    private function validateConcurrentContextStorage(
+        ?EngineCapabilityInterface $capability,
+        ContextStorageInterface $contextStorage,
+    ): void {
+        if ($capability instanceof EngineCapability
+            && $capability->concurrent
+            && $contextStorage instanceof StackContextStorage
+        ) {
+            throw IncompatibleContextStorageException::sharedStackWithConcurrentEngine();
+        }
+    }
+
+    private function applyConcurrencyValidator(
+        ?EngineCapabilityInterface $capability,
+        ContextStorageInterface $contextStorage,
+    ): void {
+        if ($this->concurrencyValidator instanceof Closure) {
+            ($this->concurrencyValidator)($capability, $contextStorage);
+        }
+    }
+
+    private function composePublisherStack(
+        ArtifactPublisherInterface $publisher,
+        ?RedactorInterface $redactor,
+        InternalHealthReporterInterface $health,
+        ProvenanceAuthority $authority,
+        PublisherStackFactoryInterface $publisherStackFactory,
+    ): ArtifactPublisherInterface {
+        return match (true) {
+            $publisherStackFactory instanceof PublisherStackFactory => $publisherStackFactory->compose(
+                $publisher,
+                $redactor,
+                $this->samplingPolicy,
+                $health,
+                $this->limits,
+                $authority,
+            ),
+            $publisherStackFactory instanceof HealthAwarePublisherStackFactoryInterface =>
+                $publisherStackFactory->composeWithHealth(
+                    $publisher,
+                    null,
+                    $this->samplingPolicy,
+                    $health,
+                ),
+            default => $publisherStackFactory->compose($publisher, null, $this->samplingPolicy),
+        };
+    }
+
+    private function wrapPublisherStackForCustomFactory(
+        ArtifactPublisherInterface $composedPublisher,
+        ?RedactorInterface $redactor,
+        InternalHealthReporterInterface $health,
+        ProvenanceAuthority $authority,
+        PublisherStackFactoryInterface $publisherStackFactory,
+    ): ArtifactPublisherInterface {
+        if (!$publisherStackFactory instanceof PublisherStackFactory) {
+            return new PublisherStackFactory()->compose(
+                $composedPublisher,
+                $redactor,
+                null,
+                $health,
+                $this->limits,
+                $authority,
+            );
+        }
+
+        return $composedPublisher;
     }
 
     private function resolveRedactor(): ?RedactorInterface

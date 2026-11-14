@@ -125,15 +125,8 @@ final class RedactingArtifactPublisher implements
             }
 
             $original = $artifact->normalize();
-            $kind = match (true) {
-                $artifact instanceof ObservationInterface => 'observation',
-                $artifact instanceof ActivityInterface => 'activity',
-                $artifact instanceof MeasurementInterface => 'measurement',
-                $artifact instanceof OccurrenceInterface => 'occurrence',
-                $artifact instanceof ExecutionInterface => 'execution',
-                $artifact instanceof SnapshotInterface => 'snapshot',
-                default => '',
-            };
+            $kind = $this->resolveArtifactKind($artifact);
+
             $redacted = $this->redactor?->redact($artifact) ?? $artifact;
             $wasRedacted = $redacted !== $artifact && $redacted instanceof RedactedArtifactInterface;
             $normalized = $redacted->normalize();
@@ -143,13 +136,16 @@ final class RedactingArtifactPublisher implements
                 ArtifactField::LINKED_EXECUTION_IDS, ArtifactField::PARENT_ACTIVITY_ID,
                 ArtifactField::PREDECESSOR_ID,
             ]);
-            if ($kind === '' || !$this->stillVerified($authority, $artifact)
-                || array_intersect_key($original, $fields) !== array_intersect_key($normalized, $fields)
-                || ($redacted instanceof RedactedArtifactInterface && $redacted->artifactType() !== $kind)
-                || ($kind === 'snapshot'
-                    && ($original[ArtifactField::CLASSIFICATION] ?? null)
-                        !== ($normalized[ArtifactField::CLASSIFICATION] ?? null))
-            ) {
+
+            if (!$this->redactionStillVerified(
+                $authority,
+                $artifact,
+                $original,
+                $normalized,
+                $fields,
+                $kind,
+                $redacted,
+            )) {
                 throw new RuntimeException();
             }
 
@@ -158,10 +154,8 @@ final class RedactingArtifactPublisher implements
                 throw new RuntimeException();
             }
 
-            if ($artifact instanceof SnapshotInterface) {
-                if (!$this->validSnapshotStructure($artifact, $normalized)) {
-                    throw new RuntimeException();
-                }
+            if ($artifact instanceof SnapshotInterface && !$this->validSnapshotStructure($artifact, $normalized)) {
+                throw new RuntimeException();
             }
 
             return $this->buildExportProjection(
@@ -176,6 +170,41 @@ final class RedactingArtifactPublisher implements
             $authority->reportUnverified(new RuntimeException('Redaction provenance verification failed.'));
             return null;
         }
+    }
+
+    private function resolveArtifactKind(ExecutionArtifactInterface $artifact): string
+    {
+        return match (true) {
+            $artifact instanceof ObservationInterface => 'observation',
+            $artifact instanceof ActivityInterface => 'activity',
+            $artifact instanceof MeasurementInterface => 'measurement',
+            $artifact instanceof OccurrenceInterface => 'occurrence',
+            $artifact instanceof ExecutionInterface => 'execution',
+            $artifact instanceof SnapshotInterface => 'snapshot',
+            default => '',
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $original
+     * @param array<string, mixed> $normalized
+     * @param array<string, mixed> $fields
+     */
+    private function redactionStillVerified(
+        ProvenanceAuthority $authority,
+        ExecutionArtifactInterface $artifact,
+        array $original,
+        array $normalized,
+        array $fields,
+        string $kind,
+        ExecutionArtifactInterface $redacted,
+    ): bool {
+        return $kind !== ''
+            && $this->stillVerified($authority, $artifact)
+            && array_intersect_key($original, $fields) === array_intersect_key($normalized, $fields)
+            && (!$redacted instanceof RedactedArtifactInterface || $redacted->artifactType() === $kind)
+            && ($kind !== 'snapshot' || ($original[ArtifactField::CLASSIFICATION] ?? null)
+                === ($normalized[ArtifactField::CLASSIFICATION] ?? null));
     }
 
     private function stillVerified(ProvenanceAuthority $authority, ExecutionArtifactInterface $artifact): bool

@@ -36,7 +36,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Measurement
  */
-final readonly class DefaultMeasurementInstrumentMapper implements
+final class DefaultMeasurementInstrumentMapper implements
     MeasurementInstrumentMapperInterface,
     RedactedMeasurementInstrumentMapperInterface
 {
@@ -47,10 +47,10 @@ final readonly class DefaultMeasurementInstrumentMapper implements
      * @param list<string> $metricAttributeAllowList measurement attribute keys allowed as dimensions
      */
     public function __construct(
-        private ?MeterProviderInterface $meterProvider,
-        private InstrumentCache         $cache,
-        private array                   $metricAttributeAllowList,
-        private ?InternalHealthReporterInterface $health = null,
+        private readonly ?MeterProviderInterface          $meterProvider,
+        private readonly InstrumentCache                  $cache,
+        private readonly array                            $metricAttributeAllowList,
+        private readonly ?InternalHealthReporterInterface $health = null,
     ) {
         $this->healthState = new ArrayObject(['reporting' => false]);
     }
@@ -74,36 +74,92 @@ final readonly class DefaultMeasurementInstrumentMapper implements
             return;
         }
 
+        $name = $this->resolveRedactedMeasurementName($normalized);
+        if (!$name instanceof MeasurementName) {
+            return;
+        }
+
+        $unitKind = $this->resolveRedactedMeasurementUnitAndKind($normalized);
+        if ($unitKind === null) {
+            $this->reportInvalidValue();
+            return;
+        }
+
+        [$unit, $kind] = $unitKind;
+
+        $value = $this->resolveRedactedMeasurementValue($normalized, $kind);
+        if ($value === null) {
+            $this->reportInvalidValue();
+            return;
+        }
+
+        $attributes = $this->resolveRedactedMeasurementAttributes($normalized);
+        $attributes = $this->filterAttributes($attributes);
+
+        $meter = $this->meterProvider->getMeter(BridgeConfig::INSTRUMENTATION_SCOPE);
+        $instrument = $this->resolveInstrumentFromRedacted($meter, $name, $unit, $kind);
+
+        $this->apply($instrument, $value, $attributes);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveRedactedMeasurementName(array $normalized): ?MeasurementName
+    {
         $nameValue = $normalized[ArtifactField::NAME] ?? null;
         if (!is_string($nameValue) || $nameValue === '') {
-            return;
+            return null;
         }
 
         try {
-            $name = MeasurementName::fromString($nameValue);
+            return MeasurementName::fromString($nameValue);
         } catch (Throwable) {
-            return;
+            return null;
         }
+    }
 
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array{MeasurementUnit, MeasurementKind}|null
+     */
+    private function resolveRedactedMeasurementUnitAndKind(array $normalized): ?array
+    {
         $unitValue = $normalized[ArtifactField::UNIT] ?? null;
         $kindValue = $normalized[ArtifactField::KIND] ?? null;
         $unit = is_string($unitValue) ? MeasurementUnit::tryFrom($unitValue) : null;
         $kind = is_string($kindValue) ? MeasurementKind::tryFrom($kindValue) : null;
+
         if ($unit === null || $kind === null) {
-            $this->reportInvalidValue();
-            return;
+            return null;
         }
 
+        return [$unit, $kind];
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveRedactedMeasurementValue(array $normalized, MeasurementKind $kind): int|float|null
+    {
         $value = $normalized[ArtifactField::VALUE] ?? null;
-        if ((!is_int($value) && !is_float($value))
+        if (
+            (($kind === MeasurementKind::Counter || $kind === MeasurementKind::Size) && !is_int($value))
+            || (!is_int($value) && !is_float($value))
             || (is_float($value) && !is_finite($value))
-            || (($kind === MeasurementKind::Counter || $kind === MeasurementKind::Size) && !is_int($value))) {
-            $this->reportInvalidValue();
-            return;
+        ) {
+            return null;
         }
 
-        $measurementValue = $value;
+        return $value;
+    }
 
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    private function resolveRedactedMeasurementAttributes(array $normalized): array
+    {
         $attributesValue = $normalized[ArtifactField::ATTRIBUTES] ?? null;
         $attributes = [];
         if (is_array($attributesValue)) {
@@ -114,12 +170,7 @@ final readonly class DefaultMeasurementInstrumentMapper implements
             }
         }
 
-        $attributes = $this->filterAttributes($attributes);
-
-        $meter = $this->meterProvider->getMeter(BridgeConfig::INSTRUMENTATION_SCOPE);
-        $instrument = $this->resolveInstrumentFromRedacted($meter, $name, $unit, $kind);
-
-        $this->apply($instrument, $measurementValue, $attributes);
+        return $attributes;
     }
 
     private function reportInvalidValue(): void
@@ -148,7 +199,7 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         }
 
         try {
-            error_log('[runit] publication health: Redacted measurement has invalid fields.');
+            error_log(/** @lang text */ '[runit] publication health: Redacted measurement has invalid fields.');
         } catch (Throwable) {
             // The last-resort sink must not affect the business outcome.
         } finally {
@@ -222,9 +273,9 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         }
 
         $allowed = array_flip($this->metricAttributeAllowList);
+        /** @var array<non-empty-string, array<int|string, int|float|string|bool|null>|bool|float|int|string|null> $result */
         $result = array_intersect_key($attributes, $allowed);
 
-        /** @var array<non-empty-string, array<int|string, int|float|string|bool|null>|bool|float|int|string|null> $result */
         return $result;
     }
 

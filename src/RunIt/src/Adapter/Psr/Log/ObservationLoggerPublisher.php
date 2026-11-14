@@ -120,19 +120,9 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
     {
         $normalized = $artifact->normalize();
 
-        $message = match (true) {
-            is_string($normalized[ArtifactField::MESSAGE] ?? null) => $normalized[ArtifactField::MESSAGE],
-            is_string($normalized[ArtifactField::KIND] ?? null) => $normalized[ArtifactField::KIND],
-            default => self::KEY_ARTIFACT,
-        };
-
-        $level = is_int($normalized[ArtifactField::LEVEL] ?? null)
-            ? $normalized[ArtifactField::LEVEL]
-            : self::DEFAULT_LEVEL;
-
-        $attributes = is_array($normalized[ArtifactField::ATTRIBUTES] ?? null)
-            ? $normalized[ArtifactField::ATTRIBUTES]
-            : [];
+        $message = $this->resolveDefaultMessage($normalized);
+        $level = $this->resolveDefaultLevel($normalized);
+        $attributes = $this->resolveDefaultAttributes($normalized);
 
         return [
             ArtifactField::MESSAGE => $message,
@@ -149,5 +139,38 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
             ],
             ArtifactField::THROWABLE => $normalized[ArtifactField::THROWABLE] ?? null,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveDefaultMessage(array $normalized): string
+    {
+        return match (true) {
+            is_string($normalized[ArtifactField::MESSAGE] ?? null) => $normalized[ArtifactField::MESSAGE],
+            is_string($normalized[ArtifactField::KIND] ?? null) => $normalized[ArtifactField::KIND],
+            default => self::KEY_ARTIFACT,
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveDefaultLevel(array $normalized): int
+    {
+        return is_int($normalized[ArtifactField::LEVEL] ?? null)
+            ? $normalized[ArtifactField::LEVEL]
+            : self::DEFAULT_LEVEL;
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<array-key, mixed>
+     */
+    private function resolveDefaultAttributes(array $normalized): array
+    {
+        return is_array($normalized[ArtifactField::ATTRIBUTES] ?? null)
+            ? $normalized[ArtifactField::ATTRIBUTES]
+            : [];
     }
 }

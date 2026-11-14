@@ -217,7 +217,11 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return null;
         }
 
-        $record = $this->records[$exportId];
+        $record = $this->records[$exportId] ?? null;
+        if ($record === null) {
+            return null;
+        }
+
         $fields = $this->evidence[$artifact]['fields'];
         $output = [];
         if (array_key_exists(ArtifactField::ID, $fields)) {
@@ -225,46 +229,10 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
 
         if ($record['role'] !== 'execution') {
-            $rootId = $this->exportIdForBusinessId($record['executionId'], $record['executionId'], 'execution');
-            $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
-            $relation = $record['role'] === 'terminal-snapshot'
-                ? 'execution-terminal-snapshot' : 'execution-' . $record['role'];
-            if ($root === null || $root['role'] !== 'execution'
-                || !isset($this->outgoing[$rootId][$relation][$exportId])) {
-                return null;
-            }
-
-            $output[ArtifactField::EXECUTION_ID] = $rootId;
-
-            return $output + $this->activityIdentityFields($exportId, $fields);
+            return $this->exportNonExecutionIdentityFields($record, $fields, $exportId, $output);
         }
 
-        $parents = [];
-        $links = [];
-        $linkedClaims = $fields[ArtifactField::LINKED_EXECUTION_IDS] ?? [];
-        if (!is_array($linkedClaims)) {
-            return null;
-        }
-
-        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
-            $source = $this->records[$sourceId] ?? null;
-            if ($source !== null && $source['role'] === 'execution'
-                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
-                $parents[] = $sourceId;
-            }
-        }
-
-        $links = $this->linkedExecutionIds($exportId, $linkedClaims);
-
-        if (count($parents) === 1) {
-            $output[ArtifactField::PARENT_EXECUTION_ID] = $parents[0];
-        }
-
-        if ($links !== []) {
-            $output[ArtifactField::LINKED_EXECUTION_IDS] = $links;
-        }
-
-        return $output;
+        return $this->exportExecutionIdentityFields($fields, $exportId, $output);
     }
 
     /**
@@ -783,5 +751,78 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             ArtifactField::PARENT_EXECUTION_ID, ArtifactField::LINKED_EXECUTION_IDS,
             ArtifactField::PARENT_ACTIVITY_ID, ArtifactField::PREDECESSOR_ID,
         ]));
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     * @param array<string, mixed> $fields
+     * @param array<string, mixed> $output
+     * @return array<string, mixed>|null
+     */
+    private function exportNonExecutionIdentityFields(
+        array $record,
+        array $fields,
+        string $exportId,
+        array $output,
+    ): ?array {
+        $executionId = $record['executionId'];
+        if (!is_string($executionId)) {
+            return null;
+        }
+
+        $role = $record['role'];
+        if (!is_string($role)) {
+            return null;
+        }
+
+        $rootId = $this->exportIdForBusinessId($executionId, $executionId, 'execution');
+        $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
+        $relation = $role === 'terminal-snapshot'
+            ? 'execution-terminal-snapshot' : 'execution-' . $role;
+        if ($root === null || $root['role'] !== 'execution'
+            || !isset($this->outgoing[$rootId][$relation][$exportId])) {
+            return null;
+        }
+
+        $output[ArtifactField::EXECUTION_ID] = $rootId;
+
+        return $output + $this->activityIdentityFields($exportId, $fields);
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @param array<string, mixed> $output
+     * @return array<string, mixed>
+     */
+    private function exportExecutionIdentityFields(
+        array $fields,
+        string $exportId,
+        array $output,
+    ): array {
+        $parents = [];
+        $linkedClaims = $fields[ArtifactField::LINKED_EXECUTION_IDS] ?? [];
+        if (!is_array($linkedClaims)) {
+            return $output;
+        }
+
+        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
+            $source = $this->records[$sourceId] ?? null;
+            if ($source !== null && $source['role'] === 'execution'
+                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
+                $parents[] = $sourceId;
+            }
+        }
+
+        $links = $this->linkedExecutionIds($exportId, $linkedClaims);
+
+        if (count($parents) === 1) {
+            $output[ArtifactField::PARENT_EXECUTION_ID] = $parents[0];
+        }
+
+        if ($links !== []) {
+            $output[ArtifactField::LINKED_EXECUTION_IDS] = $links;
+        }
+
+        return $output;
     }
 }
