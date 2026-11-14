@@ -117,7 +117,8 @@
             "@lint:length",
             "@test",
             "@security:audit",
-            "@security:audit:full"
+            "@security:audit:full",
+            "@dogfood"
         ],
         "rector": "vendor/bin/rector",
         "refactor": "@rector process",
