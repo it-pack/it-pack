@@ -15,84 +15,116 @@ namespace Tools\Dogfood\Tool;
  */
 final class PredefinedTools
 {
+    private const string KIND = 'cli.command';
+    private const string PREFIX = 'runit.dogfood';
+
     /**
      * @return list<DevTool>
      */
     public static function all(): array
     {
         return [
-            self::test(),
+            self::composerValidate(),
+            self::rectorDry(),
+            self::csDry(),
             self::staticAnalysis(),
             self::architecture(),
-            self::mutation(),
+            self::apiCheck(),
+            self::lengthLint(),
+            self::test(),
+            self::security(),
             self::benchmark(),
-            self::releaseValidation(),
         ];
     }
 
-    public static function test(): DevTool
+    public static function composerValidate(): DevTool
     {
-        return new DevTool(
-            name: 'runit.dogfood.test',
-            command: 'composer test',
-            kind: 'cli.command',
-            occurrenceType: 'runit.dogfood.test',
-            snapshotType: 'runit.dogfood.test.summary',
+        return self::makeDevTool(
+            'composer_validate',
+            'composer validate --strict',
+        );
+    }
+
+    public static function rectorDry(): DevTool
+    {
+        return self::makeDevTool(
+            'rector_dry',
+            'composer refactor:dry'
+        );
+    }
+
+    public static function csDry(): DevTool
+    {
+        return self::makeDevTool(
+            'cs_fixer_dry',
+            'composer @cs:check'
         );
     }
 
     public static function staticAnalysis(): DevTool
     {
-        return new DevTool(
-            name: 'runit.dogfood.static_analysis',
-            command: 'composer analyse',
-            kind: 'cli.command',
-            occurrenceType: 'runit.dogfood.static_analysis',
-            snapshotType: 'runit.dogfood.static_analysis.summary',
+        return self::makeDevTool(
+            'static_analysis',
+            'composer analyse'
         );
     }
 
     public static function architecture(): DevTool
     {
-        return new DevTool(
-            name: 'runit.dogfood.architecture',
-            command: 'composer architecture',
-            kind: 'cli.command',
-            occurrenceType: 'runit.dogfood.architecture',
-            snapshotType: 'runit.dogfood.architecture.summary',
+        return self::makeDevTool(
+            'architecture',
+            'composer architecture'
         );
     }
 
-    public static function mutation(): DevTool
+    public static function apiCheck(): DevTool
     {
-        return new DevTool(
-            name: 'runit.dogfood.mutation',
-            command: 'composer mutation',
-            kind: 'cli.command',
-            occurrenceType: 'runit.dogfood.mutation',
-            snapshotType: 'runit.dogfood.mutation.summary',
+        return self::makeDevTool(
+            'api_check',
+            'composer api:check'
+        );
+    }
+
+    public static function lengthLint(): DevTool
+    {
+        return self::makeDevTool(
+            'line_length_lint',
+            'composer lint:length'
+        );
+    }
+
+    public static function test(): DevTool
+    {
+        return self::makeDevTool(
+            'test',
+            'composer test'
+        );
+    }
+
+    public static function security(): DevTool
+    {
+        return self::makeDevTool(
+            'security_audit',
+            'composer security:audit'
         );
     }
 
     public static function benchmark(): DevTool
     {
-        return new DevTool(
-            name: 'runit.dogfood.benchmark',
-            command: 'composer benchmark',
-            kind: 'cli.command',
-            occurrenceType: 'runit.dogfood.benchmark',
-            snapshotType: 'runit.dogfood.benchmark.summary',
+        return self::makeDevTool(
+            'benchmark',
+            'composer benchmark'
         );
     }
 
-    public static function releaseValidation(): DevTool
+    private static function makeDevTool(string $name, string $command): DevTool
     {
         return new DevTool(
-            name: 'runit.dogfood.release_validation',
-            command: 'composer quality',
-            kind: 'cli.command',
-            occurrenceType: 'runit.dogfood.release_validation',
-            snapshotType: 'runit.dogfood.release_validation.summary',
+            name: self::PREFIX . '.' . $name,
+            command: $command,
+            kind: self::KIND,
+            occurrenceType: self::PREFIX . '.' . $name,
+            snapshotType: self::PREFIX . '.' . $name. '.summary',
         );
     }
 }
