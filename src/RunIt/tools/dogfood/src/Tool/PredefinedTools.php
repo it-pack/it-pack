@@ -57,7 +57,7 @@ final class PredefinedTools
     {
         return self::makeDevTool(
             'cs_fixer_dry',
-            'composer @cs:check'
+            'composer cs:check'
         );
     }
 
