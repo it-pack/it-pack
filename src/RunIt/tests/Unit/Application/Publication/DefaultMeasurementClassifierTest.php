@@ -60,6 +60,11 @@ final class DefaultMeasurementClassifierTest extends Unit
         self::assertSame('runit.test.counter', $delivered->name()->toString());
         self::assertSame(42, $delivered->value());
         self::assertSame('count', $delivered->unit()->label());
+        self::assertSame('export-execution', $delivered->executionId()->toString());
+        self::assertNull($delivered->activityId());
+        self::assertSame(1, $delivered->timestamp());
+        self::assertSame(1, $delivered->sequence());
+        self::assertSame([], $delivered->attributes());
         self::assertCount(0, $reports);
     }
 
@@ -93,6 +98,11 @@ final class DefaultMeasurementClassifierTest extends Unit
         self::assertSame('runit.test.duration', $delivered->name()->toString());
         self::assertSame(1.5, $delivered->value());
         self::assertSame('milliseconds', $delivered->unit()->label());
+        self::assertSame('export-execution', $delivered->executionId()->toString());
+        self::assertNull($delivered->activityId());
+        self::assertSame(1, $delivered->timestamp());
+        self::assertSame(2, $delivered->sequence());
+        self::assertSame([], $delivered->attributes());
         self::assertCount(0, $reports);
     }
 

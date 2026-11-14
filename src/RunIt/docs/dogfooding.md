@@ -121,7 +121,7 @@ RunIt pipeline.
 composer dogfood
 ```
 
-This runs the full project quality gate as dogfood executions. It is intended for
-local and CI use where observing the tooling runs as executions is wanted; it is
-deliberately not attached to the default `quality` script so the release gate
-does not observe itself.
+This runs the full project quality gate as dogfood executions. The `quality`
+script invokes `@dogfood`, which runs the dogfooding tooling runs (including its
+test and benchmark subprocesses) as RunIt executions. Dogfooding is intentionally
+part of the release gate so the tooling observes itself end to end.

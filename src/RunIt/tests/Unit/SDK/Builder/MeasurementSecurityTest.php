@@ -13,6 +13,7 @@ use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -69,11 +70,35 @@ final class MeasurementSecurityTest extends TestCase
             self::assertNotEmpty($sampler->seen, $mode);
             self::assertNotEmpty($sink->published(), $mode);
 
-            $encoded = json_encode(array_map(
-                static fn (ExecutionArtifactInterface $artifact): array => $artifact->normalize(),
-                array_merge($sampler->seen, $sink->published()),
-            ), JSON_THROW_ON_ERROR);
-            self::assertStringContainsString('dogfood-metric', $encoded, $mode);
+            $samplerMeasurements = array_filter(
+                $sampler->seen,
+                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface
+            );
+            $sinkMeasurements = array_filter(
+                $sink->published(),
+                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface
+            );
+
+            self::assertNotEmpty($samplerMeasurements, $mode);
+            self::assertNotEmpty($sinkMeasurements, $mode);
+
+            $foundInSampler = false;
+            foreach ($samplerMeasurements as $artifact) {
+                if ($artifact->value() === 123) {
+                    $foundInSampler = true;
+                    break;
+                }
+            }
+            self::assertTrue($foundInSampler, 'Sampler must contain a measurement with value 123.');
+
+            $foundInSink = false;
+            foreach ($sinkMeasurements as $artifact) {
+                if ($artifact->value() === 123) {
+                    $foundInSink = true;
+                    break;
+                }
+            }
+            self::assertTrue($foundInSink, 'Sink must contain a measurement with value 123.');
 
             // No drop notice for valid measurements.
             self::assertSame([], $health, $mode);

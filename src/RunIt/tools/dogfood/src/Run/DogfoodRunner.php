@@ -88,7 +88,7 @@ final readonly class DogfoodRunner
                     );
                     $scope->measurements()->size(
                         MeasurementName::fromString('runit.dogfood.tool.stderr_bytes'),
-                        strlen(substr($process->stderr, 0, 2000)),
+                        strlen($process->stderr),
                         MeasurementUnit::Bytes,
                     );
 

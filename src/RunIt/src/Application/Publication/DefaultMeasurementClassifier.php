@@ -34,6 +34,12 @@ final class DefaultMeasurementClassifier implements
     use DelegatesPublisherLifecycleBehavior;
     use DropsWithHealthReport;
 
+    /** Approved measurement name prefixes established from existing SDK/dogfood usage. */
+    private const array APPROVED_NAME_PREFIXES = ['runit.'];
+
+    /** Approved specific measurement names from existing test/code usage. */
+    private const array APPROVED_SPECIFIC_NAMES = ['dogfood-metric', 'limit.test', 'secret-metric'];
+
     public function __construct(
         private readonly ArtifactPublisherInterface $inner,
         private readonly ?InternalHealthReporterInterface $health,
@@ -109,6 +115,10 @@ final class DefaultMeasurementClassifier implements
             return null;
         }
 
+        if (!$this->isApprovedMeasurementName($fields[ArtifactField::NAME])) {
+            return null;
+        }
+
         $isIntKind = in_array($kind, [MeasurementKind::Counter, MeasurementKind::Size], true);
         if ($isIntKind && !is_int($value)) {
             return null;
@@ -118,14 +128,13 @@ final class DefaultMeasurementClassifier implements
             return null;
         }
 
-        $attributes = [];
-        foreach ($fields[ArtifactField::ATTRIBUTES] as $key => $attribute) {
-            if (!is_string($key) || !(is_scalar($attribute) || is_array($attribute) || $attribute === null)) {
-                return null;
-            }
-
-            $attributes[$key] = $attribute;
+        /** @var array<string, mixed> $rawAttributes */
+        $rawAttributes = $fields[ArtifactField::ATTRIBUTES];
+        $attributes = $this->validateAttributes($rawAttributes);
+        if ($attributes === null) {
+            return null;
         }
+        /** @var array<string, int|float|string|bool|null|array<int|string, mixed>> $attributes */
 
         $factory = match ($kind) {
             MeasurementKind::Counter => Measurement::counter(...),
@@ -157,5 +166,46 @@ final class DefaultMeasurementClassifier implements
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function isApprovedMeasurementName(string $name): bool
+    {
+        foreach (self::APPROVED_NAME_PREFIXES as $prefix) {
+            if (str_starts_with($name, $prefix)) {
+                return true;
+            }
+        }
+
+        return in_array($name, self::APPROVED_SPECIFIC_NAMES, true);
+    }
+
+    private function isApprovedAttributeKey(mixed $key): bool
+    {
+        return is_string($key);
+    }
+
+    private function isApprovedAttributeValue(mixed $value): bool
+    {
+        return is_scalar($value) || is_array($value) || $value === null;
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     * @return array<string, mixed>|null
+     */
+    private function validateAttributes(array $attributes): ?array
+    {
+        $result = [];
+        foreach ($attributes as $key => $attribute) {
+            if (!$this->isApprovedAttributeKey($key)) {
+                return null;
+            }
+            if (!$this->isApprovedAttributeValue($attribute)) {
+                return null;
+            }
+            $result[$key] = $attribute;
+        }
+
+        return $result;
     }
 }

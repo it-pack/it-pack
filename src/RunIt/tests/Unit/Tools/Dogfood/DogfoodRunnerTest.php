@@ -23,6 +23,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use Tests\Support\Fixture\Dogfood\FakeProcessRunner;
+use Tools\Dogfood\Process\ProcessResult;
 use Tools\Dogfood\Process\ProcessRunnerInterface;
 use Tools\Dogfood\Run\DogfoodRunner;
 use Tools\Dogfood\Tool\DevTool;
@@ -142,6 +143,46 @@ final class DogfoodRunnerTest extends Unit
         }
 
         self::assertNotNull($failed, 'A warning observation was recorded for the failed tool.');
+    }
+
+    public function testStderrBytesReportsFullLengthBeyondTruncation(): void
+    {
+        $longStderr = str_repeat('x', 2500);
+        $processRunner = new class ($longStderr) implements ProcessRunnerInterface {
+            public function __construct(private string $stderr)
+            {
+            }
+
+            public function run(string $command, string $workingDirectory): ProcessResult
+            {
+                return new ProcessResult($command, 0, '', $this->stderr, 1000);
+            }
+        };
+
+        $runner = $this->buildRunner($processRunner);
+        $runner->runAll([
+            new DevTool(
+                'runit.dogfood.stderr',
+                'echo stderr',
+                'cli.command',
+                'runit.dogfood.stderr',
+                'runit.dogfood.stderr.summary'
+            ),
+        ]);
+
+        $found = false;
+        foreach ($this->recorder->published() as $artifact) {
+            if (!($artifact instanceof MeasurementInterface)) {
+                continue;
+            }
+            if ($artifact->name()->toString() === 'runit.dogfood.tool.stderr_bytes') {
+                $found = true;
+                self::assertSame(2500, $artifact->value());
+                self::assertSame('bytes', $artifact->unit()->label());
+            }
+        }
+
+        self::assertTrue($found, 'stderr_bytes measurement must report full stderr length.');
     }
 
     public function testPredefinedToolsHaveValidNamesAndOccurrenceTypes(): void
