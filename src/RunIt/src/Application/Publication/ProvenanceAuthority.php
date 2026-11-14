@@ -111,6 +111,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 
     private bool $releasing = false;
 
+    private bool $reporting = false;
+
     private int $edgeCount = 0;
 
     /** @var WeakMap<ExecutionArtifactInterface, array{exportId: string, fields: array<string, mixed>}> */
@@ -475,7 +477,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $matched = null;
         foreach ($candidates as $exportId) {
             $record = $this->records[$exportId] ?? null;
-            if ($record !== null && !$record['released'] && ($role === null || $record['role'] === $role)) {
+            if ($record !== null && !$record['released'] && $record['businessId'] === $businessId
+                && $record['executionId'] === $executionId && ($role === null || $record['role'] === $role)) {
                 if ($matched !== null) {
                     return null;
                 }
@@ -498,6 +501,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     {
         $prefix = $businessId . "\0";
 
+        $matched = null;
         foreach ($this->byBusinessExecution as $key => $candidates) {
             if (!str_starts_with($key, $prefix)) {
                 continue;
@@ -510,13 +514,17 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 
             foreach ($candidates as $exportId) {
                 $record = $this->records[$exportId] ?? null;
-                if ($record !== null && !$record['released'] && $record['executionId'] !== $excludeExecutionId) {
-                    return $exportId;
+                if ($record !== null && !$record['released'] && $record['businessId'] === $businessId
+                    && $record['executionId'] !== $excludeExecutionId && $record['role'] === 'execution') {
+                    if ($matched !== null) {
+                        return null;
+                    }
+                    $matched = $exportId;
                 }
             }
         }
 
-        return null;
+        return $matched;
     }
 
     /**
@@ -675,14 +683,26 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      */
     public function reportUnverified(Throwable $failure, ?string $artifactId = null): void
     {
-        $artifactId ??= 'redacted';
+        if ($this->reporting) {
+            return;
+        }
 
+        $this->reporting = true;
+        try {
+            $this->reportUnverifiedSafely();
+        } finally {
+            $this->reporting = false;
+        }
+    }
+
+    private function reportUnverifiedSafely(): void
+    {
         if ($this->health instanceof InternalHealthReporterInterface) {
             try {
                 $this->health->report(
-                    $failure,
+                    new RuntimeException('provenance verification or issuance failed.'),
                     $this->redactedFactory->create([
-                        ArtifactField::ID => $artifactId,
+                        ArtifactField::ID => 'redacted',
                         ArtifactField::TYPE => 'runit.artifact.redacted',
                     ])
                 );

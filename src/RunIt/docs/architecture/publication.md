@@ -22,11 +22,13 @@ guard → fail-safe → redact → default-SDK classification → sample → cla
 Redaction runs before sampling, but it is not a complete allowlist. In the default
 SDK composition, executions, activities, observations, occurrences and snapshots
 receive additional classification before sampling, and unclassified measurements
-are reported and dropped. Custom compositions can still contain unclassified fields
-at that boundary. The
-later classifier bounds projections before the sink, but bounding does not prove
-that retained content is safe. Explicit redactor overrides and custom stacks do not
-automatically use these SDK default classifiers.
+are reported and dropped. SDK builder custom and null redactors also pass through
+these classifiers, and ordinary and health-aware custom stacks receive classified
+projections. The SDK invokes a custom redactor once and passes null as the factory's
+redactor argument. This is a compatibility change for custom stack factories.
+The later generic classifier bounds projections, but bounding alone does not prove
+that retained content is safe. Standalone compositions do not yet have the same
+verified boundary and must not be treated as safe for untrusted artifact data.
 
 ```mermaid
 flowchart TD;

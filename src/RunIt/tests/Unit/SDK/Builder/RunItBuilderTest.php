@@ -18,7 +18,6 @@ use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
-use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -262,7 +261,7 @@ final class RunItBuilderTest extends TestCase
 
         self::assertNotEmpty($spy->published);
         self::assertGreaterThan(0, $redactor->calls);
-        self::assertSame('redacted-name', $spy->published[0]->normalize()['name']);
+        self::assertSame('runit.redacted', $spy->published[0]->normalize()['name']);
     }
 
     public function testNewSeamWithersReturnNewBuilderInstances(): void
@@ -391,7 +390,7 @@ final class RunItBuilderTest extends TestCase
         self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
     }
 
-    public function testCustomPublisherStackReceivesRawBusinessIdentityAfterProvenanceCheck(): void
+    public function testCustomPublisherStackDoesNotReceiveRawBusinessIdentity(): void
     {
         $seen = new InMemoryArtifactPublisher();
         $factory = new SpyPublisherStackFactory($seen);
@@ -424,7 +423,8 @@ final class RunItBuilderTest extends TestCase
         self::assertNotEmpty($executions);
         foreach ($executions as $execution) {
             self::assertInstanceOf(ExecutionInterface::class, $execution);
-            self::assertSame($businessId, $execution->id()->toString());
+            self::assertNotSame($businessId, $execution->id()->toString());
+            self::assertStringNotContainsString('synthetic-secret-identity-', json_encode($execution->normalize(), JSON_THROW_ON_ERROR));
         }
     }
 
@@ -585,7 +585,7 @@ final class RunItBuilderTest extends TestCase
         }
     }
 
-    public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
+    public function testExplicitNullRedactorStillClassifiesObservations(): void
     {
         $spy = new RecordingArtifactPublisher();
 
@@ -610,17 +610,12 @@ final class RunItBuilderTest extends TestCase
             $spy->published,
             static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface,
         );
-        self::assertNotEmpty(
-            $observations,
-            'an explicit withRedactor(null) opt-out publishes raw observations'
-        );
-        self::assertEmpty(
-            array_filter(
-                $spy->published,
-                static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact
-            ),
-            'no artifact may be wrapped by the redactor once opted out',
-        );
+        self::assertNotEmpty($observations);
+        foreach ($observations as $observation) {
+            self::assertInstanceOf(ObservationInterface::class, $observation);
+            self::assertSame('[redacted]', $observation->message());
+            self::assertStringNotContainsString('raw observation source', json_encode($observation->normalize(), JSON_THROW_ON_ERROR));
+        }
     }
 
     public function testSecurityLimitsPropagateToActivityDepthGate(): void
@@ -659,12 +654,16 @@ final class RunItBuilderTest extends TestCase
         }
     }
 
-    public function testSecurityLimitsPropagateToDefaultPublisherClassifier(): void
+    public function testNullRedactorStillDropsUnclassifiedMeasurements(): void
     {
         $sink = new InMemoryArtifactPublisher();
+        $failures = [];
         $runtime = $this->builder()
             ->withPublisher($sink)
             ->withRedactor(null)
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            })
             ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
             ->build()
         ;
@@ -680,10 +679,8 @@ final class RunItBuilderTest extends TestCase
         $published = $sink->published();
         $measurements = array_values(array_filter($published, static fn (ExecutionArtifactInterface $artifact): bool =>
             ($artifact->normalize()['name'] ?? null) === 'limit.test'));
-        self::assertCount(1, $measurements);
-        $attributes = $measurements[0]->normalize()['attributes'];
-        self::assertIsArray($attributes);
-        self::assertCount(1, $attributes);
+        self::assertSame([], $measurements);
+        self::assertNotEmpty($failures);
     }
 
     public function testCustomSnapshotFactoryPublishesTerminalSnapshot(): void

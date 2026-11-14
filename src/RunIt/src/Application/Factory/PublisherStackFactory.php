@@ -9,7 +9,6 @@ use ItPack\RunIt\Application\Publication\DefaultLifecycleClassifier;
 use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
 use ItPack\RunIt\Application\Publication\DefaultObservationClassifier;
 use ItPack\RunIt\Application\Publication\DefaultOccurrenceClassifier;
-use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
@@ -65,8 +64,8 @@ final class PublisherStackFactory implements HealthAwarePublisherStackFactoryInt
             $composed = new SamplingArtifactPublisher($samplingPolicy, $composed, $health);
         }
 
-        if ($authority instanceof ProvenanceAuthority && $redactor instanceof DefaultSdkRedactor) {
-            // Classify default SDK artifacts before either sampler or sink.
+        if ($authority instanceof ProvenanceAuthority) {
+            // Classification is independent of the configured redactor.
             $composed = new DefaultObservationClassifier($composed, $health, $limits ?? new SecurityLimits());
             $composed = new DefaultOccurrenceClassifier($composed, $health, $limits ?? new SecurityLimits());
             $composed = new DefaultMeasurementClassifier($composed, $health);

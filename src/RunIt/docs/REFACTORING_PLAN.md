@@ -13,6 +13,19 @@
 - [ ] Treat the previous six dependency advisories as superseded: the subsequent audit found no vulnerability advisories. `doctrine/annotations` remains an abandoned **development** dependency via `just-bases/php-qa-base` and PHPBench; track it separately.
 - [ ] Use PHP 8.4 as the compatibility floor and run the supported newer PHP matrix where available. Record unavailable extensions or environments rather than claiming those paths passed.
 
+**Downstream scope decision (2026-11-14):** Prioritize completion of this RunIt
+refactoring plan. Fixes, migrations, quality gates and compatibility checks in
+dependent ItPack packages and other consumers are deferred until a separate
+monorepo-wide strategy is established. Record known consumer impacts and retain
+historical evidence, but do not treat deferred checks as passing or require them
+for RunIt refactoring phase completion. Dependent ItPack packages must not be
+released until their relevant issues are fixed and verified; issues remain in
+development in the meantime. This decision does not authorize any release.
+RunIt-owned tests, contract-diff review, strict API and schema checks, explicit
+approval for baseline changes, and compatibility documentation remain in scope.
+This decision supersedes earlier downstream-completion requirements below;
+historical results and checked items are not evidence of consumer readiness.
+
 ## Approved decisions (Phases 0–2)
 
 **All documented decisions for Phases 0–2 are explicitly approved (2026-11-13).** This includes:
@@ -39,14 +52,15 @@ No further decision-gate approval is required for Phase 0–2 policy direction. 
 Checked items record approved policy direction, not completed implementation or
 verification. The unchecked design details below must still be resolved where applicable.
 
-- [x] **API identity:** Retain `ContextTokenInterface::id(): int` as an explicitly approved breaking contract. Update the API baseline and changelog and migrate affected ItPack implementations. The storage-defined value is stable for the token lifetime but is not necessarily unique; detachment must not rely on it alone.
-- [x] **Compatibility baseline:** Keep the API checker strict and the committed API and normalization-schema snapshots as comparison points. A deliberate contract change requires maintainer approval and coordinated migration of affected consumers: review the contract diff, run relevant RunIt and downstream checks against the changed checkout, update snapshots only after approval, record the change in the changelog, and coordinate split releases where necessary.
+- [x] **API identity:** Retain `ContextTokenInterface::id(): int` as an explicitly approved breaking contract. Update the API baseline and changelog; migration of affected ItPack implementations is deferred under the downstream scope decision. The storage-defined value is stable for the token lifetime but is not necessarily unique; detachment must not rely on it alone.
+- [x] **Compatibility baseline:** Keep the API checker strict and the committed API and normalization-schema snapshots as comparison points. A deliberate contract change requires maintainer approval, contract-diff review, relevant RunIt checks against the changed checkout, snapshot updates only after approval, and a changelog entry. Consumer migration, downstream checks and release coordination are deferred under the downstream scope decision.
 - [x] **Recent API changes:** The maintainer approved the recent API changes and
   regenerated the API baseline on 2026-11-12, including the redacted-artifact
   type contract and the OpenTelemetry redacted span mapper interface methods.
   The regenerated baseline also records the additive API changes in its diff.
   Approval does not establish downstream compatibility or approve future changes;
-  affected consumers still require migration and relevant downstream checks.
+  affected consumers still require migration and relevant downstream checks,
+  deferred under the downstream scope decision.
 - [x] **Throwable redaction defaults:** Make redaction configurable. By default, mask throwable messages at every cause depth and omit traces; permit trace export only through explicit configuration. Preserve bounded processing and document the security implications of opting in.
 - [x] **Sampling and redaction order:** Make the order configurable, with redaction before sampling by default. Sampling first must be an explicit choice documented as exposing unredacted artifacts to samplers. Preserve built-in type-dependent sampling behavior when redaction happens first.
 - [x] **Throwable metadata:** Preserve throwable class names and error codes by default for diagnosis, with configuration to remove or mask them where required.
@@ -115,27 +129,55 @@ verification. The unchecked design details below must still be resolved where ap
   silently pass them to a sampler or sink in the proposed safe path.
 
   Before adoption, measure delivery loss and retention costs on representative
-  workloads, review custom-generator and import migration and required
-  schema/API changes, and run the contract-diff and downstream checks required
-  by the compatibility decision. Update snapshots only after approval, document
-  migration and coordinate releases; test forgery, role and relationship
+  workloads, review custom-generator and import impacts and required schema/API
+  changes, and run the contract-diff and RunIt checks required by the compatibility
+  decision. Update snapshots only after approval and document migration impacts;
+  consumer migration, downstream checks and release coordination are deferred.
+  Test forgery, role and relationship
   substitution, expiry, concurrency, sampling and failure paths.
 - [x] For Phase 2 unsafe-mapping drops, use a guarded, payload-free error-log
   fallback when no health callback is configured; contain reporter failures.
   Execution IDs that cannot be established safe must cause a reported drop,
   even when this loses the original sampling decision. This does not settle the
   general Phase 4 health API or nullable callback compatibility.
-- [ ] Resolve the Phase 2 representation and delivery trade-off before changing
-  the stack: the current redactor can return original artifacts or projections
-  with unclassified fields. Dropping all unsafe artifacts could suppress most
-  telemetry; removing required fields can change normalized contracts. Neither
-  outcome is approved solely by the execution-ID decision above.
-- [ ] Define safe observation fields and classification, and the configurable drop/report mechanism.
+- [ ] Complete the artifact-specific representation and delivery design under
+  the decisions below, including required-field placeholders, delivery-loss
+  measurements, contract review and documentation of migration impacts.
+  Dependent-package migration is deferred. Do not treat approval of the direction
+  as proof of implementation or compatibility.
+- [ ] Complete the exact observation field classification and configurable
+  drop/report design and verify it across supported publication paths.
 - [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
 - [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
 - [ ] Choose the publication-health default destination and resolve nullable callback API compatibility in Phase 4.
+
+**Phase 2 boundary decisions (approved 2026-11-14):**
+
+- Custom publisher factories receive verified, sanitized export projections by
+  default, not original artifacts. This is a deliberate extension-behavior change;
+  review the contract diff and perform RunIt checks. Consumer migration and its
+  checks are deferred under the downstream scope decision.
+- Standalone publication reports and drops artifacts without a verifiable
+  SDK-issued execution identity before they reach samplers or sinks.
+- Custom redactors are followed by verified-identity and safe-field classification
+  by default. An explicit unsafe bypass may be configured and must be documented
+  as outside the default security guarantee. The separately approved sampling-first
+  option likewise exposes unredacted input to the sampler.
+- Omit unclassified optional fields; replace required fields only with documented
+  safe placeholders where valid; otherwise report and drop. Do not silently
+  export unclassified snapshot payloads or hashes, or invent hashes for changed
+  payloads. Complete artifact-specific decisions and measure delivery loss.
+- The supported asynchronous path verifies and sanitizes synchronously and queues
+  safe export projections. Raw artifacts deferred beyond execution cleanup remain
+  untrusted and are reported and dropped. A raw-work lease and acknowledgement
+  protocol is not included in this decision.
+- Default sanitized observations retain verified export identities, validated
+  severity, approved bounded timing and sequence, and approved throwable class and
+  code. Omit unclassified messages, attributes and diagnostic content; report and
+  drop if required fields have no safe representation. Define exact fields and
+  retain the approved configurable drop-and-report option.
 
 **Observation design investigation:** A candidate sanitized representation
 would implement `ObservationInterface` without retaining the source artifact,
@@ -1132,14 +1174,14 @@ control, isolation verification) remain open.
 
 - [x] Inspect `src/Contract/Port/ContextTokenInterface.php`, `ContextStorageInterface`, the API baseline, all `id()` call sites, and concrete stack, Fiber, coroutine, and composite tokens. Verify composite delegation and ownership semantics under the retained contract.
 - [x] Exercise custom tokens implementing the approved `id()` contract and their storage through composite attach/detach, correct owner delegation, foreign token rejection, repeated detach, and LIFO behavior. The former opaque interface is intentionally not supported by the new baseline.
-- [x] Complete the approved breaking-contract migration for affected internal consumers and retain correct token ownership and detachment semantics.
+- [x] Apply the approved breaking contract to RunIt and retain correct token ownership and detachment semantics. Dependent-package migration is deferred under the downstream scope decision.
 - [x] Verify the approved break's changelog, baseline, versioning and migration documentation; run context storage conformance tests and `composer api:check` against the final tree.
 - [x] Document `StackContextStorage` as synchronous-only at the SDK builder and concurrency entry points; show configuration of Fiber/coroutine storage for persistent workers.
 - [x] Add interleaving tests that demonstrate the default risk and verify isolated current scopes, parent identity, LIFO detach, restoration after exceptions, and repeated requests with runtime-specific storage. Use the coroutine extension where available and report skips explicitly.
 - [x] Implement the [approved concurrency validation boundary](#decisions-required-before-dependent-changes) and its opt-in custom-composition hook: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` without changing the storage contract or requiring a new builder-interface method.
 - [x] Test ordinary synchronous nesting and generic setup without a runtime declaration; reject declared overlap with shared stack storage at setup with the prescribed actionable error; accept matching isolated storage; exercise the opt-in hook with custom composition. Retain the interleaving reproduction as mismatch evidence.
 
-**Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
+**Exit:** RunIt token implementations conform to the approved breaking contract; the RunIt API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit. Dependent-package migration and verification are deferred, not considered passed.
 
 **Additional verification (2026-11-13):** Fiber storage now has a regression for
 cross-Fiber token rejection, out-of-order detachment and successful LIFO retry;
@@ -1150,7 +1192,8 @@ unintended parent. On PHP 8.4.27 the focused Fiber storage test passed (8 tests,
 and 8.5.12, `composer quality --quiet` passed, including `api:check` and all
 four suites.
 Swoole was available; OpenSwoole, Swow and PHP 8.6 were not verified. These checks
-do not close the downstream, runtime and performance follow-ups below.
+do not close the runtime and performance follow-ups below. Downstream follow-ups
+are deferred under the downstream scope decision.
 
 The isolated downstream runner also passed the PHP 8.4 third-party sample and,
 on PHP 8.5, ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt and the
@@ -1228,9 +1271,9 @@ skips when Swoole is unavailable; its skip path, OpenSwoole, and Swow were not
 verified. This coverage does not complete the remaining Phase 1 requirements.
 
 - [#38: Composite context storage ownership overhead](issues/composite-context-storage-performance.md) — representative performance and memory measurements and any evidence-backed optimization.
-- [#37: AsyncIt context-token cleanup cost](issues/asyncit-context-storage-cleanup-performance.md) — scan replaced with weak keys; broader runtime, nested-workload and memory measurements remain open.
+- [#37: AsyncIt context-token cleanup cost](issues/asyncit-context-storage-cleanup-performance.md) — deferred dependent-package work; scan replaced with weak keys, but broader runtime, nested-workload and memory measurements remain open.
 - [#40: Context ownership and runtime validation](issues/phase-1-runtime-validation.md) — Phase 0 evidence, supported runtime coverage, remaining isolation cases and configuration validation.
-- [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — reproduce and resolve outstanding quality and API-check results.
+- [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — resolve RunIt quality and API-check results; AsyncIt-specific follow-up is deferred.
 
 **Next work:** Proceed with Phase 2 mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 is complete; the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done. Keep the tracked follow-ups open until their acceptance criteria are met.
 
@@ -1276,14 +1319,14 @@ Open implementation gaps (decisions approved, implementation pending):
   data to its sampler and sink. Bounded traversal is not deny-by-default field
   classification; the full field policy and composition matrix remain open.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond
-  cleanup cannot be verified. The current ownership limitation is documented in
-  `docs/architecture/publication.md`; completion or expiry of outstanding raw
-  work is not tracked.
+  cleanup cannot be verified. Verify and document the approved projection-before-
+  queue boundary; arbitrary raw-work ownership is not part of that decision.
 - Existing custom factory contracts receive original concrete artifacts. Replacing
   those with export projections before invoking the factory would change what its
   redactor and publisher receive; neither factory interface provides a way to
-  enforce classification within custom code. A compatibility decision and
-  downstream migration are needed before changing that extension contract.
+  enforce classification within custom code. The projection boundary is now
+  approved; RunIt implementation and contract review remain. Consumer migration
+  and downstream checks are deferred under the downstream scope decision.
 - No representative workload, delivery-loss measurement, or real exporter I/O
   baseline established for Phase 2 cost evaluation.
 
@@ -1384,16 +1427,16 @@ Implemented within already-approved decisions:
 Open gaps (the Phase 0-2 policy direction is approved; implementation and compatibility verification remain necessary):
 
 - Standalone factory characterization shows unclassified occurrence data reaching both sampler and sink. Bounded traversal is not deny-by-default field classification; full enforcement before both boundaries remains open for standalone/custom compositions.
-- Custom factory contracts receive original concrete artifacts including business IDs. Replacing those with export projections would change what custom redactors and publishers receive; neither factory interface provides a way to enforce classification within custom code. A compatibility decision and downstream migration are needed before changing this extension contract.
+- Custom factories currently receive original concrete artifacts including business IDs. The approved projection boundary changes this behavior; RunIt implementation and contract review remain, while downstream migration is deferred.
 - No representative workload, delivery-loss measurement, or real exporter I/O baseline established for Phase 2 cost evaluation. Synthetic benchmarks exist in `docs/benchmarks.md` but do not measure representative production traffic.
-- Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. Async ownership behavior is documented as a limitation, not implemented.
+- Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. The approved asynchronous path queues safe projections, not raw work; its full verification remains open.
 
 The `ProvenanceBoundaryTest` regression now retains a runner-issued raw execution
 past cleanup and verifies that subsequent provenance checking drops it and
 reports only a fixed redacted placeholder. This characterizes fail-closed late
 verification; it does not implement ownership for deferred raw work.
 
-Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run, PHPStan at level max, architecture, lint:length, all four test suites, security audit) passes on PHP 8.5.12 AND the custom factory compatibility decision is made.
+Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run, PHPStan at level max, architecture, lint:length, all four test suites, security audit) passes on the final tree and the approved custom factory boundary and RunIt contract review are complete. Consumer migration and downstream verification are deferred.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
@@ -1777,7 +1820,7 @@ filtering, collector cleanup and isolation from other suites are demonstrated.
 - [ ] Re-run narrow regression suites first, then `composer test`, `composer coverage`, `composer analyse`, `composer architecture`, `composer refactor:dry`, `composer cs:check`, `composer lint:length`, `composer validate --strict`, `composer api:check`, and `composer audit`; run `composer quality` after its prerequisites pass. Run Rector before PHP-CS-Fixer. Record exact results and skipped extension-dependent tests.
 - [ ] Run targeted mutation testing for state transitions, failure handling, context restoration, redaction, sampling, buffer overflow, and adapter mappings; investigate surviving meaningful mutants rather than lowering thresholds.
 - [ ] Re-run relevant hot-path benchmarks and persistent-worker tests against Phase 0 baselines. Capture metrics, environment, and any regressions; repeat concurrency tests with supported Fiber/Swoole/OpenSwoole environments where available.
-- [ ] Run the third-party consumer/conformance scenario, including an external context token implementation, optional adapters, and a clean install on PHP 8.4. Verify no new mandatory runtime dependency or accidental public-symbol/schema change.
+- [ ] Run RunIt-owned conformance scenarios, including custom context token implementations, optional adapters, and a clean install on PHP 8.4. Verify no new mandatory runtime dependency or accidental public-symbol/schema change. Third-party consumer scenarios are deferred under the downstream scope decision.
 - [ ] Update `docs/CHANGELOG.md`, security/publication/lifecycle/architecture/QA documentation, examples, vocabulary references, and ADRs where behavior or public contracts actually changed. Update release records and API baselines only for explicitly approved public changes.
 - [ ] Reconcile every finding in `docs/REVIEW.md` with implementation evidence, test names, command results, or a documented owner and deferral. Do not mark an unresolved decision or an unavailable test environment as complete.
 

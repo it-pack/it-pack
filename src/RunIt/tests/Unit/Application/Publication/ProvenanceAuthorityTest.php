@@ -160,7 +160,7 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertNull($authority->exportIdentityFields($artifact));
         self::assertNull($authority->exportIdForBusinessId('secret', 'second'));
         self::assertCount(2, $authority->allRecords());
-        self::assertSame('Provenance issuance rejected.', $reports[0][0]);
+        self::assertSame('provenance verification or issuance failed.', $reports[0][0]);
         self::assertStringNotContainsString('secret', serialize($reports));
 
         $authority->releaseExecution('first');
@@ -243,7 +243,7 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertCount(1, $authority->allRecords());
         self::assertCount(2, $reports);
         foreach ($reports as [$message, $artifact]) {
-            self::assertSame('Provenance relationship rejected.', $message);
+            self::assertSame('provenance verification or issuance failed.', $message);
             self::assertStringNotContainsString('secret-id', serialize($artifact));
         }
     }
@@ -261,6 +261,42 @@ final class ProvenanceAuthorityTest extends Unit
             'execution-observation:' . $first,
             'execution-observation:' . $second,
         ], $authority->allRecords()[$execution]['relationships']);
+    }
+
+    public function testBusinessLookupRejectsCompositeKeyCollisionsAndAmbiguousExecutions(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $first = $authority->issueExportId('execution', 'execution', "b\0c", 'a');
+        $second = $authority->issueExportId('execution', 'execution', 'c', "a\0b");
+        self::assertSame($first, $authority->exportIdForBusinessId('a', "b\0c", 'execution'));
+        self::assertSame($second, $authority->exportIdForBusinessId("a\0b", 'c', 'execution'));
+        self::assertSame($first, $authority->exportIdForBusinessIdExcluding('a', 'other'));
+        $authority->issueExportId('execution', 'execution', 'another', 'a');
+        self::assertNull($authority->exportIdForBusinessIdExcluding('a', 'other'));
+        $authority->releaseExecution('another');
+        self::assertSame($first, $authority->exportIdForBusinessIdExcluding('a', 'other'));
+    }
+
+    public function testUnverifiedReportContainsNoCallerPayloadAndGuardsReentry(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public ?ProvenanceAuthority $authority = null;
+            /** @var list<array{string, array<string, mixed>}> */
+            public array $reports = [];
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                $this->reports[] = [$error->getMessage(), $artifact->normalize()];
+                $this->authority?->reportUnverified(new RuntimeException('nested-secret'), 'nested-secret');
+            }
+        };
+        $authority = new ProvenanceAuthority($health);
+        $health->authority = $authority;
+        $authority->reportUnverified(new RuntimeException('exception-secret'), 'identifier-secret');
+        self::assertCount(1, $health->reports);
+        self::assertStringNotContainsString('secret', serialize($health->reports));
+        $authority->reportUnverified(new RuntimeException('again'));
+        self::assertCount(2, $health->reports);
     }
 
     public function testReleasePrunesIncomingEdgesWithoutRemovingOtherEdges(): void

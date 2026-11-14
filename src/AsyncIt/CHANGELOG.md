@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `CombinatorInterface` now declares its awaited result as a covariant PHPDoc
+  type parameter. Strict static-analysis consumers implementing or annotating a
+  combinator should supply its result type (for example,
+  `@implements CombinatorInterface<list<mixed>>`); custom factories must declare
+  the result types required by `CombinatorFactoryInterface`. PHP signatures and
+  runtime behavior are unchanged.
 - Coroutine context storage tracks issued tokens by weak object keys instead of
   scanning weak references on every attachment, preserving identity and LIFO.
 - The factory-construction PHPStan rule permits direct construction of PHP

@@ -15,6 +15,7 @@ parameters:
 
     scanFiles:
         - tools/phpstan/extensions.stub.php
+        - tests/Support/Data/ForbidNewOutsideFactoryBuilder.php
 
     ignoreErrors:
         # RuntimeAssemblerInterface::create() is a static factory called via

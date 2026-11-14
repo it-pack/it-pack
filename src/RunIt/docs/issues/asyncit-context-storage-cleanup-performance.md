@@ -2,6 +2,12 @@
 
 **GitHub issue:** https://github.com/it-pack/it-pack/issues/37
 
+**Status: Deferred (2026-11-14).** AsyncIt-specific performance, runtime and
+memory follow-up is outside the RunIt refactoring plan until a monorepo-wide
+dependent-package strategy is established. This issue remains open in
+development; do not release the affected dependent package until its relevant
+issues are fixed and verified. This deferral is not a passing result.
+
 ## Problem
 
 AsyncIt's `CoroutineContextStorageTrait` previously scanned weak references on

@@ -110,6 +110,31 @@ final class DefaultOccurrenceClassifierTest extends Unit
         ]]], $reports);
     }
 
+    public function testNegativeTimeOrSequenceIsDroppedWithoutPayload(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $error,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = [$error->getMessage(), $artifact->normalize()];
+        });
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultOccurrenceClassifier($sink, $health, new SecurityLimits());
+        foreach (['time', 'sequence'] as $field) {
+            $fields = [
+                'id' => 'secret-id', 'execution_id' => 'secret-execution', 'time' => 0,
+                'sequence' => 0, 'data' => 'secret-data',
+            ];
+            $fields[$field] = -1;
+            $classifier->publish(new VerifiedArtifactProjection($fields, 'occurrence'));
+        }
+
+        self::assertCount(0, $sink->published());
+        self::assertCount(2, $reports);
+        self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
+    }
+
     public function testExplicitRedactorChoicesBypassDefaultOccurrencePolicy(): void
     {
         foreach ([null, new DefaultArtifactRedactor()] as $redactor) {

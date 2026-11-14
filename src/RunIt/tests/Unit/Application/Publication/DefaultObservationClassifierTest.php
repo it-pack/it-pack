@@ -126,10 +126,38 @@ final class DefaultObservationClassifierTest extends Unit
         ], 'observation'));
 
         self::assertCount(1, $sink->published());
-        $fields = $sink->published()[0]->normalize();
+        $observation = $sink->published()[0];
+        self::assertInstanceOf(ObservationInterface::class, $observation);
+        self::assertSame(ObservationSeverity::Trace, $observation->severity());
+        $fields = $observation->normalize();
         self::assertSame('trace', $fields['severity']);
         self::assertSame(50, $fields['level']);
         self::assertStringNotContainsString('secret', json_encode($fields, JSON_THROW_ON_ERROR));
+    }
+
+    public function testNegativeTimingOrSequenceIsDroppedWithoutPayload(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $error,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = [$error->getMessage(), $artifact->normalize()];
+        });
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultObservationClassifier($sink, $health, new SecurityLimits());
+        foreach (['timestamp', 'sequence'] as $field) {
+            $fields = [
+                'id' => 'secret-id', 'execution_id' => 'secret-execution', 'severity' => 'error',
+                'timestamp' => 0, 'sequence' => 0, 'message' => 'secret-message',
+            ];
+            $fields[$field] = -1;
+            $classifier->publish(new VerifiedArtifactProjection($fields, 'observation'));
+        }
+
+        self::assertCount(0, $sink->published());
+        self::assertCount(2, $reports);
+        self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
     }
 
     public function testTypedTraceIsSanitizedBeforeSeverityFloorSampling(): void
