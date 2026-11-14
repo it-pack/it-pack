@@ -279,34 +279,43 @@ final class ProvenanceAuthorityTest extends Unit
 
     public function testUnverifiedReportContainsNoCallerPayloadAndGuardsReentry(): void
     {
-        $health = new class () implements InternalHealthReporterInterface {
-            public ?ProvenanceAuthority $authority = null;
+        $previousIgnoreArgs = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+        try {
+            $health = new class () implements InternalHealthReporterInterface {
+                public ?ProvenanceAuthority $authority = null;
 
-            /** @var list<array{string, array<string, mixed>}> */
-            public array $reports = [];
+                /** @var list<array{string, array<string, mixed>}> */
+                public array $reports = [];
 
-            /** @var list<Throwable> */
-            public array $errors = [];
+                /** @var list<Throwable> */
+                public array $errors = [];
 
-            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
-            {
-                $this->reports[] = [$error->getMessage(), $artifact->normalize()];
-                $this->errors[] = $error;
-                $this->authority?->reportUnverified(new RuntimeException('nested-secret'), 'nested-secret');
+                public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+                {
+                    $this->reports[] = [$error->getMessage(), $artifact->normalize()];
+                    $this->errors[] = $error;
+                    $this->authority?->reportUnverified(new RuntimeException('nested-secret'), 'nested-secret');
+                }
+            };
+            $authority = new ProvenanceAuthority($health);
+            $health->authority = $authority;
+            $authority->reportUnverified(new RuntimeException('exception-secret'), 'identifier-secret');
+            self::assertCount(1, $health->reports);
+            self::assertStringNotContainsString('secret', serialize($health->reports));
+            foreach ($health->errors as $error) {
+                $this->assertTraceContainsNoSecrets($error->getTrace(), 'secret', 'identifier-secret');
             }
-        };
-        $authority = new ProvenanceAuthority($health);
-        $health->authority = $authority;
-        $authority->reportUnverified(new RuntimeException('exception-secret'), 'identifier-secret');
-        self::assertCount(1, $health->reports);
-        self::assertStringNotContainsString('secret', serialize($health->reports));
-        foreach ($health->errors as $error) {
-            self::assertStringNotContainsString('secret', serialize($error->getTrace()));
-            self::assertStringNotContainsString('identifier-secret', serialize($error->getTrace()));
-        }
 
-        $authority->reportUnverified(new RuntimeException('again'));
-        self::assertCount(2, $health->reports);
+            $authority->reportUnverified(new RuntimeException('again'));
+            self::assertCount(2, $health->reports);
+        } finally {
+            if ($previousIgnoreArgs === false) {
+                ini_restore('zend.exception_ignore_args');
+            } else {
+                ini_set('zend.exception_ignore_args', $previousIgnoreArgs);
+            }
+        }
     }
 
     public function testReleasePrunesIncomingEdgesWithoutRemovingOtherEdges(): void
@@ -380,5 +389,40 @@ final class ProvenanceAuthorityTest extends Unit
         $authority = new ProvenanceAuthority();
         $authority->reportUnverified(new RuntimeException('unverified'), 'redacted');
         $authority->reportUnverified(new RuntimeException('still unverified'), 'redacted');
+    }
+
+    /**
+     * Recursively inspects exception trace arguments for secret values.
+     * SensitiveParameterValue instances are treated as redacted and skipped.
+     *
+     * @param array<array-key, mixed> $trace
+     */
+    private function assertTraceContainsNoSecrets(array $trace, string ...$needles): void
+    {
+        foreach ($trace as $frame) {
+            if (!is_array($frame)) {
+                continue;
+            }
+
+            $args = $frame['args'] ?? [];
+            if (!is_array($args)) {
+                continue;
+            }
+
+            foreach ($args as $arg) {
+                if ($arg instanceof \SensitiveParameterValue) {
+                    continue;
+                }
+
+                if (is_array($arg)) {
+                    $this->assertTraceContainsNoSecrets([['args' => $arg]], ...$needles);
+                } elseif (is_scalar($arg) || $arg === null) {
+                    $value = var_export($arg, true);
+                    foreach ($needles as $needle) {
+                        self::assertStringNotContainsString($needle, $value);
+                    }
+                }
+            }
+        }
     }
 }
