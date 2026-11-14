@@ -18,28 +18,38 @@ the same way a third party would, and it gives the tooling runs a stable,
 queryable shape (`runit.dogfood.test.completed.v1`, a `runit.dogfood.test.summary`
 snapshot, and so on).
 
-## The six represented runs
+## The represented runs
 
 `Tools\Dogfood\Tool\PredefinedTools` maps each tool to a composer script:
 
 | Tool                 | Command             | Occurrence type base              |
 |----------------------|---------------------|-----------------------------------|
-| Test execution       | `composer test`     | `runit.dogfood.test`              |
-| Static analysis      | `composer analyse`  | `runit.dogfood.static_analysis`   |
-| Architecture analysis| `composer architecture` | `runit.dogfood.architecture`  |
-| Mutation testing     | `composer mutation` | `runit.dogfood.mutation`          |
-| Benchmark execution  | `composer benchmark`| `runit.dogfood.benchmark`         |
-| Release validation   | `composer quality`  | `runit.dogfood.release_validation`|
+| Composer validation  | `composer validate --strict` | `runit.dogfood.composer_validate` |
+| Rector dry-run       | `composer refactor:dry`      | `runit.dogfood.rector_dry`        |
+| Style check          | `composer cs:check`          | `runit.dogfood.cs_fixer_dry`      |
+| Static analysis      | `composer analyse`           | `runit.dogfood.static_analysis`   |
+| Architecture analysis| `composer architecture`      | `runit.dogfood.architecture`      |
+| API check            | `composer api:check`         | `runit.dogfood.api_check`         |
+| Line-length lint     | `composer lint:length`       | `runit.dogfood.line_length_lint`  |
+| Test execution       | `composer test`              | `runit.dogfood.test`              |
+| Security audit       | `composer security:audit`    | `runit.dogfood.security_audit`    |
+| Benchmark execution  | `composer benchmark`         | `runit.dogfood.benchmark`         |
 
 For each tool the runner (`Tools\Dogfood\Run\DogfoodRunner`) opens an execution
 through the SDK, runs the tool as a **subprocess**, and records:
 
 - a `runit.dogfood.tool.duration` measurement (milliseconds, monotonic clock);
-- a `runit.dogfood.tool.exit_code` measurement;
+- a `runit.dogfood.tool.exit_code` measurement (count);
+- a `runit.dogfood.tool.stdout_bytes` measurement (bytes);
+- a `runit.dogfood.tool.stderr_bytes` measurement (bytes);
 - a warning observation when the tool exits non-zero;
 - an occurrence `runit.dogfood.<tool>.(completed|failed).v1`;
 - a terminal snapshot `runit.dogfood.<tool>.summary` carrying the command, exit
   code, duration, stdout size, and a truncated stderr tail.
+
+All four measurements pass through the SDK's default measurement classification
+(`DefaultMeasurementClassifier`) before reaching the sink, so they are delivered
+as validated, bounded `Measurement` projections rather than dropped.
 
 A non-zero exit marks the dogfood execution as failed (via
 `Tools\Dogfood\Exception\ToolFailedException`) and makes the report exit non-zero,

@@ -68,12 +68,12 @@ final readonly class DogfoodRunner
                 function (ExecutionScopeInterface $scope) use ($tool, &$result): void {
                     $startedAt = hrtime(true);
                     $process = $this->processRunner->run($tool->command, $this->workingDirectory);
-                    $durationMicro = max(0, (int) ((hrtime(true) - $startedAt) / 1000));
+                    $durationMs = max(0, (int) ((hrtime(true) - $startedAt) / 1_000_000));
                     $result = $process;
 
                     $scope->measurements()->duration(
                         MeasurementName::fromString('runit.dogfood.tool.duration'),
-                        $durationMicro,
+                        $durationMs,
                         MeasurementUnit::Milliseconds,
                     );
                     $scope->measurements()->counter(
@@ -81,12 +81,22 @@ final readonly class DogfoodRunner
                         $process->exitCode,
                         MeasurementUnit::Count,
                     );
+                    $scope->measurements()->size(
+                        MeasurementName::fromString('runit.dogfood.tool.stdout_bytes'),
+                        strlen($process->stdout),
+                        MeasurementUnit::Bytes,
+                    );
+                    $scope->measurements()->size(
+                        MeasurementName::fromString('runit.dogfood.tool.stderr_bytes'),
+                        strlen(substr($process->stderr, 0, 2000)),
+                        MeasurementUnit::Bytes,
+                    );
 
                     $summary = [
                         'tool' => $tool->name,
                         'command' => $tool->command,
                         'exit_code' => $process->exitCode,
-                        'duration_ms' => round($durationMicro / 1000, 3),
+                        'duration_ms' => round($durationMs, 3),
                         'stdout_bytes' => strlen($process->stdout),
                         'stderr_tail' => substr($process->stderr, 0, 2000),
                     ];

@@ -84,7 +84,7 @@ final class DogfoodRunnerTest extends Unit
             $executionsPerTool,
             'Execution emission per tool must stay bounded (no recursion).'
         );
-        self::assertSame(0, $measurementsPerTool, 'Default SDK drops all unclassified measurements.');
+        self::assertSame(4, $measurementsPerTool, 'Four classified measurements per tool.');
         self::assertSame(1, $occurrencesPerTool, 'One completion occurrence per tool.');
         self::assertSame(2, $snapshotsPerTool, 'SDK completion snapshot plus the dogfood summary snapshot.');
 

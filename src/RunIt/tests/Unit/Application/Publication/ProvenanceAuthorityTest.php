@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
+use SensitiveParameterValue;
 use Throwable;
 
 #[CoversClass(ProvenanceAuthority::class)]
@@ -410,7 +411,7 @@ final class ProvenanceAuthorityTest extends Unit
             }
 
             foreach ($args as $arg) {
-                if ($arg instanceof \SensitiveParameterValue) {
+                if ($arg instanceof SensitiveParameterValue) {
                     continue;
                 }
 

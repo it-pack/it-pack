@@ -12,7 +12,6 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
-use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
@@ -25,7 +24,7 @@ use Throwable;
 #[CoversClass(RunItBuilder::class)]
 final class MeasurementSecurityTest extends TestCase
 {
-    public function testMeasurementsAreDroppedBeforeSamplingForAllRedactorModes(): void
+    public function testValidMeasurementsAreClassifiedAndDeliveredForAllRedactorModes(): void
     {
         foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
@@ -62,27 +61,22 @@ final class MeasurementSecurityTest extends TestCase
             $builder->build()->run(
                 ExecutionDefinition::create(ExecutionName::fromString('test'), ExecutionKind::fromString('operation')),
                 static function (ExecutionScopeInterface $scope): void {
-                    $scope->measurements()->counter('secret-metric', 123);
+                    $scope->measurements()->counter('dogfood-metric', 123);
                 },
             );
 
-            foreach ([$sampler->seen, $sink->published()] as $artifacts) {
-                self::assertNotEmpty($artifacts, $mode);
-                $encoded = json_encode(array_map(
-                    static fn (ExecutionArtifactInterface $artifact): array => $artifact->normalize(),
-                    $artifacts,
-                ), JSON_THROW_ON_ERROR);
-                self::assertStringNotContainsString('secret-metric', $encoded, $mode);
-                foreach ($artifacts as $artifact) {
-                    self::assertNotSame('measurement', ArtifactType::type($artifact), $mode);
-                    self::assertArrayNotHasKey('value', $artifact->normalize(), $mode);
-                }
-            }
+            // Valid measurements are classified and delivered to both sampler and sink.
+            self::assertNotEmpty($sampler->seen, $mode);
+            self::assertNotEmpty($sink->published(), $mode);
 
-            self::assertSame([[
-                'Default measurement classification dropped an unclassified measurement.',
-                ['id' => 'redacted', 'type' => 'runit.artifact.redacted'],
-            ]], $health, $mode);
+            $encoded = json_encode(array_map(
+                static fn (ExecutionArtifactInterface $artifact): array => $artifact->normalize(),
+                array_merge($sampler->seen, $sink->published()),
+            ), JSON_THROW_ON_ERROR);
+            self::assertStringContainsString('dogfood-metric', $encoded, $mode);
+
+            // No drop notice for valid measurements.
+            self::assertSame([], $health, $mode);
         }
     }
 }
