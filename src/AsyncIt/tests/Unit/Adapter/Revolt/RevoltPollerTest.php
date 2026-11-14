@@ -74,10 +74,13 @@ final class RevoltPollerTest extends TestCase
 
         $ready = $poller->readyHandles();
 
-        self::assertCount(1, $ready);
-        self::assertSame($handle->id, $ready[0]->id);
-
-        fclose($pair[0]);
-        fclose($pair[1]);
+        try {
+            self::assertCount(1, $ready);
+            self::assertSame($handle->id, $ready[0]->id);
+        } finally {
+            $poller->release($handle);
+            fclose($pair[0]);
+            fclose($pair[1]);
+        }
     }
 }

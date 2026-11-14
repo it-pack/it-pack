@@ -104,15 +104,20 @@ make every earlier sampler input safe. Buffer limits, expiry, and failures still
 apply. A standalone `PublicationPipeline` is not automatically connected to the
 SDK authority; its behavior depends on how it is composed.
 
-Custom stack factories receive the original attested artifact after the SDK's
-outer provenance check, not the default export-ID projection. If a custom stack
-queues that raw artifact and later passes it through a provenance-verifying stage,
-verification after runner cleanup fails and the artifact is reported and dropped.
-If it delivers the raw artifact directly instead, the initial check neither
-sanitizes its fields nor replaces business IDs; the custom stack owns that risk.
-The publisher port requires implementations to retain only normalized projections,
-although `BufferedArtifactPublisher` currently retains artifact objects. Do not
-assume an arbitrary queued artifact is a safe or independently verifiable projection.
+Custom stack factories receive classified export projections through the SDK's
+ownership boundary, not original attested artifacts or business IDs. In
+`RunItBuilder::build()`, the composed publisher from a custom stack factory is
+wrapped by the SDK's `PublisherStackFactory` with classification, sampling,
+provenance verification, and redaction layers before delivery. The custom stack
+therefore sees artifacts that have already been classified and projected by the
+SDK, and the configured redactor runs only once on the outermost layer. Buffering
+inside a custom stack operates on these classified projections; later delivery of
+a buffered projection does not need the authority, and provenance verification
+has already occurred before the custom stack receives the artifact. This does not
+guarantee delivery or make every earlier sampler input safe. Buffer limits,
+expiry, and failures still apply. A standalone `PublicationPipeline` is not
+automatically connected to the SDK authority; its behavior depends on how it is
+composed.
 
 The authority caps records both per execution and across the SDK instance
 (100,000 each by default), and caps relationship edges across the authority

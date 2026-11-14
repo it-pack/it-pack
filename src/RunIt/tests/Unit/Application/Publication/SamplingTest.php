@@ -260,12 +260,17 @@ final class SamplingTest extends Unit
 
     public function testInvalidSnapshotTimingDropsWithPayloadFreeHealth(): void
     {
+        $captured = new class () {
+            public ?Throwable $failure = null;
+            public ?ExecutionArtifactInterface $notice = null;
+        };
         $health = $this->createMock(InternalHealthReporterInterface::class);
         $health->expects($this->once())->method('report')->willReturnCallback(
-            static function (Throwable $failure, ExecutionArtifactInterface $notice): void {
-                self::assertStringContainsString('provenance', strtolower($failure->getMessage()));
-                self::assertStringNotContainsString('secret', $failure->getMessage());
-                self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $notice->normalize());
+            static function (Throwable $failure, ExecutionArtifactInterface $notice) use (
+                $captured,
+            ): void {
+                $captured->failure = $failure;
+                $captured->notice = $notice;
             },
         );
         $authority = new ProvenanceAuthority($health);
@@ -299,6 +304,12 @@ final class SamplingTest extends Unit
             ->publish($snapshot)
         ;
         self::assertSame([], $sink->published());
+
+        self::assertNotNull($captured->failure);
+        self::assertNotNull($captured->notice);
+        self::assertStringContainsString('provenance', strtolower($captured->failure->getMessage()));
+        self::assertStringNotContainsString('secret', $captured->failure->getMessage());
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $captured->notice->normalize());
     }
 
     public function testVerifiedSnapshotClassificationTamperingDropsBeforeSampling(): void
