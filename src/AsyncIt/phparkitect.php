@@ -249,9 +249,8 @@ return static function (Config $config): void {
                         array_merge(
                             [],
                             ...array_map(
-                                static fn (string $interface) => get_class_methods($interface),
-                                    $theClass->getInterfaces()
-                                )
+                                static fn (FullyQualifiedClassName $interface) => get_class_methods($interface->toString()),
+                                $theClass->getInterfaces()
                             )
                         )
                     );

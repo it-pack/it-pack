@@ -12,15 +12,56 @@ use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Tests\Support\Fixture\RunItTestKit;
 use Throwable;
 
 #[CoversClass(ProvenanceArtifactPublisher::class)]
 #[CoversClass(RedactingArtifactPublisher::class)]
 final class ProvenanceBoundaryTest extends Unit
 {
+    public function testRawArtifactDeferredBeyondExecutionCleanupIsDroppedAndReported(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $failure, ExecutionArtifactInterface $artifact) use (&$reports): void {
+                $reports[] = [$failure->getMessage(), $artifact->normalize()];
+            },
+        );
+        $authority = new ProvenanceAuthority($health);
+        $deferred = null;
+        $capture = self::createStub(ArtifactPublisherInterface::class);
+        $capture->method('publish')->willReturnCallback(
+            static function (ExecutionArtifactInterface $artifact) use (&$deferred, $authority): void {
+                if ($artifact instanceof ExecutionInterface) {
+                    self::assertNotNull($authority->exportIdForArtifact($artifact));
+                    $deferred = $artifact;
+                }
+            },
+        );
+        $kit = new RunItTestKit(publisher: $capture, authority: $authority);
+        $definition = ExecutionDefinition::create(ExecutionName::fromString('test'), ExecutionKind::fromString('test'));
+        $kit->runner->run($definition, static fn (): null => null);
+
+        self::assertInstanceOf(ExecutionInterface::class, $deferred);
+        self::assertFalse($authority->hasLiveRecords('exec-1'));
+        self::assertNull($authority->exportIdForArtifact($deferred));
+        $inner = $this->createMock(ArtifactPublisherInterface::class);
+        $inner->expects($this->never())->method('publish');
+        new ProvenanceArtifactPublisher($authority, $inner)->publish($deferred);
+
+        self::assertCount(1, $reports);
+        self::assertSame('Artifact provenance verification failed.', $reports[0][0]);
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0][1]);
+        self::assertStringNotContainsString('exec-1', serialize($reports));
+    }
+
     public function testForgedCopyNeverReachesConfiguredStack(): void
     {
         $reports = [];
@@ -38,7 +79,7 @@ final class ProvenanceBoundaryTest extends Unit
         $authority->attest($issued, $id);
         $copy = new RedactedArtifact($issued->normalize());
         $inner = $this->createMock(ArtifactPublisherInterface::class);
-        $inner->expects(self::once())->method('publish')->with($issued);
+        $inner->expects($this->once())->method('publish')->with($issued);
         $publisher = new ProvenanceArtifactPublisher($authority, $inner);
 
         $publisher->publish($copy);
@@ -71,7 +112,7 @@ final class ProvenanceBoundaryTest extends Unit
             'id' => 'obs', 'execution_id' => 'exec', 'activity_id' => 'secret-forgery',
         ], 'observation'));
         $inner = $this->createMock(ArtifactPublisherInterface::class);
-        $inner->expects(self::never())->method('publish');
+        $inner->expects($this->never())->method('publish');
 
         new RedactingArtifactPublisher($redactor, $inner, authority: $authority)->publish($artifact);
 
@@ -92,7 +133,7 @@ final class ProvenanceBoundaryTest extends Unit
             'id' => 'obs', 'execution_id' => 'exec', 'message' => '[redacted]',
         ], 'observation'));
         $inner = $this->createMock(ArtifactPublisherInterface::class);
-        $inner->expects(self::once())->method('publish')->with(self::callback(
+        $inner->expects($this->once())->method('publish')->with(self::callback(
             static fn (ExecutionArtifactInterface $projection): bool =>
                 $projection->normalize()['message'] === '[redacted]'
                 && $projection->normalize()['id'] === $id
@@ -121,7 +162,7 @@ final class ProvenanceBoundaryTest extends Unit
             }
 
             $inner = $this->createMock(ArtifactPublisherInterface::class);
-            $inner->expects($mode === 'redacted' ? self::never() : self::once())->method('publish')
+            $inner->expects($mode === 'redacted' ? $this->never() : $this->once())->method('publish')
                 ->with(self::callback(static function (ExecutionArtifactInterface $projection) use ($root, $id): bool {
                     $fields = $projection->normalize();
                     return $fields['id'] === $id && $fields['execution_id'] === $root
@@ -157,7 +198,7 @@ final class ProvenanceBoundaryTest extends Unit
         $redactor = self::createStub(RedactorInterface::class);
         $redactor->method('redact')->willReturn($wrapper);
         $inner = $this->createMock(ArtifactPublisherInterface::class);
-        $inner->expects(self::once())->method('publish')->with(self::callback(
+        $inner->expects($this->once())->method('publish')->with(self::callback(
             static fn (ExecutionArtifactInterface $result): bool =>
                 $result->normalize()['id'] === $id && $result->normalize()['execution_id'] === $root
                 && $result->normalize()['activity_id'] === null

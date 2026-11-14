@@ -16,6 +16,8 @@ use Throwable;
  * result, and ignores failures of other children. If all children fail, throws
  * the first failure.
  *
+ * @implements CombinatorInterface<mixed>
+ *
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-any
  * @see https://w3id.org/itpack/asyncit#CancellationScope

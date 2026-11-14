@@ -13,6 +13,8 @@ use LogicException;
  * All combinator: waits for all child tasks to complete, returns all results
  * in spawn order. If any child fails, the group transitions to Failed.
  *
+ * @implements CombinatorInterface<list<mixed>>
+ *
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-all
  * @see https://w3id.org/itpack/asyncit#CancellationScope

@@ -1141,6 +1141,36 @@ control, isolation verification) remain open.
 
 **Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
 
+**Additional verification (2026-11-13):** Fiber storage now has a regression for
+cross-Fiber token rejection, out-of-order detachment and successful LIFO retry;
+the interleaving test also verifies that independent and reused executions have no
+unintended parent. On PHP 8.4.27 the focused Fiber storage test passed (8 tests,
+31 assertions), concurrency passed (8 tests, 175 assertions), conformance passed
+(52 tests, 111 assertions), and `composer test --quiet` passed. On PHP 8.4.27
+and 8.5.12, `composer quality --quiet` passed, including `api:check` and all
+four suites.
+Swoole was available; OpenSwoole, Swow and PHP 8.6 were not verified. These checks
+do not close the downstream, runtime and performance follow-ups below.
+
+The isolated downstream runner also passed the PHP 8.4 third-party sample and,
+on PHP 8.5, ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt and the
+third-party sample. AsyncIt skipped Swow, native poller and Amp interop cases.
+The runner verified the RunIt checkout path and revision, but the worktree changed
+during these runs; they are not final immutable-tree compatibility evidence.
+Reports: `/tmp/kilo/downstream-request-20261113-234629-84-sample.json` and
+`/tmp/kilo/downstream-request-20261113-234629-85-all.json`.
+The matrix was rerun against the dirty checkout at revision `73c4b91d`: all
+requested consumers passed, with the same three AsyncIt conformance skips.
+The runner verified the installed and reflected RunIt paths; Git status was
+unchanged across the runs. Reports are `/tmp/kilo/runit-downstream-20261114-84.json`
+and `/tmp/kilo/runit-downstream-20261114-85.json`. These results do not prove
+untested external implementations or the unavailable runtime cases.
+
+On PHP 8.5.12, a fresh `composer coverage --quiet` Unit-only run passed. Its
+Clover report recorded 5,614/6,208 statements (90.43%); the standalone threshold
+control exited 1 against the 95% Phase 6 target. This aggregate does not prove
+per-test attribution, and the PCOV report contains no branch coverage.
+
 **Verification (2026-11-13):** On the initially clean checkout, `composer
 quality --quiet` passed on PHP 8.5.12, including API checking and all configured
 suites. On PHP 8.4.27, the conformance suite passed 52 tests (111 assertions)
@@ -1357,6 +1387,11 @@ Open gaps (the Phase 0-2 policy direction is approved; implementation and compat
 - Custom factory contracts receive original concrete artifacts including business IDs. Replacing those with export projections would change what custom redactors and publishers receive; neither factory interface provides a way to enforce classification within custom code. A compatibility decision and downstream migration are needed before changing this extension contract.
 - No representative workload, delivery-loss measurement, or real exporter I/O baseline established for Phase 2 cost evaluation. Synthetic benchmarks exist in `docs/benchmarks.md` but do not measure representative production traffic.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. Async ownership behavior is documented as a limitation, not implemented.
+
+The `ProvenanceBoundaryTest` regression now retains a runner-issued raw execution
+past cleanup and verifies that subsequent provenance checking drops it and
+reports only a fixed redacted placeholder. This characterizes fail-closed late
+verification; it does not implement ownership for deferred raw work.
 
 Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run, PHPStan at level max, architecture, lint:length, all four test suites, security audit) passes on PHP 8.5.12 AND the custom factory compatibility decision is made.
 

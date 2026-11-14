@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Fixture\ReferenceRuntimeFixture;
+use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Conformance\Verifier\TraceParentageVerifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -59,6 +60,8 @@ final class TraceParentageVerifierTest extends TestCase
         $result = $verifier->verify($fixture);
 
         self::assertCount(1, $result->warnings());
-        self::assertSame('fixture-unsupported', $result->warnings()[0]->id);
+        $violation = $result->warnings()[0];
+        self::assertInstanceOf(ConformanceViolation::class, $violation);
+        self::assertSame('fixture-unsupported', $violation->id);
     }
 }

@@ -30,9 +30,9 @@ final class RuntimeAdapterAssemblerTest extends TestCase
 
         $assembly = $assembler->assemble(RuntimeAdapterKind::Reference, $descriptor);
 
-        self::assertInstanceOf(PollerPortInterface::class, $assembly->poller);
-        self::assertInstanceOf(MemoryContextStorage::class, $assembly->storage);
-        self::assertInstanceOf(EmulatedChannel::class, $assembly->channel);
+        self::assertInstanceOf(PollerPortInterface::class, $assembly->poller());
+        self::assertInstanceOf(MemoryContextStorage::class, $assembly->storage());
+        self::assertInstanceOf(EmulatedChannel::class, $assembly->channel());
     }
 
     public function testAssembleSwooleReturnsSwoolePrimitives(): void
@@ -48,7 +48,7 @@ final class RuntimeAdapterAssemblerTest extends TestCase
 
         $assembly = $assembler->assemble(RuntimeAdapterKind::Swoole, $descriptor);
 
-        self::assertInstanceOf(PollerPortInterface::class, $assembly->poller);
-        self::assertInstanceOf(ContextStorageInterface::class, $assembly->storage);
+        self::assertInstanceOf(PollerPortInterface::class, $assembly->poller());
+        self::assertInstanceOf(ContextStorageInterface::class, $assembly->storage());
     }
 }

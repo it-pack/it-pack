@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Fiber\FiberContextToken;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
@@ -66,6 +67,53 @@ final class FiberContextStorageTest extends Unit
         $foreign = new FiberContextToken(new stdClass(), $scope);
         $this->expectException(InvalidContextTokenException::class);
         $storage->detach($foreign);
+    }
+
+    /** Cross-fiber and out-of-order detaches must leave both stacks intact. */
+    public function testInterleavedFiberTokenOwnershipAndLifoRetry(): void
+    {
+        $storage = new FiberContextStorage();
+        $outer = $this->captureScope();
+        $inner = $this->captureScope();
+        $other = $this->captureScope();
+        $outerToken = null;
+        $fiber = new Fiber(static function () use ($storage, $outer, $inner, &$outerToken): void {
+            $outerToken = $storage->attach($outer);
+            $innerToken = $storage->attach($inner);
+            Fiber::suspend();
+
+            try {
+                $storage->detach($outerToken);
+                self::fail('Out-of-order token was accepted.');
+            } catch (InvalidContextTokenException) {
+                self::assertSame($inner, $storage->current());
+            }
+
+            $storage->detach($innerToken);
+            self::assertSame($outer, $storage->current());
+            $storage->detach($outerToken);
+            self::assertNull($storage->current());
+        });
+        $fiber->start();
+
+        $otherFiber = new Fiber(static function () use ($storage, $other, &$outerToken): void {
+            $token = $storage->attach($other);
+            self::assertInstanceOf(ContextTokenInterface::class, $outerToken);
+            try {
+                $storage->detach($outerToken);
+                self::fail('Cross-fiber token was accepted.');
+            } catch (InvalidContextTokenException) {
+                self::assertSame($other, $storage->current());
+            }
+
+            $storage->detach($token);
+            self::assertNull($storage->current());
+        });
+        $otherFiber->start();
+        self::assertNull($storage->current());
+        $fiber->resume();
+        self::assertTrue($fiber->isTerminated());
+        self::assertNull($storage->current());
     }
 
     public function testParallelFibersStayIsolated(): void

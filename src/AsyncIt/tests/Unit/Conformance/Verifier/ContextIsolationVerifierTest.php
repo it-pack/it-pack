@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
+use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Conformance\Result\ViolationSeverity;
 use ItPack\AsyncIt\Conformance\Verifier\ContextIsolationVerifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -31,8 +32,10 @@ final class ContextIsolationVerifierTest extends TestCase
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('ctx-bleed', $result->errors()[0]->id);
-        self::assertSame(ViolationSeverity::Error, $result->errors()[0]->severity);
+        $violation = $result->errors()[0];
+        self::assertInstanceOf(ConformanceViolation::class, $violation);
+        self::assertSame('ctx-bleed', $violation->id);
+        self::assertSame(ViolationSeverity::Error, $violation->severity);
     }
 
     public function testPassesForLifoTolerantStorage(): void

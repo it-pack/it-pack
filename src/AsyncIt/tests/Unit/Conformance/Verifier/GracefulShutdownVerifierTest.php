@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Conformance\Verifier;
 
+use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Conformance\Verifier\GracefulShutdownVerifier;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
@@ -44,7 +45,9 @@ final class GracefulShutdownVerifierTest extends TestCase
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('fixture-unsupported', $result->errors()[0]->id);
+        $violation = $result->errors()[0];
+        self::assertInstanceOf(ConformanceViolation::class, $violation);
+        self::assertSame('fixture-unsupported', $violation->id);
     }
 
     public function testPassesWhenSchedulerDrainsHandles(): void
@@ -89,7 +92,9 @@ final class GracefulShutdownVerifierTest extends TestCase
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('handle-leak', $result->errors()[0]->id);
+        $violation = $result->errors()[0];
+        self::assertInstanceOf(ConformanceViolation::class, $violation);
+        self::assertSame('handle-leak', $violation->id);
     }
 
     private function idleStorage(): ContextStorageInterface

@@ -15,6 +15,8 @@ use LogicException;
  * with its result. Used when the caller needs to know which child completed
  * (e.g. which IO handle became ready).
  *
+ * @implements CombinatorInterface<array{task: TaskInterface|null, result: mixed}>
+ *
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit-taxonomy#await-point-select
  * @see https://w3id.org/itpack/asyncit#CancellationScope

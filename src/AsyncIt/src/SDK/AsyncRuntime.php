@@ -294,8 +294,10 @@ final class AsyncRuntime implements AsyncRuntimeInterface
      * group, add every operation, and await the group result. Only the factory
      * method (createRace/createAll/createAny/createSelect) differs per strategy.
      *
+     * @template TResult
      * @param list<callable> $operations
-     * @param callable(TaskIdInterface, EngineSchedulerInterface, ExecutionIdInterface): CombinatorInterface $factory
+     * @param callable(TaskIdInterface, EngineSchedulerInterface, ExecutionIdInterface): CombinatorInterface<TResult> $factory
+     * @return TResult
      */
     private function createCombinator(array $operations, callable $factory): mixed
     {

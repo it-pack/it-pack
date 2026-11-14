@@ -137,7 +137,6 @@ final class OccurrenceLogMapperTest extends Unit
     public function testMissingLoggerProviderEmitsNothing(): void
     {
         $mapper = new DefaultOccurrenceLogMapper(
-            loggerProvider: null,
             snapshotPayloadPolicy: SnapshotPayloadPolicy::HashOnly,
             mapOccurrencesToLogs: true,
             mapOccurrencesToSpanEvents: false,

@@ -64,6 +64,7 @@ final class ConformanceResultTest extends TestCase
 
         $collected = [];
         foreach ($result as $violation) {
+            self::assertInstanceOf(ConformanceViolation::class, $violation);
             $collected[] = $violation->id;
         }
 

@@ -148,6 +148,7 @@ final class InterleavedFiberContextIsolationTest extends Unit
                 &$ids,
             ): void {
                 $ids[] = $outer->execution()->id()->toString();
+                self::assertNull($outer->execution()->definition()->parentExecutionId());
                 self::assertSame($outer, $kit->storage->current());
 
                 $caught = null;
@@ -179,6 +180,7 @@ final class InterleavedFiberContextIsolationTest extends Unit
 
             $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use ($kit, &$ids): void {
                 $ids[] = $scope->execution()->id()->toString();
+                self::assertNull($scope->execution()->definition()->parentExecutionId());
                 self::assertSame($scope, $kit->storage->current());
             });
             self::assertNull($kit->storage->current());
@@ -188,6 +190,7 @@ final class InterleavedFiberContextIsolationTest extends Unit
             self::assertNull($kit->storage->current());
             $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use ($kit, &$ids): void {
                 $ids[] = $scope->execution()->id()->toString();
+                self::assertNull($scope->execution()->definition()->parentExecutionId());
                 self::assertSame($scope, $kit->storage->current());
                 self::suspendFiber();
                 self::assertSame($scope, $kit->storage->current());
