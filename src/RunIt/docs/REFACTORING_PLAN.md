@@ -1427,7 +1427,12 @@ Implemented within already-approved decisions:
 Open gaps (the Phase 0-2 policy direction is approved; implementation and compatibility verification remain necessary):
 
 - Standalone factory characterization shows unclassified occurrence data reaching both sampler and sink. Bounded traversal is not deny-by-default field classification; full enforcement before both boundaries remains open for standalone/custom compositions.
-- Custom factories currently receive original concrete artifacts including business IDs. The approved projection boundary changes this behavior; RunIt implementation and contract review remain, while downstream migration is deferred.
+- Custom factories receive artifacts only after the SDK boundary: the builder
+  composes `ClassifyingArtifactPublisher`, `DefaultMeasurementClassifier`, and
+  `DefaultLifecycleClassifier` before the custom publisher stack, and wraps with
+  `RedactingArtifactPublisher` outermost, so artifacts reach a custom factory only
+  after SDK classification and redaction. RunIt implementation and contract review
+  remain; downstream migration is deferred.
 - No representative workload, delivery-loss measurement, or real exporter I/O baseline established for Phase 2 cost evaluation. Synthetic benchmarks exist in `docs/benchmarks.md` but do not measure representative production traffic.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. The approved asynchronous path queues safe projections, not raw work; its full verification remains open.
 
