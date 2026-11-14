@@ -588,7 +588,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
     {
         return array_any(
             $throwable,
-            fn ($value, $field): bool => !array_key_exists($field, $safe) || $safe[$field] !== $value
+            fn (mixed $value, int|string $field): bool => !array_key_exists($field, $safe) || $safe[$field] !== $value
         );
     }
 

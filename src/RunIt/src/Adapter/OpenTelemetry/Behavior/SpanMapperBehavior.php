@@ -93,9 +93,9 @@ trait SpanMapperBehavior
     }
 
     /**
-     * @param array<string, mixed>|null $result
+     * @param mixed $result
      */
-    private function recordRedactedThrowable(SpanInterface $span, ?array $result): void
+    private function recordRedactedThrowable(SpanInterface $span, mixed $result): void
     {
         $throwable = is_array($result) ? ($result['throwable'] ?? null) : null;
         if (!is_array($throwable)) {

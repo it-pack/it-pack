@@ -602,14 +602,15 @@ left in place. Do not "fix" this by removing `$clock`.
 `runit.complexity` (rule `Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule`, registered in
 `tools/phpstan/runit-rules/extension.neon`) counts branch-bearing nodes (`if`/`elseif`/`else`,
 `switch`/`case`, loops, `try`/`catch`, ternary, coalesce, `match` arms) per `src/` method as a
-proxy for cognitive complexity. A method above the configured **threshold (19)** is flagged.
+proxy for cognitive complexity. A method above the configured **threshold (15)** is flagged.
 
-The threshold is tuned to the current worst offender (measured at 19), so the rule is a
-**regression guard**: nothing in the tree is flagged today, but a newly-added method more
-complex than the current maximum is caught before merge. The "no `else`/`switch`" convention
-already keeps most methods small, so 19 is a permissive ceiling, not a target — lower it only
-with a recorded reason here. No method exemptions are needed at threshold 19 (the wide
-builders/runner are far below it).
+The threshold was lowered from 19 to 15 to tighten control-flow complexity as part of the
+complexity-rules tightening initiative. All methods previously scoring above 15 were refactored
+by extracting conditionals into small private helpers (builder construction, ended-at resolution,
+name resolution, attribute building, throwable masking, identity-field export, redaction
+verification, and publisher stack composition). Nothing in the tree is flagged today at
+threshold 15. Lower it further only with a recorded reason here. No method exemptions are
+needed at threshold 15 (the wide builders/runner are below it).
 
 ### Final-class exemptions
 
