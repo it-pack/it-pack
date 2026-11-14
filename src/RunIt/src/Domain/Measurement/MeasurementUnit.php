@@ -29,6 +29,19 @@ enum MeasurementUnit: string implements MeasurementUnitInterface
     case Ratio = 'ratio';
     case Celsius = 'celsius';
 
+    private const array SYMBOLS = [
+        'Count' => '#',
+        'Bytes' => 'B',
+        'Kilobytes' => 'KB',
+        'Megabytes' => 'MB',
+        'Milliseconds' => 'ms',
+        'Seconds' => 's',
+        'Minutes' => 'min',
+        'Percent' => '%',
+        'Ratio' => 'ratio',
+        'Celsius' => '°C',
+    ];
+
     public function label(): string
     {
         return $this->value;
@@ -36,17 +49,6 @@ enum MeasurementUnit: string implements MeasurementUnitInterface
 
     public function symbol(): string
     {
-        return match ($this) {
-            self::Count => '#',
-            self::Bytes => 'B',
-            self::Kilobytes => 'KB',
-            self::Megabytes => 'MB',
-            self::Milliseconds => 'ms',
-            self::Seconds => 's',
-            self::Minutes => 'min',
-            self::Percent => '%',
-            self::Ratio => 'ratio',
-            self::Celsius => '°C',
-        };
+        return self::SYMBOLS[$this->name];
     }
 }

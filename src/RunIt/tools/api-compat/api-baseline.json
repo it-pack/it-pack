@@ -6246,6 +6246,17 @@
                     }
                 ]
             },
+            "isMeasurement": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "publish": {
                 "static": false,
                 "return": "void",

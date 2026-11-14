@@ -94,46 +94,71 @@ final readonly class DefaultObservationLogMapper implements
             return;
         }
 
-        $message = match (true) {
-            is_string($normalized[ArtifactField::MESSAGE] ?? null) => $normalized[ArtifactField::MESSAGE],
-            is_string($normalized[ArtifactField::NAME] ?? null) => $normalized[ArtifactField::NAME],
-            default => '',
-        };
-
-        $level = match (true) {
-            is_int($normalized[ArtifactField::LEVEL] ?? null) => $normalized[ArtifactField::LEVEL],
-            is_int($normalized[ArtifactField::SEVERITY] ?? null) => $normalized[ArtifactField::SEVERITY],
-            default => 0,
-        };
-
-        $timestamp = is_int($normalized[ArtifactField::TIMESTAMP] ?? null)
-            ? $normalized[ArtifactField::TIMESTAMP]
-            : 0;
+        $message = $this->resolveRedactedObservationMessage($normalized);
+        $level = $this->resolveRedactedObservationLevel($normalized);
+        $timestamp = $this->resolveRedactedObservationTimestamp($normalized);
 
         /** @var array<string, mixed> $otelAttributes */
         $otelAttributes = $this->buildRedactedObservationAttributes($normalized);
 
-        // Free-form attributes are suppressed entirely in redacted observations: they
-        // are caller-controlled and cannot be classified safe without redaction config.
-        // Only the validated identity/correlation fields above are exported.
         $this->appendThrowableAttributes($otelAttributes, $normalized[ArtifactField::THROWABLE] ?? null);
 
-
         if ($this->loggerProvider() instanceof LoggerProviderInterface) {
-            $this->logRecordBuilder()
-                ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
-                ->setSeverityNumber($this->severityLevelToNumber($level))
-                ->setSeverityText($this->severityLevelToText($level))
-                ->setBody($message)
-                ->setAttributes($otelAttributes)
-                ->emit()
-            ;
+            $this->emitRedactedLogRecord($message, $level, $timestamp, $otelAttributes);
         }
-
 
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $otelAttributes);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveRedactedObservationMessage(array $normalized): string
+    {
+        return match (true) {
+            is_string($normalized[ArtifactField::MESSAGE] ?? null) => $normalized[ArtifactField::MESSAGE],
+            is_string($normalized[ArtifactField::NAME] ?? null) => $normalized[ArtifactField::NAME],
+            default => '',
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveRedactedObservationLevel(array $normalized): int
+    {
+        return match (true) {
+            is_int($normalized[ArtifactField::LEVEL] ?? null) => $normalized[ArtifactField::LEVEL],
+            is_int($normalized[ArtifactField::SEVERITY] ?? null) => $normalized[ArtifactField::SEVERITY],
+            default => 0,
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveRedactedObservationTimestamp(array $normalized): int
+    {
+        return is_int($normalized[ArtifactField::TIMESTAMP] ?? null)
+            ? $normalized[ArtifactField::TIMESTAMP]
+            : 0;
+    }
+
+    /**
+     * @param array<string, mixed> $otelAttributes
+     */
+    private function emitRedactedLogRecord(string $message, int $level, int $timestamp, array $otelAttributes): void
+    {
+        $this->logRecordBuilder()
+            ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
+            ->setSeverityNumber($this->severityLevelToNumber($level))
+            ->setSeverityText($this->severityLevelToText($level))
+            ->setBody($message)
+            ->setAttributes($otelAttributes)
+            ->emit()
+        ;
     }
 
     /**

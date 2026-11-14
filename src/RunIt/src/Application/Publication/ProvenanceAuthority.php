@@ -217,7 +217,11 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return null;
         }
 
-        $record = $this->records[$exportId];
+        $record = $this->records[$exportId] ?? null;
+        if ($record === null) {
+            return null;
+        }
+
         $fields = $this->evidence[$artifact]['fields'];
         $output = [];
         if (array_key_exists(ArtifactField::ID, $fields)) {
@@ -225,46 +229,10 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
 
         if ($record['role'] !== 'execution') {
-            $rootId = $this->exportIdForBusinessId($record['executionId'], $record['executionId'], 'execution');
-            $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
-            $relation = $record['role'] === 'terminal-snapshot'
-                ? 'execution-terminal-snapshot' : 'execution-' . $record['role'];
-            if ($root === null || $root['role'] !== 'execution'
-                || !isset($this->outgoing[$rootId][$relation][$exportId])) {
-                return null;
-            }
-
-            $output[ArtifactField::EXECUTION_ID] = $rootId;
-
-            return $output + $this->activityIdentityFields($exportId, $fields);
+            return $this->exportNonExecutionIdentityFields($record, $fields, $exportId, $output);
         }
 
-        $parents = [];
-        $links = [];
-        $linkedClaims = $fields[ArtifactField::LINKED_EXECUTION_IDS] ?? [];
-        if (!is_array($linkedClaims)) {
-            return null;
-        }
-
-        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
-            $source = $this->records[$sourceId] ?? null;
-            if ($source !== null && $source['role'] === 'execution'
-                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
-                $parents[] = $sourceId;
-            }
-        }
-
-        $links = $this->linkedExecutionIds($exportId, $linkedClaims);
-
-        if (count($parents) === 1) {
-            $output[ArtifactField::PARENT_EXECUTION_ID] = $parents[0];
-        }
-
-        if ($links !== []) {
-            $output[ArtifactField::LINKED_EXECUTION_IDS] = $links;
-        }
-
-        return $output;
+        return $this->exportExecutionIdentityFields($fields, $exportId, $output);
     }
 
     /**
@@ -586,9 +554,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             $execution = $executionExportId !== null ? ($this->records[$executionExportId] ?? null) : null;
             $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
             if ($execution === null || $execution['released'] || $roles === null
+                || $this->edgeCount >= $this->maxEdges
                 || !in_array($execution['role'], $roles['from'], true)
                 || !in_array($role, $roles['to'], true)
-                || $this->edgeCount >= $this->maxEdges
             ) {
                 $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
 
@@ -638,40 +606,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             $candidates = $this->byExecution[$executionId] ?? [];
 
             foreach ($candidates as $exportId) {
-                $record = $this->records[$exportId] ?? null;
-                foreach ($this->outgoing[$exportId] ?? [] as $type => $targets) {
-                    foreach ($targets as $target => $_) {
-                        unset($this->incoming[$target][$type][$exportId]);
-                        --$this->edgeCount;
-                    }
-                }
-
-                foreach ($this->incoming[$exportId] ?? [] as $type => $sources) {
-                    foreach ($sources as $source => $_) {
-                        unset($this->outgoing[$source][$type][$exportId]);
-                        $edge = $type . ':' . $exportId;
-                        $this->records[$source]['relationships'] = array_values(array_filter(
-                            $this->records[$source]['relationships'],
-                            static fn (string $item): bool => $item !== $edge,
-                        ));
-                        --$this->edgeCount;
-                    }
-                }
-
-                unset($this->outgoing[$exportId], $this->incoming[$exportId], $this->records[$exportId]);
-                // Remove from byBusinessExecution index directly via the record's
-                // businessId/executionId key instead of scanning every bucket.
-                if ($record !== null) {
-                    $bizKey = $record['businessId'] . "\0" . $record['executionId'];
-                    $cands = $this->byBusinessExecution[$bizKey] ?? [];
-                    $pos = array_search($exportId, $cands, true);
-                    if ($pos !== false) {
-                        array_splice($this->byBusinessExecution[$bizKey], $pos, 1);
-                        if ([] === $this->byBusinessExecution[$bizKey]) {
-                            unset($this->byBusinessExecution[$bizKey]);
-                        }
-                    }
-                }
+                $this->releaseCandidate($exportId);
             }
 
             unset($this->byExecution[$executionId]);
@@ -737,6 +672,31 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $record
+     */
+    private function removeBusinessExecutionIndex(array $record, string $exportId): void
+    {
+        $businessId = $record['businessId'];
+        $executionId = $record['executionId'];
+        if (!is_string($businessId) || !is_string($executionId)) {
+            return;
+        }
+
+        $bizKey = $businessId . "\0" . $executionId;
+        $pos = array_search(
+            $exportId,
+            $this->byBusinessExecution[$bizKey] ?? [],
+            true
+        );
+        if ($pos !== false) {
+            array_splice($this->byBusinessExecution[$bizKey], $pos, 1);
+            if ([] === $this->byBusinessExecution[$bizKey]) {
+                unset($this->byBusinessExecution[$bizKey]);
+            }
+        }
+    }
+
     /** @param array<string, mixed> $fields
      * @return array<string, string>
      */
@@ -783,5 +743,108 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             ArtifactField::PARENT_EXECUTION_ID, ArtifactField::LINKED_EXECUTION_IDS,
             ArtifactField::PARENT_ACTIVITY_ID, ArtifactField::PREDECESSOR_ID,
         ]));
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     * @param array<string, mixed> $fields
+     * @param array<string, mixed> $output
+     * @return array<string, mixed>|null
+     */
+    private function exportNonExecutionIdentityFields(
+        array $record,
+        array $fields,
+        string $exportId,
+        array $output,
+    ): ?array {
+        $executionId = $record['executionId'];
+        if (!is_string($executionId)) {
+            return null;
+        }
+
+        $role = $record['role'];
+        if (!is_string($role)) {
+            return null;
+        }
+
+        $rootId = $this->exportIdForBusinessId($executionId, $executionId, 'execution');
+        $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
+        $relation = $role === 'terminal-snapshot'
+            ? 'execution-terminal-snapshot' : 'execution-' . $role;
+        if ($root === null || $root['role'] !== 'execution'
+            || !isset($this->outgoing[$rootId][$relation][$exportId])) {
+            return null;
+        }
+
+        $output[ArtifactField::EXECUTION_ID] = $rootId;
+
+        return $output + $this->activityIdentityFields($exportId, $fields);
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @param array<string, mixed> $output
+     * @return array<string, mixed>
+     */
+    private function exportExecutionIdentityFields(
+        array $fields,
+        string $exportId,
+        array $output,
+    ): array {
+        $parents = [];
+        $linkedClaims = $fields[ArtifactField::LINKED_EXECUTION_IDS] ?? [];
+        if (!is_array($linkedClaims)) {
+            return $output;
+        }
+
+        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
+            $source = $this->records[$sourceId] ?? null;
+            if ($source !== null && $source['role'] === 'execution'
+                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
+                $parents[] = $sourceId;
+            }
+        }
+
+        $links = $this->linkedExecutionIds($exportId, $linkedClaims);
+
+        if (count($parents) === 1) {
+            $output[ArtifactField::PARENT_EXECUTION_ID] = $parents[0];
+        }
+
+        if ($links !== []) {
+            $output[ArtifactField::LINKED_EXECUTION_IDS] = $links;
+        }
+
+        return $output;
+    }
+
+    private function releaseCandidate(string $exportId): void
+    {
+        $record = $this->records[$exportId] ?? null;
+
+        foreach ($this->outgoing[$exportId] ?? [] as $type => $targets) {
+            foreach ($targets as $target => $_) {
+                unset($this->incoming[$target][$type][$exportId]);
+                --$this->edgeCount;
+            }
+        }
+
+        foreach ($this->incoming[$exportId] ?? [] as $type => $sources) {
+            foreach ($sources as $source => $_) {
+                unset($this->outgoing[$source][$type][$exportId]);
+                $edge = $type . ':' . $exportId;
+                $this->records[$source]['relationships'] = array_values(array_filter(
+                    $this->records[$source]['relationships'],
+                    static fn (string $item): bool => $item !== $edge,
+                ));
+                --$this->edgeCount;
+            }
+        }
+
+        unset($this->outgoing[$exportId], $this->incoming[$exportId], $this->records[$exportId]);
+
+        if ($record !== null) {
+            $this->removeBusinessExecutionIndex($record, $exportId);
+        }
     }
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
+use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\SpanMapperBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
-use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
@@ -34,6 +34,7 @@ use OpenTelemetry\Context\ContextInterface;
 final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperInterface
 {
     use TraceBehavior;
+    use SpanMapperBehavior;
 
     public function map(ExecutionInterface $execution): void
     {
@@ -78,27 +79,9 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
             return;
         }
 
-        $tracer = $tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
-        $nameValue = $normalized['name'] ?? null;
-        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : AttributeValues::DEFAULT_EXECUTION_NAME;
+        $name = $this->resolveRedactedName($normalized);
 
-        $parentContext = $this->resolveParentContextFromNormalized($normalized);
-
-        $builder = $tracer->spanBuilder($name);
-        if ($parentContext instanceof ContextInterface) {
-            $builder = $builder->setParent($parentContext);
-        }
-
-        $kind = $normalized['kind'] ?? null;
-        if (is_string($kind)) {
-            $builder = $builder->setSpanKind($this->kindMap->toSpanKind($kind));
-        }
-
-        $startedAt = $normalized['started_at'] ?? null;
-        if (is_int($startedAt)) {
-            $builder = $builder->setStartTimestamp($startedAt * Duration::NANOS_PER_SECOND);
-        }
-
+        $builder = $this->buildRedactedSpanBuilder($tracerProvider, $name, $normalized);
         $span = $builder->startSpan();
 
         $attributes = $this->buildRedactedExecutionAttributes($normalized, $name);
@@ -117,16 +100,20 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
         $result = $normalized['result'] ?? null;
         /** @var array<string, mixed>|null $result */
-        $result = is_array($result) ? $result : null;
         $this->recordRedactedThrowable($span, $result);
 
-        $endedAt = $normalized['ended_at'] ?? ($normalized['started_at'] ?? null);
+        $endedAt = $this->resolveRedactedEndedAt($normalized);
         $this->endSpanAt($span, $endedAt);
 
         $executionId = $normalized['id'] ?? null;
         if (is_string($executionId)) {
             $this->store->recordExecution($executionId, $span->getContext());
         }
+    }
+
+    private function getDefaultRedactedName(): string
+    {
+        return AttributeValues::DEFAULT_EXECUTION_NAME;
     }
 
     /**
@@ -145,44 +132,6 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
             AttributeKeys::EXECUTION_KIND => is_string($kind) ? $kind : AttributeValues::EMPTY_KIND_STATUS,
             AttributeKeys::EXECUTION_STATUS => is_string($status) ? $status : AttributeValues::EMPTY_KIND_STATUS,
         ];
-    }
-
-    /**
-     * @param array<string, mixed>|null $result
-     */
-    private function recordRedactedThrowable(SpanInterface $span, ?array $result): void
-    {
-        if (!is_array($result) || !isset($result['throwable']) || !is_array($result['throwable'])) {
-            return;
-        }
-
-        $throwable = $result['throwable'];
-        $throwableClass = is_string($throwable['class'] ?? null)
-            ? $throwable['class']
-            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
-        $throwableMessage = is_string($throwable['message'] ?? null)
-            ? $throwable['message']
-            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
-        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
-
-        $attributes = [
-            'exception.type' => $throwableClass,
-            'exception.message' => $throwableMessage,
-        ];
-
-        $this->appendStacktraceIfNonEmpty($attributes, $throwableTrace);
-
-        $span->addEvent('exception', $attributes);
-    }
-
-    /**
-     * @param array<string, mixed> &$attributes
-     */
-    private function appendStacktraceIfNonEmpty(array &$attributes, ?string $trace): void
-    {
-        if ($trace !== null && $trace !== '') {
-            $attributes['exception.stacktrace'] = $trace;
-        }
     }
 
     /**
@@ -219,14 +168,5 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         return $parentSpan instanceof SpanContextInterface
             ? Context::getRoot()->withContextValue(Span::wrap($parentSpan))
             : null;
-    }
-
-    private function recordThrowable(SpanInterface $span, ThrowableDescriptionInterface $throwable): void
-    {
-        $span->addEvent('exception', [
-            'exception.type' => $throwable->class(),
-            'exception.message' => $throwable->message(),
-            'exception.stacktrace' => $throwable->trace() ?? '',
-        ]);
     }
 }

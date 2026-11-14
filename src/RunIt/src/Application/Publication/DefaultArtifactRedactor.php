@@ -77,59 +77,42 @@ final class DefaultArtifactRedactor implements RedactorInterface
         $normalized = $artifact->normalize();
 
         $changed = false;
-        $truncated = false;
 
         [$normalized, $masked, $truncated] = $this->maskFieldAttributes(
             ArtifactField::ATTRIBUTES,
             $normalized,
-            $truncated,
+            false,
         );
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskFieldAttributes(
             ArtifactField::EXTENSION_ATTRIBUTES,
             $normalized,
             $truncated,
         );
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskThrowableField($normalized, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskObservationMessage($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskMeasurementValue($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskExecutionResultThrowable($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskSnapshotAttributes($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskOccurrenceData($normalized, $artifact, $truncated);
-        if ($masked) {
-            $changed = true;
-        }
+        $this->trackMasked($masked, $changed);
 
         [$normalized, $masked, $truncated] = $this->maskSnapshotPayload($normalized, $artifact, $truncated);
+        $this->trackMasked($masked, $changed);
         if ($masked) {
-            $changed = true;
             // The original hash no longer describes the redacted payload.
             unset($normalized[ArtifactField::CONTENT_HASH]);
         }
@@ -143,6 +126,13 @@ final class DefaultArtifactRedactor implements RedactorInterface
         }
 
         return $this->redactedFactory->create($normalized, $this->artifactType($artifact));
+    }
+
+    private function trackMasked(bool $masked, bool &$changed): void
+    {
+        if ($masked) {
+            $changed = true;
+        }
     }
 
     /**
@@ -229,8 +219,8 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactMeasurementValues
-            || !$this->isTypeOf($artifact, 'measurement')
             || !isset($normalized[ArtifactField::VALUE])
+            || !$this->isTypeOf($artifact, 'measurement')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -277,9 +267,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if ($this->config->sensitiveAttributeKeys === []
-            || !$this->isTypeOf($artifact, 'snapshot')
             || !isset($normalized[ArtifactField::ATTRIBUTES])
             || !is_array($normalized[ArtifactField::ATTRIBUTES])
+            || !$this->isTypeOf($artifact, 'snapshot')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -299,9 +289,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
     private function maskOccurrenceData(array $normalized, ExecutionArtifactInterface $artifact, bool $truncated): array
     {
         if (!$this->config->redactOccurrenceData
-            || !$this->isTypeOf($artifact, 'occurrence')
             || !isset($normalized[ArtifactField::DATA])
             || !is_array($normalized[ArtifactField::DATA])
+            || !$this->isTypeOf($artifact, 'occurrence')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -329,9 +319,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactSnapshotPayloads
-            || !$this->isTypeOf($artifact, 'snapshot')
             || !isset($normalized[ArtifactField::PAYLOAD])
             || !is_array($normalized[ArtifactField::PAYLOAD])
+            || !$this->isTypeOf($artifact, 'snapshot')
         ) {
             return [$normalized, false, $truncated];
         }
@@ -456,74 +446,140 @@ final class DefaultArtifactRedactor implements RedactorInterface
     {
         $safe = [];
         $changed = false;
-        $class = $throwable[ArtifactField::THROWABLE_CLASS] ?? null;
-        $code = $throwable[ArtifactField::CODE] ?? null;
-        if (is_string($class) && strlen($class) <= self::MAX_THROWABLE_CLASS_LENGTH
-            && preg_match('/\A[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff\\\\]*\z/', $class) === 1) {
-            $safe[ArtifactField::THROWABLE_CLASS] = $class;
-            if (!isset($throwable[ArtifactField::THROWABLE_CLASS])
-                || $throwable[ArtifactField::THROWABLE_CLASS] !== $class) {
-                $changed = true;
-            }
-        }
 
-        if (is_int($code)) {
-            $safe[ArtifactField::CODE] = $code;
-            if (!isset($throwable[ArtifactField::CODE]) || $throwable[ArtifactField::CODE] !== $code) {
-                $changed = true;
-            }
-        }
+        $this->maskThrowableClass($throwable, $safe, $changed);
+        $this->maskThrowableCode($throwable, $safe, $changed);
+        $this->maskThrowableMessage($throwable, $safe, $changed);
+        $this->maskThrowablePrevious($throwable, $safe, $changed, $truncated, $depth);
+        $this->maskThrowableTrace($throwable, $safe, $changed);
 
-        if (array_key_exists(ArtifactField::MESSAGE, $throwable)) {
-            $safe[ArtifactField::MESSAGE] = $this->config->marker;
-            if ($throwable[ArtifactField::MESSAGE] !== $this->config->marker) {
-                $changed = true;
-            }
-        }
-
-        if (array_key_exists(ArtifactField::PREVIOUS, $throwable)) {
-            $previous = $throwable[ArtifactField::PREVIOUS];
-            if ($previous === null) {
-                // Chain ends normally: previous is null, not a traversal-limit event.
-                $safe[ArtifactField::PREVIOUS] = null;
-            }
-
-            if (is_array($previous) && $depth < 15) {
-                $maskedPrevious = $this->maskThrowable($previous, $depth + 1, $truncated);
-                $safe[ArtifactField::PREVIOUS] = $maskedPrevious[0];
-                if ($maskedPrevious[1] || $safe[ArtifactField::PREVIOUS] !== $previous) {
-                    $changed = true;
-                }
-
-                if ($maskedPrevious[2]) {
-                    $truncated = true;
-                }
-            }
-
-            if ($previous !== null && (!is_array($previous) || $depth >= 15)) {
-                // Beyond depth limit or unsupported shape: truncated.
-                $safe[ArtifactField::PREVIOUS] = null;
-                $changed = true;
-                $truncated = true;
-            }
-        }
-
-        if (array_key_exists(ArtifactField::TRACE, $throwable)) {
-            $safe[ArtifactField::TRACE] = null;
-            if ($throwable[ArtifactField::TRACE] !== null) {
-                $changed = true;
-            }
-        }
-
-        foreach ($throwable as $field => $value) {
-            if (!array_key_exists($field, $safe) || $safe[$field] !== $value) {
-                $changed = true;
-
-                break;
-            }
+        if ($this->safeFieldsDiffer($throwable, $safe)) {
+            $changed = true;
         }
 
         return [$safe, $changed, $truncated];
+    }
+
+    /**
+     * @param array<mixed, mixed> $throwable
+     * @param array<mixed, mixed> &$safe
+     */
+    private function maskThrowableClass(array $throwable, array &$safe, bool &$changed): void
+    {
+        $class = $throwable[ArtifactField::THROWABLE_CLASS] ?? null;
+        if (!is_string($class) || strlen($class) > self::MAX_THROWABLE_CLASS_LENGTH
+            || preg_match('/\A[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff\\\\]*\z/', $class) !== 1) {
+            return;
+        }
+
+        $safe[ArtifactField::THROWABLE_CLASS] = $class;
+        if (!isset($throwable[ArtifactField::THROWABLE_CLASS])
+            || $throwable[ArtifactField::THROWABLE_CLASS] !== $class) {
+            $changed = true;
+        }
+    }
+
+    /**
+     * @param array<mixed, mixed> $throwable
+     * @param array<mixed, mixed> &$safe
+     */
+    private function maskThrowableCode(array $throwable, array &$safe, bool &$changed): void
+    {
+        $code = $throwable[ArtifactField::CODE] ?? null;
+        if (!is_int($code)) {
+            return;
+        }
+
+        $safe[ArtifactField::CODE] = $code;
+        if (!isset($throwable[ArtifactField::CODE]) || $throwable[ArtifactField::CODE] !== $code) {
+            $changed = true;
+        }
+    }
+
+    /**
+     * @param array<mixed, mixed> $throwable
+     * @param array<mixed, mixed> &$safe
+     */
+    private function maskThrowableMessage(array $throwable, array &$safe, bool &$changed): void
+    {
+        if (!array_key_exists(ArtifactField::MESSAGE, $throwable)) {
+            return;
+        }
+
+        $safe[ArtifactField::MESSAGE] = $this->config->marker;
+        if ($throwable[ArtifactField::MESSAGE] !== $this->config->marker) {
+            $changed = true;
+        }
+    }
+
+    /**
+     * @param array<mixed, mixed> $throwable
+     * @param array<mixed, mixed> &$safe
+     */
+    private function maskThrowablePrevious(
+        array $throwable,
+        array &$safe,
+        bool &$changed,
+        bool &$truncated,
+        int $depth,
+    ): void {
+        if (!array_key_exists(ArtifactField::PREVIOUS, $throwable)) {
+            return;
+        }
+
+        $previous = $throwable[ArtifactField::PREVIOUS];
+        if ($previous === null) {
+            $safe[ArtifactField::PREVIOUS] = null;
+
+            return;
+        }
+
+        if (is_array($previous) && $depth < 15) {
+            $maskedPrevious = $this->maskThrowable($previous, $depth + 1, $truncated);
+            $safe[ArtifactField::PREVIOUS] = $maskedPrevious[0];
+            if ($maskedPrevious[1] || $safe[ArtifactField::PREVIOUS] !== $previous) {
+                $changed = true;
+            }
+
+            if ($maskedPrevious[2]) {
+                $truncated = true;
+            }
+
+            return;
+        }
+
+        // Beyond depth limit or unsupported shape: truncated.
+        $safe[ArtifactField::PREVIOUS] = null;
+        $changed = true;
+        $truncated = true;
+    }
+
+    /**
+     * @param array<mixed, mixed> $throwable
+     * @param array<mixed, mixed> &$safe
+     */
+    private function maskThrowableTrace(array $throwable, array &$safe, bool &$changed): void
+    {
+        if (!array_key_exists(ArtifactField::TRACE, $throwable)) {
+            return;
+        }
+
+        $safe[ArtifactField::TRACE] = null;
+        if ($throwable[ArtifactField::TRACE] !== null) {
+            $changed = true;
+        }
+    }
+
+    /**
+     * @param array<mixed, mixed> $throwable
+     * @param array<mixed, mixed> $safe
+     */
+    private function safeFieldsDiffer(array $throwable, array $safe): bool
+    {
+        return array_any(
+            $throwable,
+            fn (mixed $value, int|string $field): bool => !array_key_exists($field, $safe) || $safe[$field] !== $value
+        );
     }
 
     private function artifactType(ExecutionArtifactInterface $artifact): string

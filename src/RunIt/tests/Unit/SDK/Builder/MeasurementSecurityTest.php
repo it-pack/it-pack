@@ -71,11 +71,11 @@ final class MeasurementSecurityTest extends TestCase
             // still delivered; only measurements are dropped.
             $samplerMeasurements = array_filter(
                 $sampler->seen,
-                static fn (ExecutionArtifactInterface $artifact): bool => DefaultMeasurementClassifier::isMeasurement($artifact)
+                DefaultMeasurementClassifier::isMeasurement(...)
             );
             $sinkMeasurements = array_filter(
                 $sink->published(),
-                static fn (ExecutionArtifactInterface $artifact): bool => DefaultMeasurementClassifier::isMeasurement($artifact)
+                DefaultMeasurementClassifier::isMeasurement(...)
             );
             self::assertEmpty($samplerMeasurements, $mode);
             self::assertEmpty($sinkMeasurements, $mode);

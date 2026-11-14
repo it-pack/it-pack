@@ -63,34 +63,7 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
         ?Closure $keyOf = null,
         ?SecurityLimits $limits = null,
     ) {
-        $this->keyOf = $keyOf ?? static function (ExecutionArtifactInterface $artifact): ?string {
-            if ($artifact instanceof ExecutionOwnedInterface) {
-                return $artifact->executionId()->toString();
-            }
-
-            // SDK-classified projections carry a trustworthy execution_id in
-            // their normalized projection.
-            if ($artifact instanceof TrustedArtifactProjectionInterface
-                || $artifact instanceof VerifiedArtifactProjection) {
-                $normalized = $artifact->normalize();
-                $id = $normalized[$artifact->artifactType() === 'execution'
-                    ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
-
-                if (is_string($id)) {
-                    return $id;
-                }
-            }
-
-            if ($artifact instanceof RedactedArtifactInterface) {
-                $normalized = $artifact->normalize();
-                $id = $normalized[$artifact->artifactType() === 'execution'
-                    ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
-
-                return is_string($id) ? $id : null;
-            }
-
-            return null;
-        };
+        $this->keyOf = $keyOf ?? $this->resolveKey(...);
         $this->maxTrackedExecutions = ($limits ?? SecurityLimits::default())->maxTrackedExecutions;
     }
 
@@ -115,5 +88,33 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
         }
 
         return $this->decisions[$key];
+    }
+
+    private function resolveKey(ExecutionArtifactInterface $artifact): ?string
+    {
+        if ($artifact instanceof ExecutionOwnedInterface) {
+            return $artifact->executionId()->toString();
+        }
+
+        if ($artifact instanceof TrustedArtifactProjectionInterface
+            || $artifact instanceof VerifiedArtifactProjection) {
+            $normalized = $artifact->normalize();
+            $id = $normalized[$artifact->artifactType() === 'execution'
+                ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
+
+            if (is_string($id)) {
+                return $id;
+            }
+        }
+
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $normalized = $artifact->normalize();
+            $id = $normalized[$artifact->artifactType() === 'execution'
+                ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
+
+            return is_string($id) ? $id : null;
+        }
+
+        return null;
     }
 }

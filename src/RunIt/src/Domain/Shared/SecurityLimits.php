@@ -126,18 +126,34 @@ final readonly class SecurityLimits
 
     private function with(int ...$overrides): self
     {
+        /** @var array<string, int> $defaults */
+        $defaults = [
+            'maxAttributeCount' => $this->maxAttributeCount,
+            'maxAttributeKeyBytes' => $this->maxAttributeKeyBytes,
+            'maxAttributeValueBytes' => $this->maxAttributeValueBytes,
+            'maxAttributeDepth' => $this->maxAttributeDepth,
+            'maxOccurrencePayloadBytes' => $this->maxOccurrencePayloadBytes,
+            'maxSnapshotPayloadBytes' => $this->maxSnapshotPayloadBytes,
+            'maxActivityDepth' => $this->maxActivityDepth,
+            'maxArtifactsPerExecution' => $this->maxArtifactsPerExecution,
+            'maxSerializationDepth' => $this->maxSerializationDepth,
+            'maxSerializationBytes' => $this->maxSerializationBytes,
+            'maxTrackedExecutions' => $this->maxTrackedExecutions,
+        ];
+        $merged = array_replace($defaults, $overrides);
+
         return new self(
-            maxAttributeCount: $overrides['maxAttributeCount'] ?? $this->maxAttributeCount,
-            maxAttributeKeyBytes: $overrides['maxAttributeKeyBytes'] ?? $this->maxAttributeKeyBytes,
-            maxAttributeValueBytes: $overrides['maxAttributeValueBytes'] ?? $this->maxAttributeValueBytes,
-            maxAttributeDepth: $overrides['maxAttributeDepth'] ?? $this->maxAttributeDepth,
-            maxOccurrencePayloadBytes: $overrides['maxOccurrencePayloadBytes'] ?? $this->maxOccurrencePayloadBytes,
-            maxSnapshotPayloadBytes: $overrides['maxSnapshotPayloadBytes'] ?? $this->maxSnapshotPayloadBytes,
-            maxActivityDepth: $overrides['maxActivityDepth'] ?? $this->maxActivityDepth,
-            maxArtifactsPerExecution: $overrides['maxArtifactsPerExecution'] ?? $this->maxArtifactsPerExecution,
-            maxSerializationDepth: $overrides['maxSerializationDepth'] ?? $this->maxSerializationDepth,
-            maxSerializationBytes: $overrides['maxSerializationBytes'] ?? $this->maxSerializationBytes,
-            maxTrackedExecutions: $overrides['maxTrackedExecutions'] ?? $this->maxTrackedExecutions,
+            maxAttributeCount: $merged['maxAttributeCount'],
+            maxAttributeKeyBytes: $merged['maxAttributeKeyBytes'],
+            maxAttributeValueBytes: $merged['maxAttributeValueBytes'],
+            maxAttributeDepth: $merged['maxAttributeDepth'],
+            maxOccurrencePayloadBytes: $merged['maxOccurrencePayloadBytes'],
+            maxSnapshotPayloadBytes: $merged['maxSnapshotPayloadBytes'],
+            maxActivityDepth: $merged['maxActivityDepth'],
+            maxArtifactsPerExecution: $merged['maxArtifactsPerExecution'],
+            maxSerializationDepth: $merged['maxSerializationDepth'],
+            maxSerializationBytes: $merged['maxSerializationBytes'],
+            maxTrackedExecutions: $merged['maxTrackedExecutions'],
         );
     }
 }

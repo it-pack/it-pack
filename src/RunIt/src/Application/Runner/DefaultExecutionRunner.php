@@ -37,6 +37,8 @@ use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -169,6 +171,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         };
     }
 
+    /**
+     * @throws Throwable
+     */
     private function runAsActivity(
         ?ExecutionScopeInterface $current,
         ExecutionDefinitionInterface $definition,
@@ -191,24 +196,21 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         return $current->activities()->run($activityDefinition, $operation);
     }
 
+    /**
+     * @throws Throwable
+     * @throws InvalidValueExceptionInterface
+     * @throws LifecycleExceptionInterface
+     */
     private function setupExecutionScope(
         NestedExecutionMode $mode,
         ?ExecutionScopeInterface $current,
         ExecutionDefinitionInterface $definition,
     ): ExecutionScopeSetup {
-        // A duplicate business ID must not share or release another scope's
-        // provenance. Suppress its telemetry without aborting the operation.
         $rawId = $this->executionIdFactory->build();
         $id = ExecutionId::fromString($rawId->toString());
 
-        $parentId =
-            ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
-                ? $current->execution()->id()
-                : null;
-        $linkedIds =
-            ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface)
-                ? [$current->execution()->id()]
-                : [];
+        $parentId = $this->resolveParentId($mode, $current);
+        $linkedIds = $this->resolveLinkedIds($mode, $current);
 
         $effectiveDefinition = ExecutionDefinition::create(
             $definition->name(),
@@ -223,25 +225,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
         $duplicateId = $this->authority->hasLiveRecords($id->toString());
 
-        $exportId = null;
-        try {
-            if (!$duplicateId) {
-                $exportId = $this->authority->issueExportId(
-                    'execution',
-                    'execution',
-                    $id->toString(),
-                    $rawId->toString(),
-                );
-            }
+        $exportId = $this->issueExportIdIfNotDuplicate($duplicateId, $id->toString(), $rawId->toString());
 
-            if ($duplicateId) {
-                $this->authority->reportUnverified(new RuntimeException('Duplicate execution identity.'));
-            }
-        } catch (Throwable) {
-            $this->authority->reportUnverified(new RuntimeException('Provenance issuance rejected.'));
-        }
-
-        $scopeAuthority = $duplicateId ? new ProvenanceAuthority() : $this->authority;
+        $scopeAuthority = $this->resolveScopeAuthority($duplicateId);
 
         try {
             $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
@@ -288,6 +274,55 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
     }
 
+    private function resolveParentId(
+        NestedExecutionMode $mode,
+        ?ExecutionScopeInterface $current,
+    ): ?ExecutionIdInterface {
+        return ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
+            ? $current->execution()->id()
+            : null;
+    }
+
+    /**
+     * @return list<ExecutionIdInterface>
+     */
+    private function resolveLinkedIds(NestedExecutionMode $mode, ?ExecutionScopeInterface $current): array
+    {
+        if ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface) {
+            return [$current->execution()->id()];
+        }
+
+        return [];
+    }
+
+    private function issueExportIdIfNotDuplicate(bool $duplicateId, string $id, string $rawId): ?string
+    {
+        $exportId = null;
+        try {
+            if (!$duplicateId) {
+                $exportId = $this->authority->issueExportId(
+                    'execution',
+                    'execution',
+                    $id,
+                    $rawId,
+                );
+            }
+
+            if ($duplicateId) {
+                $this->authority->reportUnverified(new RuntimeException('Duplicate execution identity.'));
+            }
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Provenance issuance rejected.'));
+        }
+
+        return $exportId;
+    }
+
+    private function resolveScopeAuthority(bool $duplicateId): ProvenanceAuthority
+    {
+        return $duplicateId ? new ProvenanceAuthority() : $this->authority;
+    }
+
     private function registerExecutionEdges(
         NestedExecutionMode $mode,
         ?ExecutionScopeInterface $current,
@@ -309,6 +344,11 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     }
 
 
+    /**
+     * @throws Throwable
+     * @throws InvalidValueExceptionInterface
+     * @throws LifecycleExceptionInterface
+     */
     private function runExecution(
         NestedExecutionMode $mode,
         ?ExecutionScopeInterface $current,
@@ -451,10 +491,10 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             $snapshotExecutionId = $snapshot->executionId()->toString();
             $fields = $snapshot->normalize();
             if ($executionExportId === null
-                || !$this->authority->verifyExportId($executionExportId, 'execution', $executionId)
                 || $snapshotExecutionId !== $executionId
                 || ($fields[ArtifactField::EXECUTION_ID] ?? null) !== $executionId
                 || ($fields[ArtifactField::ID] ?? null) !== $snapshotId
+                || !$this->authority->verifyExportId($executionExportId, 'execution', $executionId)
             ) {
                 $this->authority->reportUnverified(
                     new RuntimeException('Terminal snapshot provenance verification failed.'),

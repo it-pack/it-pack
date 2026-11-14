@@ -40,23 +40,69 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
 {
     public function map(CloudEvent $event): OccurrenceInterface
     {
-        $executionIdValue = $event->extensions[CloudEventExtensionKey::ExecutionId->value] ?? null;
+        $executionId = $this->resolveExecutionId($event->extensions);
+        $activityId = $this->resolveActivityId($event->extensions);
+        $sequence = $this->resolveSequence($event->extensions);
+        $attributes = $this->collectAttributes($event);
+
+        return Occurrence::create(
+            OccurrenceId::fromString($event->id),
+            ExecutionId::fromString($executionId),
+            OccurrenceType::fromString($event->type),
+            $event->source,
+            $this->parseTime($event->time),
+            $event->data,
+            $activityId,
+            $event->subject,
+            $event->dataSchema,
+            $event->dataContentType ?? MediaTypes::APPLICATION_JSON,
+            AttributeCollection::fromArray($attributes),
+            $sequence,
+        );
+    }
+
+    /**
+     * @param array<array-key, mixed> $extensions
+     */
+    private function resolveExecutionId(array $extensions): string
+    {
+        $executionIdValue = $extensions[CloudEventExtensionKey::ExecutionId->value] ?? null;
         if (!is_string($executionIdValue) || $executionIdValue === '') {
             throw InvalidCloudEventException::missingField(CloudEventExtensionKey::ExecutionId->value);
         }
 
-        $activityIdValue = $event->extensions[CloudEventExtensionKey::ActivityId->value] ?? null;
-        $activityId = is_string($activityIdValue) && $activityIdValue !== ''
+        return $executionIdValue;
+    }
+
+    /**
+     * @param array<array-key, mixed> $extensions
+     */
+    private function resolveActivityId(array $extensions): ?ActivityId
+    {
+        $activityIdValue = $extensions[CloudEventExtensionKey::ActivityId->value] ?? null;
+        return is_string($activityIdValue) && $activityIdValue !== ''
             ? ActivityId::fromString($activityIdValue)
             : null;
+    }
 
-        $sequenceValue = $event->extensions[CloudEventExtensionKey::Sequence->value] ?? null;
-        $sequence = match (true) {
+    /**
+     * @param array<array-key, mixed> $extensions
+     */
+    private function resolveSequence(array $extensions): ArtifactSequence
+    {
+        $sequenceValue = $extensions[CloudEventExtensionKey::Sequence->value] ?? null;
+        return match (true) {
             is_int($sequenceValue) => ArtifactSequence::of($sequenceValue),
             is_numeric($sequenceValue) => ArtifactSequence::of((int) $sequenceValue),
             default => ArtifactSequence::initial(),
         };
+    }
 
+    /**
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
+     */
+    private function collectAttributes(CloudEvent $event): array
+    {
         $attributes = [];
 
         $skippedReserved = array_diff(
@@ -65,6 +111,10 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
         );
 
         foreach ($event->extensions as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+
             if (in_array($key, $skippedReserved, strict: true)) {
                 continue;
             }
@@ -75,26 +125,12 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
                 continue;
             }
 
-            $attributes[$key] = $value;
+            if (is_scalar($value) || $value === null || is_array($value)) {
+                $attributes[$key] = $value;
+            }
         }
 
-        /** @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $finalAttributes */
-        $finalAttributes = $attributes;
-
-        return Occurrence::create(
-            OccurrenceId::fromString($event->id),
-            ExecutionId::fromString($executionIdValue),
-            OccurrenceType::fromString($event->type),
-            $event->source,
-            $this->parseTime($event->time),
-            $event->data,
-            $activityId,
-            $event->subject,
-            $event->dataSchema,
-            $event->dataContentType ?? MediaTypes::APPLICATION_JSON,
-            AttributeCollection::fromArray($finalAttributes),
-            $sequence,
-        );
+        return $attributes;
     }
 
     private function parseTime(?string $time): Instant
