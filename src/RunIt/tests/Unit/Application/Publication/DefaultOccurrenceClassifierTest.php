@@ -38,6 +38,19 @@ use Throwable;
 #[UsesClass(VerifiedArtifactProjection::class)]
 final class DefaultOccurrenceClassifierTest extends Unit
 {
+    public function testOtherArtifactKindsPassThroughUnchanged(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultOccurrenceClassifier($sink, null, new SecurityLimits());
+        $artifacts = [];
+        foreach (['unknown', 'custom', 'Occurrence'] as $kind) {
+            $artifacts[] = new VerifiedArtifactProjection(['data' => 'unchanged'], $kind);
+            $classifier->publish($artifacts[array_key_last($artifacts)]);
+        }
+
+        self::assertSame($artifacts, $sink->published());
+    }
+
     public function testDefaultStackSanitizesBeforeSamplerAndSink(): void
     {
         $authority = new ProvenanceAuthority();

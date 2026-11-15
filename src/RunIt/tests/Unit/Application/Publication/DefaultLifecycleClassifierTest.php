@@ -74,6 +74,19 @@ final class DefaultLifecycleClassifierTest extends Unit
         ]]], $reports);
     }
 
+    public function testUnknownAndCaseVariantKindsPassThroughUnchanged(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultLifecycleClassifier($sink, null, new SecurityLimits());
+        $artifacts = [];
+        foreach (['unknown', 'custom', 'Execution', 'Activity'] as $kind) {
+            $artifacts[] = new VerifiedArtifactProjection(['id' => 'secret'], $kind);
+            $classifier->publish($artifacts[array_key_last($artifacts)]);
+        }
+
+        self::assertSame($artifacts, $sink->published());
+    }
+
     public function testNestedThrowableMetadataSurvivesInTypedExecutionAndActivity(): void
     {
         $sink = new InMemoryArtifactPublisher();

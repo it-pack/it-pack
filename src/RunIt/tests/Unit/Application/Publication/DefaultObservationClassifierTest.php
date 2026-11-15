@@ -36,6 +36,19 @@ use Throwable;
 #[UsesClass(VerifiedArtifactProjection::class)]
 final class DefaultObservationClassifierTest extends Unit
 {
+    public function testOtherArtifactKindsPassThroughUnchanged(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultObservationClassifier($sink, null, new SecurityLimits());
+        $artifacts = [];
+        foreach (['unknown', 'custom', 'Observation'] as $kind) {
+            $artifacts[] = new VerifiedArtifactProjection(['message' => 'unchanged'], $kind);
+            $classifier->publish($artifacts[array_key_last($artifacts)]);
+        }
+
+        self::assertSame($artifacts, $sink->published());
+    }
+
     public function testUnclassifiedFieldsAreRemovedBeforeTypedErrorSampling(): void
     {
         $sink = new InMemoryArtifactPublisher();

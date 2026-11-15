@@ -9,6 +9,7 @@ use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBeh
 use ItPack\RunIt\Behavior\Application\Publication\DropsWithHealthReport;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -16,6 +17,7 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
@@ -28,7 +30,7 @@ final class DefaultLifecycleClassifier implements
     use DelegatesPublisherLifecycleBehavior;
     use DropsWithHealthReport;
 
-    private const string ARTIFACT_TYPE = 'unknown';
+    private const string ARTIFACT_TYPE = ArtifactType::UNKNOWN;
 
     private readonly ClassifyingArtifactPublisher $classifier;
 
@@ -54,13 +56,13 @@ final class DefaultLifecycleClassifier implements
         }
 
         $kind = $artifact->artifactType();
-        if ($kind !== 'execution' && $kind !== 'activity') {
+        if ($kind !== ArtifactType::EXECUTION && $kind !== ArtifactType::ACTIVITY) {
             $this->inner->publish($artifact);
             return;
         }
 
         $fields = $artifact->normalize();
-        $statusValue = $fields['status'] ?? null;
+        $statusValue = $fields[ArtifactField::STATUS] ?? null;
         $status = is_string($statusValue) ? $this->getStatus($statusValue, $kind) : null;
         $parent = $this->getParent($kind);
 
@@ -71,7 +73,7 @@ final class DefaultLifecycleClassifier implements
 
         $safe = $this->getSafeFields($fields, $status, $parent);
 
-        if ($kind === 'execution') {
+        if ($kind === ArtifactType::EXECUTION) {
             $this->extractExecution($fields, $safe, $status, $kind);
             return;
         }
@@ -90,17 +92,19 @@ final class DefaultLifecycleClassifier implements
     private function validFields(array $fields, string $kind, string $parent): bool
     {
         return !(
-            !is_string($fields['id'] ?? null)
-            || ($kind === 'activity' && !is_string($fields['execution_id'] ?? null))
+            !is_string($fields[ArtifactField::ID] ?? null)
+            || ($kind === ArtifactType::ACTIVITY && !is_string($fields[ArtifactField::EXECUTION_ID] ?? null))
             || (!is_string($fields[$parent] ?? null) && ($fields[$parent] ?? null) !== null)
-            || !is_int($fields['started_at'] ?? null) || $fields['started_at'] < 0
-            || !is_int($fields['sequence'] ?? null) || $fields['sequence'] < 0
-            || (isset($fields['ended_at']) && (!is_int($fields['ended_at']) || $fields['ended_at'] < 0))
-            || (isset($fields['duration_ns']) && (!is_int($fields['duration_ns']) || $fields['duration_ns'] < 0))
-            || ($kind === 'execution' && (!is_array($fields['linked_execution_ids'] ?? null)
-            || !array_is_list($fields['linked_execution_ids'])
-            || count($fields['linked_execution_ids']) > $this->limits->maxAttributeCount
-            || array_any($fields['linked_execution_ids'], static fn (mixed $id): bool => !is_string($id))))
+            || !is_int($fields[ArtifactField::STARTED_AT] ?? null) || $fields[ArtifactField::STARTED_AT] < 0
+            || !is_int($fields[ArtifactField::SEQUENCE] ?? null) || $fields[ArtifactField::SEQUENCE] < 0
+            || (isset($fields[ArtifactField::ENDED_AT])
+                && (!is_int($fields[ArtifactField::ENDED_AT]) || $fields[ArtifactField::ENDED_AT] < 0))
+            || (isset($fields[ArtifactField::DURATION_NS])
+                && (!is_int($fields[ArtifactField::DURATION_NS]) || $fields[ArtifactField::DURATION_NS] < 0))
+            || ($kind === ArtifactType::EXECUTION && (!is_array($fields[ArtifactField::LINKED_EXECUTION_IDS] ?? null)
+            || !array_is_list($fields[ArtifactField::LINKED_EXECUTION_IDS])
+            || count($fields[ArtifactField::LINKED_EXECUTION_IDS]) > $this->limits->maxAttributeCount
+            || array_any($fields[ArtifactField::LINKED_EXECUTION_IDS], static fn (mixed $id): bool => !is_string($id))))
         );
     }
 
@@ -111,27 +115,28 @@ final class DefaultLifecycleClassifier implements
     private function getSafeFields(array $fields, ActivityStatus|ExecutionStatus $status, string $parent): array
     {
         return [
-            'id' => $fields['id'],
-            'name' => 'runit.redacted',
-            'kind' => 'runit.redacted',
-            'status' => $status->value,
-            'started_at' => $fields['started_at'],
-            'ended_at' => $fields['ended_at'] ?? null,
+            ArtifactField::ID => $fields[ArtifactField::ID],
+            ArtifactField::NAME => 'runit.redacted',
+            ArtifactField::KIND => 'runit.redacted',
+            ArtifactField::STATUS => $status->value,
+            ArtifactField::STARTED_AT => $fields[ArtifactField::STARTED_AT],
+            ArtifactField::ENDED_AT => $fields[ArtifactField::ENDED_AT] ?? null,
             $parent => $fields[$parent] ?? null,
-            'sequence' => $fields['sequence'],
+            ArtifactField::SEQUENCE => $fields[ArtifactField::SEQUENCE],
         ];
     }
 
     private function getStatus(string $status1, string $kind): null|ExecutionStatus|ActivityStatus
     {
-        return $kind === 'execution'
+        return $kind === ArtifactType::EXECUTION
             ? ExecutionStatus::tryFrom($status1)
             : ActivityStatus::tryFrom($status1);
     }
 
     private function getParent(string $kind): string
     {
-        return $kind === 'execution' ? 'parent_execution_id' : 'parent_activity_id';
+        return $kind === ArtifactType::EXECUTION
+            ? ArtifactField::PARENT_EXECUTION_ID : ArtifactField::PARENT_ACTIVITY_ID;
     }
 
     /**
@@ -146,13 +151,13 @@ final class DefaultLifecycleClassifier implements
         ActivityStatus|ExecutionStatus $status,
         string $kind
     ): void {
-        $safe['linked_execution_ids'] = $fields['linked_execution_ids'];
-        $safe['context'] = [];
-        $result = $fields['result'] ?? null;
-        $safe['result'] = $status->isTerminal() ? [
-            'status' => $status->value,
-            'throwable' => $status === ExecutionStatus::Succeeded || !is_array($result)
-                ? null : $this->safeThrowable($result['throwable'] ?? null, 12),
+        $safe[ArtifactField::LINKED_EXECUTION_IDS] = $fields[ArtifactField::LINKED_EXECUTION_IDS];
+        $safe[ArtifactField::CONTEXT] = [];
+        $result = $fields[ArtifactField::RESULT] ?? null;
+        $safe[ArtifactField::RESULT] = $status->isTerminal() ? [
+            ArtifactField::STATUS => $status->value,
+            ArtifactField::THROWABLE => $status === ExecutionStatus::Succeeded || !is_array($result)
+                ? null : $this->safeThrowable($result[ArtifactField::THROWABLE] ?? null, 12),
         ] : null;
 
         $this->classifier->publish($this->redactedFactory->create($safe, $kind));
@@ -165,11 +170,11 @@ final class DefaultLifecycleClassifier implements
      */
     private function getSafeDefault(array $fields, array $safe): array
     {
-        $safe['execution_id'] = $fields['execution_id'];
-        $safe['attributes'] = [];
-        $safe['throwable'] = $this->safeThrowable($fields['throwable'] ?? null, 12);
-        if (isset($fields['duration_ns'])) {
-            $safe['duration_ns'] = $fields['duration_ns'];
+        $safe[ArtifactField::EXECUTION_ID] = $fields[ArtifactField::EXECUTION_ID];
+        $safe[ArtifactField::ATTRIBUTES] = [];
+        $safe[ArtifactField::THROWABLE] = $this->safeThrowable($fields[ArtifactField::THROWABLE] ?? null, 12);
+        if (isset($fields[ArtifactField::DURATION_NS])) {
+            $safe[ArtifactField::DURATION_NS] = $fields[ArtifactField::DURATION_NS];
         }
 
         return $safe;

@@ -63,6 +63,17 @@ final class DefaultMeasurementClassifierTest extends Unit
         self::assertSame([$artifact], $sink->published());
     }
 
+    public function testOnlyExactMeasurementKindIsClassified(): void
+    {
+        foreach (['unknown', 'custom', 'Measurement'] as $kind) {
+            self::assertFalse(DefaultMeasurementClassifier::isMeasurement(new VerifiedArtifactProjection([], $kind)));
+        }
+
+        self::assertTrue(DefaultMeasurementClassifier::isMeasurement(
+            new VerifiedArtifactProjection([], 'measurement'),
+        ));
+    }
+
     public function testThrowingReporterFallbackDoesNotExposeItsMessage(): void
     {
         $path = (string) tempnam(sys_get_temp_dir(), 'runit-measurement-');

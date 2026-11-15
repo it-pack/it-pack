@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
@@ -109,7 +110,7 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
      */
     private function executionIdentityFromNormalized(array $normalized, string $artifactType): ?string
     {
-        $key = $artifactType === 'execution' ? ArtifactField::ID : ArtifactField::EXECUTION_ID;
+        $key = $artifactType === ArtifactType::EXECUTION ? ArtifactField::ID : ArtifactField::EXECUTION_ID;
         $id = $normalized[$key] ?? null;
 
         return is_string($id) ? $id : null;

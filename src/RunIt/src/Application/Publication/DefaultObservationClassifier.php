@@ -16,6 +16,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
@@ -48,14 +49,15 @@ final class DefaultObservationClassifier implements
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        if (!$artifact instanceof TypedExecutionArtifactInterface || $artifact->artifactType() !== 'observation') {
+        if (!$artifact instanceof TypedExecutionArtifactInterface
+            || $artifact->artifactType() !== ArtifactType::OBSERVATION) {
             $this->inner->publish($artifact);
 
             return;
         }
 
         $fields = $artifact->normalize();
-        $severityValue = $fields['severity'] ?? null;
+        $severityValue = $fields[ArtifactField::SEVERITY] ?? null;
         $severity = is_string($severityValue) ? ObservationSeverity::tryFrom($severityValue) : null;
 
         if ($severity === null || $this->isNotValid($fields)) {
@@ -77,17 +79,17 @@ final class DefaultObservationClassifier implements
         $this->classifier->publish(
             $this->redactedFactory->create(
                 [
-                    'id' => $fields['id'],
-                    'execution_id' => $fields['execution_id'],
-                    'activity_id' => $fields['activity_id'] ?? null,
-                    'severity' => $severity->value,
-                    'level' => $severity->level(),
-                    'message' => '[redacted]',
-                    'diagnostic_code' => null,
-                    'sequence' => $fields['sequence'],
-                    'timestamp' => $fields['timestamp'],
-                    'attributes' => [],
-                    'throwable' => $this->safeThrowable($fields['throwable'] ?? null),
+                    ArtifactField::ID => $fields[ArtifactField::ID],
+                    ArtifactField::EXECUTION_ID => $fields[ArtifactField::EXECUTION_ID],
+                    ArtifactField::ACTIVITY_ID => $fields[ArtifactField::ACTIVITY_ID] ?? null,
+                    ArtifactField::SEVERITY => $severity->value,
+                    ArtifactField::LEVEL => $severity->level(),
+                    ArtifactField::MESSAGE => '[redacted]',
+                    ArtifactField::DIAGNOSTIC_CODE => null,
+                    ArtifactField::SEQUENCE => $fields[ArtifactField::SEQUENCE],
+                    ArtifactField::TIMESTAMP => $fields[ArtifactField::TIMESTAMP],
+                    ArtifactField::ATTRIBUTES => [],
+                    ArtifactField::THROWABLE => $this->safeThrowable($fields[ArtifactField::THROWABLE] ?? null),
                 ],
                 ArtifactType::OBSERVATION
             )
@@ -99,10 +101,11 @@ final class DefaultObservationClassifier implements
      */
     private function isNotValid(array $fields): bool
     {
-        return !is_string($fields['id'] ?? null)
-            || !is_string($fields['execution_id'] ?? null)
-            || !is_int($fields['timestamp'] ?? null) || $fields['timestamp'] < 0
-            || !is_int($fields['sequence'] ?? null) || $fields['sequence'] < 0
-            || (!is_string($fields['activity_id'] ?? null) && ($fields['activity_id'] ?? null) !== null);
+        return !is_string($fields[ArtifactField::ID] ?? null)
+            || !is_string($fields[ArtifactField::EXECUTION_ID] ?? null)
+            || !is_int($fields[ArtifactField::TIMESTAMP] ?? null) || $fields[ArtifactField::TIMESTAMP] < 0
+            || !is_int($fields[ArtifactField::SEQUENCE] ?? null) || $fields[ArtifactField::SEQUENCE] < 0
+            || (!is_string($fields[ArtifactField::ACTIVITY_ID] ?? null)
+                && ($fields[ArtifactField::ACTIVITY_ID] ?? null) !== null);
     }
 }
