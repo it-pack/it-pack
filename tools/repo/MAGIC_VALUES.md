@@ -1,7 +1,8 @@
 # Magic-Value Inventory
 
 `magic-values.php` inventories PHP string and numeric literals using
-`it-pack/disenchant-it`. It is a **read-only, nonblocking review tool**, not an
+`it-pack/disenchant-it` and uses `it-pack/command-it` for command execution. It is
+a **read-only, nonblocking review tool**, not an
 automatic fixer: it does not modify or execute the PHP files being scanned.
 The supplied Composer autoloader is executed, however, and must be trusted.
 
@@ -14,7 +15,8 @@ offer preview, apply, suppressions, or automatic constant creation.
 ## Requirements and setup
 
 - PHP 8.5 or later and Composer.
-- A trusted Composer autoloader providing DisenchantIt 1.1 and its dependencies.
+- A trusted Composer autoloader providing CommandIt 1.1, DisenchantIt 1.1, and
+  their dependencies.
 - A trusted, stable source tree and a JSON policy.
 
 The isolated tooling environment does not change a scanned package's runtime PHP
@@ -25,8 +27,9 @@ composer install --working-dir=tools/repo/magic-values-composer
 ```
 
 The repository ignores Composer lockfiles for this environment, so dependency
-resolution is not pinned across installs. The RunIt package's separate PHP 8.4
-development-dependency compatibility is not resolved by this setup.
+resolution is not pinned across installs. RunIt's unused direct DisenchantIt
+development dependency has been removed; that does not establish that every
+fresh RunIt development dependency set resolves on PHP 8.4.
 
 ## Run the inventory
 
@@ -47,6 +50,11 @@ JSON policy. Without `--root`, policy paths are relative to the policy file's
 directory. With `--root=DIR`, they are relative to that directory. Paths to the
 autoloader, policy, and `--root` are resolved from the current working directory.
 Each option can appear at most once. `--help` prints a concise usage summary.
+The runner defines and dispatches an inventory command through CommandIt and
+uses its argv parser after checking the existing CLI grammar. This compatibility
+check rejects duplicate options and unsupported syntax that CommandIt's generic
+parser may otherwise accept. A successful command with findings maps to exit
+code `1`; CommandIt's generic console bridge is not used for exit-code mapping.
 
 | Exit code | Meaning |
 | --- | --- |

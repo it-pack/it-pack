@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+use ItPack\CommandIt\Adapter\CLI\ArgvInputParser;
+use ItPack\CommandIt\Bootstrap\CommandItFactory;
+use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
+use ItPack\CommandIt\Contract\Command\CommandInterface;
+use ItPack\CommandIt\Contract\Command\CommandResultInterface;
+use ItPack\CommandIt\Domain\Argument;
+use ItPack\CommandIt\Domain\CommandResult;
+use ItPack\CommandIt\Domain\Option;
+use ItPack\CommandIt\Domain\ValueObject\ArgumentName;
+use ItPack\CommandIt\Domain\ValueObject\OptionName;
+use ItPack\CommandIt\SDK\CommandBuilder;
+use ItPack\CommandIt\SDK\CommandDefinitionBuilder;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
@@ -11,8 +23,8 @@ try {
         fwrite(STDOUT, <<<'HELP'
 Usage: php magic-values.php AUTOLOAD POLICY [--json] [--root=DIR]
 
-AUTOLOAD is a trusted Composer autoloader containing DisenchantIt 1.1 and its
-dependencies, running on PHP 8.5+. POLICY is JSON, relative to its directory:
+AUTOLOAD is a trusted Composer autoloader containing CommandIt 1.1, DisenchantIt
+1.1 and their dependencies, running on PHP 8.5+. POLICY is JSON:
 {"version":1,"include":["src"],"exclude":["src/generated"],"min_occurrences":1,
  "mappings":[{"path":"src/A.php","line":12,"kind":"string",
  "sha256":"<sha256 of raw literal token>","symbol":"\\Example\\Names::VALUE"}]}
@@ -58,18 +70,45 @@ HELP);
         throw new RuntimeException('PHP 8.5+ and a readable trusted Composer autoloader are required');
     }
     require $argv[1];
-    if (!class_exists(DetectorFactory::class)) {
-        throw new RuntimeException('DisenchantIt is not available from the autoloader');
+    if (!class_exists(DetectorFactory::class) || !class_exists(CommandItFactory::class)) {
+        throw new RuntimeException('DisenchantIt and CommandIt are required from the autoloader');
     }
-    [$policy, $mappings, $root] = loadPolicy($argv[2], $rootOption);
-    $files = selectSourceFiles($root, $policy);
-    $findings = scanSources($files, $mappings);
-    [$findings, $groups, $counts] = aggregateFindings($findings, $policy['min_occurrences'] ?? 1);
-    $output = renderReport($findings, $groups, $counts, $json);
+    $definition = (new CommandDefinitionBuilder())
+        ->name('magic-values')
+        ->description('Inventory literal values without modifying sources')
+        ->argument(new Argument(ArgumentName::fromString('policy'), required: true, type: 'string'))
+        ->option(new Option(OptionName::fromString('json'), required: false, type: 'bool'))
+        ->option(new Option(OptionName::fromString('root'), required: false, type: 'string'))
+        ->build();
+    // Preserve positional policy paths beginning with a dash and the original option grammar.
+    $input = (new ArgvInputParser())->parse($definition, [...array_slice($argv, 3), '--', $argv[2]]);
+    $command = (new CommandBuilder())->definition($definition)->input($input)->build();
+    $commandIt = CommandItFactory::create();
+    $commandIt->register($definition, static fn (): CommandHandlerInterface => new class implements CommandHandlerInterface {
+        public function handles(): string
+        {
+            return 'magic-values';
+        }
+
+        public function handle(CommandInterface $command): CommandResultInterface
+        {
+            $input = $command->input();
+            [$policy, $mappings, $root] = loadPolicy($input->argument('policy'), $input->hasOption('root') ? $input->option('root') : null);
+            $files = selectSourceFiles($root, $policy);
+            $findings = scanSources($files, $mappings);
+            [$findings, $groups, $counts] = aggregateFindings($findings, $policy['min_occurrences'] ?? 1);
+            return CommandResult::succeed([
+                'output' => renderReport($findings, $groups, $counts, $input->hasOption('json') && $input->option('json')),
+                'findings' => $findings !== [],
+            ]);
+        }
+    });
+    $result = $commandIt->dispatch($command)->payload();
+    $output = $result['output'];
     if ($output !== '' && fwrite(STDOUT, $output) !== strlen($output)) {
         throw new RuntimeException('Cannot write report');
     }
-    exit($findings !== [] ? 1 : 0);
+    exit($result['findings'] ? 1 : 0);
 } catch (Throwable $error) {
     fwrite(STDERR, 'magic-values: ' . $error->getMessage() . "\n");
     exit(2);

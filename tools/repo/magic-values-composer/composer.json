@@ -5,6 +5,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.5",
+        "it-pack/command-it": "^1.1",
         "it-pack/disenchant-it": "^1.1"
     },
     "scripts": {
