@@ -44,7 +44,8 @@
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
-        "symfony/http-client": "^8.1"
+        "symfony/http-client": "^8.1",
+        "it-pack/disenchant-it": "^1.1"
     },
     "suggest": {
         "ext-openswoole": "OpenSwoole coroutine execution adapter",
