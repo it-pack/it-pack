@@ -10,7 +10,6 @@ use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
-use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
@@ -23,13 +22,12 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  * execution is sampled or none of it is, so correlated artifacts stay consistent.
  *
  * The execution key comes from {@see ExecutionOwnedInterface::executionId()}
- * when available. Otherwise it is derived from the trusted execution_id field
- * of {@see TrustedArtifactProjectionInterface} instances, and from the
- * execution_id field (or id for executions) of any {@see RedactedArtifactInterface} instance as a
- * fallback. User-supplied redacted artifacts that report another execution's
- * execution_id can therefore occupy that execution's decision cache. This is
- * the documented trust boundary; restricting the redacted branch to SDK-produced
- * types is a separate decision.
+ * when available. Otherwise, concrete verified and classified projections and
+ * any {@see RedactedArtifactInterface} use their normalized execution_id, or id
+ * for executions. These types can be constructed by callers; their identity is
+ * not proof of provenance, and a supplied identity can occupy another execution's
+ * cache entry. Caller implementations of the redacted or trusted projection
+ * interfaces are handled the same way; neither interface proves provenance.
  *
  * Artifacts without a usable execution identity are sampled independently and
  * do not occupy the cache. No empty fallback key is shared across unrelated
