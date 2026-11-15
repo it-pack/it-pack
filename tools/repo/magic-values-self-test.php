@@ -37,6 +37,11 @@ try {
         file_put_contents("$temp/policy.json", json_encode($p, JSON_THROW_ON_ERROR));
     };
     $save($policy);
+    foreach (['{"version":1,"include":{"0":"src"}}', '{"version":1,"include":["src"],"exclude":{}}', '{"version":1,"include":["src"],"mappings":{}}'] as $invalidPolicy) {
+        file_put_contents("$temp/policy.json", $invalidPolicy);
+        $check($run(["$temp/policy.json"])[0] === 2, 'Object accepted where policy list required');
+    }
+    $save($policy);
     [$code, $output, $error] = $run(["$temp/policy.json", '--json']);
     $check($code === 1, "Scan failed: $error");
     $data = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
@@ -75,9 +80,22 @@ try {
     $save($policy);
     [$code, $output, $error] = $run(["$temp/policy.json", '--json']);
     $check($code === 1 && str_contains($output, 'Example'), "Valid mapping rejected: $error");
+    foreach (['\\Example\\\\Names::VALUE', '\\Example\\::VALUE'] as $invalidSymbol) {
+        $invalidMapping = $policy;
+        $invalidMapping['mappings'][0]['symbol'] = $invalidSymbol;
+        $save($invalidMapping);
+        $check($run(["$temp/policy.json"])[0] === 2, 'Malformed mapping symbol accepted');
+    }
+    $save($policy);
+    [$code, $text] = $run(["$temp/policy.json"]);
+    $check($code === 1 && str_contains($text, ' suggested \\Example\\Names::VALUE') && !str_contains($text, 'sensitive-token'), 'Text report changed or leaked literal');
+    $policy['min_occurrences'] = 2;
+    $save($policy);
+    $check($run(["$temp/policy.json"])[0] === 0, 'Valid filtered mapping rejected');
     $policy['mappings'][0]['line'] = 123;
     $save($policy);
-    $check($run(["$temp/policy.json"])[0] === 2, 'Stale mapping accepted');
+    $check($run(["$temp/policy.json"])[0] === 2, 'Stale mapping accepted before filtering');
+    unset($policy['min_occurrences']);
     $policy['mappings'][0]['line'] = 2;
     file_put_contents("$temp/src/A.php", "<?php\nfunction example() { return ['sensitive-token', 'sensitive-token']; }\n");
     $policy['mappings'][0]['kind'] = 'string';
@@ -103,6 +121,8 @@ try {
     $save($policy);
     $check($run(["$temp/policy.json"])[0] === 2, 'Path traversal accepted');
     $check($run(["$temp/policy.json", '--apply'])[0] === 2, 'Apply accepted');
+    [$code, , $error] = $run(["$temp/policy.json", '--json', '--json']);
+    $check($code === 2 && str_contains($error, 'Invalid or duplicate option'), 'Duplicate option accepted');
     file_put_contents("$temp/policy.json", str_repeat(' ', 1048577));
     $check($run(["$temp/policy.json"])[0] === 2, 'Oversized policy accepted');
     fwrite(STDOUT, "Magic-value integration self-tests passed.\n");

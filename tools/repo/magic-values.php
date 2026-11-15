@@ -61,7 +61,24 @@ HELP);
     if (!class_exists(DetectorFactory::class)) {
         throw new RuntimeException('DisenchantIt is not available from the autoloader');
     }
-    $policyFile = realpath($argv[2]);
+    [$policy, $mappings, $root] = loadPolicy($argv[2], $rootOption);
+    $files = selectSourceFiles($root, $policy);
+    $findings = scanSources($files, $mappings);
+    [$findings, $groups, $counts] = aggregateFindings($findings, $policy['min_occurrences'] ?? 1);
+    $output = renderReport($findings, $groups, $counts, $json);
+    if ($output !== '' && fwrite(STDOUT, $output) !== strlen($output)) {
+        throw new RuntimeException('Cannot write report');
+    }
+    exit($findings !== [] ? 1 : 0);
+} catch (Throwable $error) {
+    fwrite(STDERR, 'magic-values: ' . $error->getMessage() . "\n");
+    exit(2);
+}
+
+/** Load and validate configuration before accessing the selected source tree. */
+function loadPolicy(string $path, ?string $rootOption): array
+{
+    $policyFile = realpath($path);
     if ($policyFile === false || !is_file($policyFile) || !is_readable($policyFile)) {
         throw new RuntimeException('Cannot read policy');
     }
@@ -69,7 +86,11 @@ HELP);
     if ($policyText === false || strlen($policyText) > 1048576) {
         throw new RuntimeException('Cannot read policy or policy exceeds 1 MiB');
     }
-    $policy = json_decode($policyText, true, 512, JSON_THROW_ON_ERROR);
+    $decoded = json_decode($policyText, false, 512, JSON_THROW_ON_ERROR);
+    if (!$decoded instanceof stdClass) {
+        throw new RuntimeException('Policy must be an object');
+    }
+    $policy = (array) $decoded;
     if (!is_array($policy) || array_diff(array_keys($policy), ['version', 'include', 'exclude', 'mappings', 'min_occurrences']) || ($policy['version'] ?? null) !== 1 || !isset($policy['include']) || !is_array($policy['include']) || !array_is_list($policy['include']) || !$policy['include'] || (array_key_exists('min_occurrences', $policy) && (!is_int($policy['min_occurrences']) || $policy['min_occurrences'] < 1))) {
         throw new RuntimeException('Invalid policy fields, version or include list');
     }
@@ -86,7 +107,11 @@ HELP);
     }
     $mappings = [];
     foreach ($policy['mappings'] ?? [] as $mapping) {
-        if (!is_array($mapping) || count($mapping) !== 5 || array_diff(array_keys($mapping), ['path', 'line', 'kind', 'sha256', 'symbol']) || !$validPath($mapping['path'] ?? null) || !is_int($mapping['line'] ?? null) || $mapping['line'] < 1 || !in_array($mapping['kind'] ?? null, ['string', 'int', 'float'], true) || !is_string($mapping['sha256'] ?? null) || !preg_match('/^[a-f0-9]{64}$/D', $mapping['sha256']) || !is_string($mapping['symbol'] ?? null) || !preg_match('/^\\\\[A-Za-z_][A-Za-z0-9_\\\\]*::[A-Za-z_][A-Za-z0-9_]*$/D', $mapping['symbol'])) {
+        if (!$mapping instanceof stdClass) {
+            throw new RuntimeException('Invalid mapping');
+        }
+        $mapping = (array) $mapping;
+        if (count($mapping) !== 5 || array_diff(array_keys($mapping), ['path', 'line', 'kind', 'sha256', 'symbol']) || !$validPath($mapping['path'] ?? null) || !is_int($mapping['line'] ?? null) || $mapping['line'] < 1 || !in_array($mapping['kind'] ?? null, ['string', 'int', 'float'], true) || !is_string($mapping['sha256'] ?? null) || !preg_match('/^[a-f0-9]{64}$/D', $mapping['sha256']) || !is_string($mapping['symbol'] ?? null) || !preg_match('/^\\\\[A-Za-z_][A-Za-z0-9_]*(?:\\\\[A-Za-z_][A-Za-z0-9_]*)*::[A-Za-z_][A-Za-z0-9_]*$/D', $mapping['symbol'])) {
             throw new RuntimeException('Invalid mapping');
         }
         $key = implode(':', [$mapping['path'], $mapping['line'], $mapping['kind'], $mapping['sha256']]);
@@ -99,6 +124,12 @@ HELP);
     if ($root === false || !is_dir($root) || !is_readable($root)) {
         throw new RuntimeException('Invalid root directory');
     }
+    return [$policy, $mappings, $root];
+}
+
+/** Select source files without following symlinks. */
+function selectSourceFiles(string $root, array $policy): array
+{
     $files = [];
     $excluded = static function (string $path) use ($policy): bool {
         foreach (explode('/', $path) as $segment) {
@@ -156,6 +187,12 @@ HELP);
         throw new RuntimeException('No PHP files selected');
     }
     ksort($files, SORT_STRING);
+    return $files;
+}
+
+/** Read source files and adapt scanner results to the report's finding format. */
+function scanSources(array $files, array $mappings): array
+{
     $detector = DetectorFactory::create()->build();
     $findings = [];
     $matched = [];
@@ -187,17 +224,22 @@ HELP);
             throw new RuntimeException('Mapping is stale or matches multiple literals: ' . $key);
         }
     }
-    $groupKey = static fn (array $finding): string => json_encode([$finding['kind'], $finding['role'], $finding['sha256'], $finding['hint_sha256']], JSON_THROW_ON_ERROR);
+    return $findings;
+}
+
+/** Group and filter findings without depending on the filesystem or scanner. */
+function aggregateFindings(array $findings, int $minOccurrences): array
+{
     $counts = [];
     foreach ($findings as $finding) {
-        $key = $groupKey($finding);
+        $key = findingGroupKey($finding);
         $counts[$key] = ($counts[$key] ?? 0) + 1;
     }
-    $findings = array_values(array_filter($findings, static fn ($finding) => $counts[$groupKey($finding)] >= ($policy['min_occurrences'] ?? 1)));
+    $findings = array_values(array_filter($findings, static fn ($finding) => $counts[findingGroupKey($finding)] >= $minOccurrences));
     usort($findings, static fn ($a, $b) => [$a['path'], $a['line'], $a['kind'], $a['sha256'], $a['role'], $a['hint_sha256']] <=> [$b['path'], $b['line'], $b['kind'], $b['sha256'], $b['role'], $b['hint_sha256']]);
     $groups = [];
     foreach ($findings as $finding) {
-        $key = $groupKey($finding);
+        $key = findingGroupKey($finding);
         if (!isset($groups[$key])) {
             $groups[$key] = ['kind' => $finding['kind'], 'role' => $finding['role'], 'sha256' => $finding['sha256'], 'hint_sha256' => $finding['hint_sha256'], 'occurrences' => 0, 'files' => []];
         }
@@ -210,19 +252,24 @@ HELP);
         sort($group['files'], SORT_STRING);
     }
     unset($group);
+    return [$findings, array_values($groups), $counts];
+}
+
+function findingGroupKey(array $finding): string
+{
+    return json_encode([$finding['kind'], $finding['role'], $finding['sha256'], $finding['hint_sha256']], JSON_THROW_ON_ERROR);
+}
+
+/** Render the report without exposing literal contents. */
+function renderReport(array $findings, array $groups, array $counts, bool $json): string
+{
     if ($json) {
-        $output = json_encode(['version' => 1, 'findings' => $findings, 'groups' => array_values($groups)], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+        $output = json_encode(['version' => 1, 'findings' => $findings, 'groups' => $groups], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
     } else {
         $output = '';
         foreach ($findings as $finding) {
-            $output .= sprintf("%s:%d %s %s sha256:%s occurrences:%d%s\n", $finding['path'], $finding['line'], $finding['kind'], $finding['role'], $finding['sha256'], $counts[$groupKey($finding)], $finding['symbol'] === null ? '' : ' suggested ' . $finding['symbol']);
+            $output .= sprintf("%s:%d %s %s sha256:%s occurrences:%d%s\n", $finding['path'], $finding['line'], $finding['kind'], $finding['role'], $finding['sha256'], $counts[findingGroupKey($finding)], $finding['symbol'] === null ? '' : ' suggested ' . $finding['symbol']);
         }
     }
-    if ($output !== '' && fwrite(STDOUT, $output) !== strlen($output)) {
-        throw new RuntimeException('Cannot write report');
-    }
-    exit($findings ? 1 : 0);
-} catch (Throwable $error) {
-    fwrite(STDERR, 'magic-values: ' . $error->getMessage() . "\n");
-    exit(2);
+    return $output;
 }
