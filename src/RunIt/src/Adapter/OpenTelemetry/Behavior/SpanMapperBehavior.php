@@ -105,8 +105,7 @@ trait SpanMapperBehavior
             'exception.message' => $throwable['message'] ?? AttributeValues::EMPTY_EXCEPTION_DETAIL,
         ];
 
-        /** @var string|null $throwableTrace */
-        $throwableTrace = $throwable['trace'] ?? null;
+        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
         $this->appendStacktraceIfNonEmpty($attributes, $throwableTrace);
 
         $span->addEvent('exception', $attributes);
@@ -119,6 +118,10 @@ trait SpanMapperBehavior
     {
         /** @var array<string, mixed>|null $throwable */
         $throwable = is_array($result) ? ($result['throwable'] ?? null) : null;
+
+        if (!is_array($throwable)) {
+            return null;
+        }
 
         return $throwable;
     }
