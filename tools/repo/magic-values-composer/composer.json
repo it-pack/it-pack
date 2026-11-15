@@ -1,0 +1,13 @@
+{
+    "name": "it-pack/magic-values-tooling",
+    "description": "Isolated dependencies for the read-only magic-value QA runner",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.5",
+        "it-pack/disenchant-it": "^1.1"
+    },
+    "scripts": {
+        "test": "php ../magic-values-self-test.php vendor/autoload.php"
+    }
+}

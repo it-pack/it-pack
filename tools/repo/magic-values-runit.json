@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "include": ["src/RunIt/src/Application/Publication"],
+    "exclude": [],
+    "min_occurrences": 1,
+    "mappings": []
+}
