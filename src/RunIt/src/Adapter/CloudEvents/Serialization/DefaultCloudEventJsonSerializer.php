@@ -65,11 +65,49 @@ final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerial
 
     public function deserialize(string $payload): CloudEvent
     {
-        $bytes = strlen($payload);
-        if ($bytes > $this->policy->maxSerializedBytes) {
-            throw InvalidCloudEventException::eventTooLarge($bytes, $this->policy->maxSerializedBytes);
-        }
+        $this->assertWithinSizeLimit($payload, $this->policy->maxSerializedBytes);
 
+        $fields = $this->decodePayload($payload);
+        $this->assertRequiredFieldsPresent($fields);
+        $extensions = $this->extractExtensions($fields);
+
+        $id = $fields['id'];
+        assert(is_string($id));
+        $source = $fields['source'];
+        assert(is_string($source));
+        $type = $fields['type'];
+        assert(is_string($type));
+        $specVersion = $fields[CloudEvent::SPEC_VERSION_KEY];
+        assert(is_string($specVersion));
+
+        return CloudEvent::create(
+            $id,
+            $source,
+            $type,
+            $fields['data'] ?? null,
+            $this->optionalString($fields, 'subject'),
+            $this->optionalString($fields, 'time'),
+            $this->optionalString($fields, 'datacontenttype'),
+            $this->optionalString($fields, 'dataschema'),
+            $extensions,
+            $specVersion,
+        );
+    }
+
+    private function assertWithinSizeLimit(string $payload, int $maxBytes): void
+    {
+        $bytes = strlen($payload);
+        if ($bytes > $maxBytes) {
+            throw InvalidCloudEventException::eventTooLarge($bytes, $maxBytes);
+        }
+    }
+
+    /**
+     * @throws JsonException
+     * @return array<string, mixed>
+     */
+    private function decodePayload(string $payload): array
+    {
         try {
             /** @var positive-int $depth */
             $depth = $this->limits->maxSerializationDepth;
@@ -87,15 +125,28 @@ final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerial
             throw InvalidCloudEventException::malformedJson();
         }
 
-        /** @var array<string, mixed> $fields */
-        $fields = $decoded;
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
+    }
 
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function assertRequiredFieldsPresent(array $fields): void
+    {
         foreach ([CloudEvent::SPEC_VERSION_KEY, 'id', 'source', 'type'] as $required) {
             if (!isset($fields[$required]) || !is_string($fields[$required]) || $fields[$required] === '') {
                 throw InvalidCloudEventException::missingField($required);
             }
         }
+    }
 
+    /**
+     * @param array<string, mixed> $fields
+     * @return array<string, mixed>
+     */
+    private function extractExtensions(array $fields): array
+    {
         $extensions = [];
         foreach ($fields as $key => $value) {
             if (in_array($key, self::STANDARD_FIELDS, strict: true)) {
@@ -105,18 +156,7 @@ final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerial
             $extensions[$key] = $value;
         }
 
-        return CloudEvent::create(
-            $fields['id'],
-            $fields['source'],
-            $fields['type'],
-            $fields['data'] ?? null,
-            $this->optionalString($fields, 'subject'),
-            $this->optionalString($fields, 'time'),
-            $this->optionalString($fields, 'datacontenttype'),
-            $this->optionalString($fields, 'dataschema'),
-            $extensions,
-            $fields[CloudEvent::SPEC_VERSION_KEY],
-        );
+        return $extensions;
     }
 
     /**

@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
@@ -96,25 +97,22 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
             return $artifact->executionId()->toString();
         }
 
-        if ($artifact instanceof TrustedArtifactProjectionInterface
-            || $artifact instanceof VerifiedArtifactProjection) {
-            $normalized = $artifact->normalize();
-            $id = $normalized[$artifact->artifactType() === 'execution'
-                ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
-
-            if (is_string($id)) {
-                return $id;
-            }
-        }
-
-        if ($artifact instanceof RedactedArtifactInterface) {
-            $normalized = $artifact->normalize();
-            $id = $normalized[$artifact->artifactType() === 'execution'
-                ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
-
-            return is_string($id) ? $id : null;
+        if ($artifact instanceof VerifiedArtifactProjection
+            || $artifact instanceof RedactedArtifactInterface) {
+            return $this->executionIdentityFromNormalized($artifact->normalize(), $artifact->artifactType());
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function executionIdentityFromNormalized(array $normalized, string $artifactType): ?string
+    {
+        $key = $artifactType === ArtifactType::EXECUTION ? ArtifactField::ID : ArtifactField::EXECUTION_ID;
+        $id = $normalized[$key] ?? null;
+
+        return is_string($id) ? $id : null;
     }
 }

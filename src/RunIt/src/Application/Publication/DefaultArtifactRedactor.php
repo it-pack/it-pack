@@ -374,7 +374,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $maskThrowables = false,
         bool $truncated = false
     ): array {
-        if ($depth >= self::MAX_MASKING_DEPTH || ++$nodes > self::MAX_MASKING_NODES) {
+        if ($this->isMaskingLimitReached($depth, $nodes)) {
             return [$this->config->marker, true, true];
         }
 
@@ -391,39 +391,14 @@ final class DefaultArtifactRedactor implements RedactorInterface
                 break;
             }
 
-            if (isset($keySet[$key])) {
-                $result[$key] = $this->config->marker;
-                $masked = true;
-
-                continue;
-            }
-
-            if ($maskThrowables && $key === ArtifactField::THROWABLE && is_array($value)) {
-                [$result[$key], $innerMasked, $innerTruncated] = $this->maskThrowable($value, $depth + 1, $truncated);
-                if ($innerMasked) {
-                    $masked = true;
-                }
-
-                if ($innerTruncated) {
-                    $truncated = true;
-                }
-
-                continue;
-            }
-
-            if (!is_array($value)) {
-                $result[$key] = $value;
-
-                continue;
-            }
-
-            [$result[$key], $innerMasked, $innerTruncated] = $this->maskKeysRecursive(
+            [$result[$key], $innerMasked, $innerTruncated] = $this->maskSingleValue(
                 $value,
-                $keys,
-                $depth + 1,
-                $nodes,
+                $key,
+                $keySet,
+                $depth,
                 $maskThrowables,
                 $truncated,
+                $nodes,
             );
 
             if ($innerMasked) {
@@ -436,6 +411,46 @@ final class DefaultArtifactRedactor implements RedactorInterface
         }
 
         return [$result, $masked, $truncated];
+    }
+
+    private function isMaskingLimitReached(int $depth, int &$nodes): bool
+    {
+        return $depth >= self::MAX_MASKING_DEPTH || ++$nodes > self::MAX_MASKING_NODES;
+    }
+
+    /**
+     * @param array<string, true>                  $keySet
+     * @return array{0: array<mixed, mixed>|mixed|string, 1: bool, 2: bool}
+     */
+    private function maskSingleValue(
+        mixed $value,
+        int|string $key,
+        array $keySet,
+        int $depth,
+        bool $maskThrowables,
+        bool $truncated,
+        int &$nodes,
+    ): array {
+        if (isset($keySet[$key])) {
+            return [$this->config->marker, true, false];
+        }
+
+        if ($maskThrowables && $key === ArtifactField::THROWABLE && is_array($value)) {
+            return $this->maskThrowable($value, $depth + 1, $truncated);
+        }
+
+        if (!is_array($value)) {
+            return [$value, false, false];
+        }
+
+        return $this->maskKeysRecursive(
+            $value,
+            array_keys($keySet),
+            $depth + 1,
+            $nodes,
+            $maskThrowables,
+            $truncated,
+        );
     }
 
     /**

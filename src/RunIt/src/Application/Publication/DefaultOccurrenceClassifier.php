@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
@@ -48,7 +49,7 @@ final class DefaultOccurrenceClassifier implements
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         if ((!$artifact instanceof RedactedArtifactInterface && !$artifact instanceof VerifiedArtifactProjection)
-            || $artifact->artifactType() !== 'occurrence') {
+            || $artifact->artifactType() !== ArtifactType::OCCURRENCE) {
             $this->inner->publish($artifact);
             return;
         }
@@ -68,11 +69,12 @@ final class DefaultOccurrenceClassifier implements
      */
     public function isNotValid(array $fields): bool
     {
-        return !is_string($fields['id'] ?? null)
-            || !is_string($fields['execution_id'] ?? null)
-            || (!is_string($fields['activity_id'] ?? null) && ($fields['activity_id'] ?? null) !== null)
-            || !is_int($fields['time'] ?? null) || $fields['time'] < 0
-            || !is_int($fields['sequence'] ?? null) || $fields['sequence'] < 0;
+        return !is_string($fields[ArtifactField::ID] ?? null)
+            || !is_string($fields[ArtifactField::EXECUTION_ID] ?? null)
+            || (!is_string($fields[ArtifactField::ACTIVITY_ID] ?? null)
+                && ($fields[ArtifactField::ACTIVITY_ID] ?? null) !== null)
+            || !is_int($fields[ArtifactField::TIME] ?? null) || $fields[ArtifactField::TIME] < 0
+            || !is_int($fields[ArtifactField::SEQUENCE] ?? null) || $fields[ArtifactField::SEQUENCE] < 0;
     }
 
     /**
@@ -84,19 +86,19 @@ final class DefaultOccurrenceClassifier implements
         $this->classifier->publish(
             $this->redactedFactory->create(
                 [
-                    'id' => $fields['id'],
-                    'execution_id' => $fields['execution_id'],
-                    'activity_id' => $fields['activity_id'] ?? null,
-                    'type' => 'runit.redacted.v1',
-                    'version' => '1',
-                    'source' => 'runit:redacted',
-                    'subject' => null,
-                    'time' => $fields['time'],
-                    'data' => null,
-                    'data_schema' => null,
-                    'content_type' => 'application/json',
-                    'extension_attributes' => [],
-                    'sequence' => $fields['sequence'],
+                    ArtifactField::ID => $fields[ArtifactField::ID],
+                    ArtifactField::EXECUTION_ID => $fields[ArtifactField::EXECUTION_ID],
+                    ArtifactField::ACTIVITY_ID => $fields[ArtifactField::ACTIVITY_ID] ?? null,
+                    ArtifactField::TYPE => 'runit.redacted.v1',
+                    ArtifactField::VERSION => '1',
+                    ArtifactField::SOURCE => 'runit:redacted',
+                    ArtifactField::SUBJECT => null,
+                    ArtifactField::TIME => $fields[ArtifactField::TIME],
+                    ArtifactField::DATA => null,
+                    ArtifactField::DATA_SCHEMA => null,
+                    ArtifactField::CONTENT_TYPE => 'application/json',
+                    ArtifactField::EXTENSION_ATTRIBUTES => [],
+                    ArtifactField::SEQUENCE => $fields[ArtifactField::SEQUENCE],
                 ],
             )
         );

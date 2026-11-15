@@ -43,25 +43,7 @@ final readonly class SecurityLimits
         public int $maxSerializationBytes = 1048576,
         public int $maxTrackedExecutions = 10000,
     ) {
-        foreach (
-            [
-                'maxAttributeCount' => $this->maxAttributeCount,
-                'maxAttributeKeyBytes' => $this->maxAttributeKeyBytes,
-                'maxAttributeValueBytes' => $this->maxAttributeValueBytes,
-                'maxAttributeDepth' => $this->maxAttributeDepth,
-                'maxOccurrencePayloadBytes' => $this->maxOccurrencePayloadBytes,
-                'maxSnapshotPayloadBytes' => $this->maxSnapshotPayloadBytes,
-                'maxActivityDepth' => $this->maxActivityDepth,
-                'maxArtifactsPerExecution' => $this->maxArtifactsPerExecution,
-                'maxSerializationDepth' => $this->maxSerializationDepth,
-                'maxSerializationBytes' => $this->maxSerializationBytes,
-                'maxTrackedExecutions' => $this->maxTrackedExecutions,
-            ] as $name => $value
-        ) {
-            if ($value < 1) {
-                throw InvalidSecurityLimitException::forNonPositive($name, $value);
-            }
-        }
+        $this->validate();
     }
 
     public static function default(): self
@@ -155,5 +137,28 @@ final readonly class SecurityLimits
             maxSerializationBytes: $merged['maxSerializationBytes'],
             maxTrackedExecutions: $merged['maxTrackedExecutions'],
         );
+    }
+
+    private function validate(): void
+    {
+        foreach (
+            [
+                'maxAttributeCount' => $this->maxAttributeCount,
+                'maxAttributeKeyBytes' => $this->maxAttributeKeyBytes,
+                'maxAttributeValueBytes' => $this->maxAttributeValueBytes,
+                'maxAttributeDepth' => $this->maxAttributeDepth,
+                'maxOccurrencePayloadBytes' => $this->maxOccurrencePayloadBytes,
+                'maxSnapshotPayloadBytes' => $this->maxSnapshotPayloadBytes,
+                'maxActivityDepth' => $this->maxActivityDepth,
+                'maxArtifactsPerExecution' => $this->maxArtifactsPerExecution,
+                'maxSerializationDepth' => $this->maxSerializationDepth,
+                'maxSerializationBytes' => $this->maxSerializationBytes,
+                'maxTrackedExecutions' => $this->maxTrackedExecutions,
+            ] as $name => $value
+        ) {
+            if ($value < 1) {
+                throw InvalidSecurityLimitException::forNonPositive($name, $value);
+            }
+        }
     }
 }

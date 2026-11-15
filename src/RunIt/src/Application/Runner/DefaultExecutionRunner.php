@@ -30,6 +30,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
@@ -483,19 +484,17 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             return;
         }
 
+        $this->publishTerminalSnapshot($completed);
+    }
+
+    private function publishTerminalSnapshot(ExecutionInterface $completed): void
+    {
         try {
             $snapshot = $this->snapshotFactory->terminal($completed);
             $executionExportId = $this->authority->exportIdForArtifact($completed);
             $executionId = $completed->executionId()->toString();
-            $snapshotId = $snapshot->id()->toString();
-            $snapshotExecutionId = $snapshot->executionId()->toString();
-            $fields = $snapshot->normalize();
-            if ($executionExportId === null
-                || $snapshotExecutionId !== $executionId
-                || ($fields[ArtifactField::EXECUTION_ID] ?? null) !== $executionId
-                || ($fields[ArtifactField::ID] ?? null) !== $snapshotId
-                || !$this->authority->verifyExportId($executionExportId, 'execution', $executionId)
-            ) {
+
+            if (!$this->verifyTerminalSnapshotProvenance($snapshot, $executionExportId, $executionId)) {
                 $this->authority->reportUnverified(
                     new RuntimeException('Terminal snapshot provenance verification failed.'),
                 );
@@ -503,28 +502,18 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
                 return;
             }
 
-            $snapshotExportId = $this->authority->exportIdForArtifact($snapshot);
+            $snapshotExportId = $this->resolveSnapshotExportId($snapshot, $executionId);
             if ($snapshotExportId === null) {
-                $snapshotExportId = $this->authority->bindArtifact(
-                    'snapshot',
-                    'terminal-snapshot',
-                    $executionId,
-                    $snapshotId,
-                    'execution-terminal-snapshot',
-                );
-                if ($snapshotExportId === null || !$this->authority->attest($snapshot, $snapshotExportId)) {
-                    $this->authority->reportUnverified(
-                        new RuntimeException('Terminal snapshot provenance verification failed.'),
-                    );
-
-                    return;
-                }
+                return;
             }
 
-            if (!$this->authority->verifyExportId($snapshotExportId, 'terminal-snapshot', $executionId)
-                || $this->authority->exportIdForArtifact($completed) !== $executionExportId
-                || $this->authority->exportIdentityFields($snapshot) === null
-            ) {
+            if (!$this->verifySnapshotExportId(
+                $snapshot,
+                $snapshotExportId,
+                $executionId,
+                $executionExportId,
+                $completed
+            )) {
                 $this->authority->reportUnverified(
                     new RuntimeException('Terminal snapshot provenance verification failed.'),
                 );
@@ -536,6 +525,59 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
         }
+    }
+
+    private function verifyTerminalSnapshotProvenance(
+        ExecutionSnapshotInterface $snapshot,
+        ?string $executionExportId,
+        string $executionId,
+    ): bool {
+        $snapshotId = $snapshot->id()->toString();
+        $snapshotExecutionId = $snapshot->executionId()->toString();
+        $fields = $snapshot->normalize();
+
+        return $executionExportId !== null
+            && $snapshotExecutionId === $executionId
+            && ($fields[ArtifactField::EXECUTION_ID] ?? null) === $executionId
+            && ($fields[ArtifactField::ID] ?? null) === $snapshotId
+            && $this->authority->verifyExportId($executionExportId, 'execution', $executionId);
+    }
+
+    private function resolveSnapshotExportId(
+        ExecutionSnapshotInterface $snapshot,
+        string $executionId,
+    ): ?string {
+        $snapshotExportId = $this->authority->exportIdForArtifact($snapshot);
+        if ($snapshotExportId === null) {
+            $snapshotExportId = $this->authority->bindArtifact(
+                'snapshot',
+                'terminal-snapshot',
+                $executionId,
+                $snapshot->id()->toString(),
+                'execution-terminal-snapshot',
+            );
+            if ($snapshotExportId === null || !$this->authority->attest($snapshot, $snapshotExportId)) {
+                $this->authority->reportUnverified(
+                    new RuntimeException('Terminal snapshot provenance verification failed.'),
+                );
+
+                return null;
+            }
+        }
+
+        return $snapshotExportId;
+    }
+
+    private function verifySnapshotExportId(
+        ExecutionSnapshotInterface $snapshot,
+        string $snapshotExportId,
+        string $executionId,
+        ?string $executionExportId,
+        ExecutionInterface $completed,
+    ): bool {
+        return $this->authority->verifyExportId($snapshotExportId, 'terminal-snapshot', $executionId)
+            && $this->authority->exportIdForArtifact($completed) === $executionExportId
+            && $this->authority->exportIdentityFields($snapshot) !== null;
     }
 
     /**

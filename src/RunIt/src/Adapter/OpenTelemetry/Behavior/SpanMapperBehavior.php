@@ -94,27 +94,36 @@ trait SpanMapperBehavior
 
     private function recordRedactedThrowable(SpanInterface $span, mixed $result): void
     {
-        $throwable = is_array($result) ? ($result['throwable'] ?? null) : null;
+        $throwable = $this->resolveRedactedThrowable($result);
         if (!is_array($throwable)) {
             return;
         }
 
-        $throwableClass = is_string($throwable['class'] ?? null)
-            ? $throwable['class']
-            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
-        $throwableMessage = is_string($throwable['message'] ?? null)
-            ? $throwable['message']
-            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
-        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
-
+        /** @var array<string, mixed> $throwable */
         $attributes = [
-            'exception.type' => $throwableClass,
-            'exception.message' => $throwableMessage,
+            'exception.type' => $throwable['class'] ?? AttributeValues::EMPTY_EXCEPTION_DETAIL,
+            'exception.message' => $throwable['message'] ?? AttributeValues::EMPTY_EXCEPTION_DETAIL,
         ];
 
+        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
         $this->appendStacktraceIfNonEmpty($attributes, $throwableTrace);
 
         $span->addEvent('exception', $attributes);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveRedactedThrowable(mixed $result): ?array
+    {
+        /** @var array<string, mixed>|null $throwable */
+        $throwable = is_array($result) ? ($result['throwable'] ?? null) : null;
+
+        if (!is_array($throwable)) {
+            return null;
+        }
+
+        return $throwable;
     }
 
     abstract private function getDefaultRedactedName(): string;

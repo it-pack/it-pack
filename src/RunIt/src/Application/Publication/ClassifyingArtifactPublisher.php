@@ -34,6 +34,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Measurement\Measurement;
+use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
 use ItPack\RunIt\Domain\Observation\Observation;
@@ -501,10 +502,17 @@ final class ClassifyingArtifactPublisher implements
      */
     private function measurementFieldTypesValid(array $fields): bool
     {
-        return is_string($fields['name']) && is_string($fields['kind']) && is_string($fields['unit'])
-            && is_string($fields['execution_id']) && is_int($fields['timestamp'])
-            && is_int($fields['sequence']) && is_array($fields['attributes'])
-            && (is_string($fields['activity_id']) || $fields['activity_id'] === null);
+        return is_string($fields['name'])
+            && is_string($fields['kind'])
+            && is_string($fields['unit'])
+            && is_string($fields['execution_id'])
+            && is_int($fields['timestamp'])
+            && is_int($fields['sequence'])
+            && is_array($fields['attributes'])
+            && (
+                is_string($fields['activity_id'])
+                || $fields['activity_id'] === null
+            );
     }
 
     private function resolveMeasurementFactory(mixed $kind): ?Closure
@@ -514,11 +522,11 @@ final class ClassifyingArtifactPublisher implements
         }
 
         return match ($kind) {
-            'counter' => Measurement::counter(...),
-            'size' => Measurement::size(...),
-            'gauge' => Measurement::gauge(...),
-            'duration' => Measurement::duration(...),
-            'ratio' => Measurement::ratio(...),
+            MeasurementKind::Counter->value => Measurement::counter(...),
+            MeasurementKind::Size->value => Measurement::size(...),
+            MeasurementKind::Gauge->value => Measurement::gauge(...),
+            MeasurementKind::Duration->value => Measurement::duration(...),
+            MeasurementKind::Ratio->value => Measurement::ratio(...),
             default => null,
         };
     }
@@ -644,23 +652,40 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        try {
-            $executionId = ExecutionId::fromString($identifiers['execution_id']);
-            $activityId = $this->resolveTypedActivityId($identifiers);
-            $instant = Instant::of($identifiers['timestamp']);
-            $sequence = ArtifactSequence::of($identifiers['sequence']);
-            $attributes = AttributeCollection::fromArray($attributes);
+        return $this->buildObservationArtifact(
+            $fields,
+            $identifiers,
+            $attributes,
+            $throwable,
+            $trace,
+            $factory,
+        );
+    }
 
+    /**
+     * @param array<string, mixed> $fields
+     * @param array{id: string, execution_id: string, activity_id: string|null, message: string, diagnostic_code: string|null, timestamp: int, sequence: int} $identifiers
+     * @param array<string, array<int|string, mixed>|bool|float|int|string|null> $attributes
+     */
+    private function buildObservationArtifact(
+        array $fields,
+        array $identifiers,
+        array $attributes,
+        ?ThrowableDescriptionInterface $throwable,
+        bool $trace,
+        Closure $factory,
+    ): ?ObservationInterface {
+        try {
             $artifact = $factory(
                 ObservationId::fromString($identifiers['id']),
-                $executionId,
+                ExecutionId::fromString($identifiers['execution_id']),
                 $identifiers['message'],
-                $activityId,
+                $this->resolveTypedActivityId($identifiers),
                 $identifiers['diagnostic_code'],
-                $attributes,
+                AttributeCollection::fromArray($attributes),
                 $throwable,
-                $instant,
-                $sequence,
+                Instant::of($identifiers['timestamp']),
+                ArtifactSequence::of($identifiers['sequence']),
             );
             if (!$artifact instanceof Observation) {
                 return null;
@@ -685,12 +710,12 @@ final class ClassifyingArtifactPublisher implements
      */
     private function resolveTypedActivityId(array $identifiers): ?ActivityId
     {
-        $activityIdValue = $identifiers['activity_id'];
-        if (is_string($activityIdValue)) {
-            return ActivityId::fromString($activityIdValue);
-        }
 
-        return null;
+        $activityIdValue = $identifiers['activity_id'];
+
+        return is_string($activityIdValue)
+            ? ActivityId::fromString($activityIdValue)
+            : null;
     }
 
     /**
@@ -720,11 +745,16 @@ final class ClassifyingArtifactPublisher implements
      */
     private function observationFieldTypesValid(array $fields): bool
     {
-        return is_string($fields['execution_id']) && is_int($fields['timestamp'])
-            && is_int($fields['sequence']) && is_array($fields['attributes'])
-            && (is_string($fields['activity_id']) || $fields['activity_id'] === null)
-            && is_string($fields['id']) && is_string($fields['message'])
-            && (is_string($fields['diagnostic_code']) || $fields['diagnostic_code'] === null);
+        return is_string($fields['execution_id'])
+            && is_int($fields['timestamp'])
+            && is_int($fields['sequence'])
+            && is_array($fields['attributes'])
+            && (is_string($fields['activity_id'])
+                || $fields['activity_id'] === null)
+            && is_string($fields['id'])
+            && is_string($fields['message'])
+            && (is_string($fields['diagnostic_code'])
+                || $fields['diagnostic_code'] === null);
     }
 
     private function resolveObservationFactory(mixed $severity): ?Closure
@@ -738,17 +768,18 @@ final class ClassifyingArtifactPublisher implements
 
     private function observationFactoryBySeverity(string $severity): ?Closure
     {
-        return match ($severity) {
-            'debug' => Observation::debug(...),
-            'info' => Observation::info(...),
-            'notice' => Observation::notice(...),
-            'warning' => Observation::warning(...),
-            'error' => Observation::error(...),
-            'critical' => Observation::critical(...),
-            'alert' => Observation::alert(...),
-            'emergency' => Observation::emergency(...),
-            default => null,
-        };
+        $factories = [
+            ObservationSeverity::Debug->value => Observation::debug(...),
+            ObservationSeverity::Info->value => Observation::info(...),
+            ObservationSeverity::Notice->value => Observation::notice(...),
+            ObservationSeverity::Warning->value => Observation::warning(...),
+            ObservationSeverity::Error->value => Observation::error(...),
+            ObservationSeverity::Critical->value => Observation::critical(...),
+            ObservationSeverity::Alert->value => Observation::alert(...),
+            ObservationSeverity::Emergency->value => Observation::emergency(...),
+        ];
+
+        return $factories[$severity] ?? null;
     }
 
     /**
@@ -851,23 +882,52 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedExecution(array $fields): ?ExecutionInterface
     {
-        if (array_any(
-            [
-            'id', 'name', 'kind', 'status', 'started_at', 'ended_at', 'parent_execution_id',
-            'linked_execution_ids', 'sequence', 'context', 'result'],
-            fn (string $key): bool => !array_key_exists($key, $fields)
-        )) {
+        if ($this->executionRequiredKeysMissing($fields)) {
             return null;
         }
 
-        if ($fields['context'] !== [] || !is_array($fields['linked_execution_ids'])
+        if ($this->executionFieldTypesInvalid($fields)) {
+            return null;
+        }
+
+        /** @var array{id: string, name: string, kind: string, status: string, started_at: int, sequence: int, parent_execution_id: string|null, linked_execution_ids: array<int|string, mixed>, result: mixed, context: array<mixed>, ended_at: int|null} $fields */
+
+        return $this->buildTypedExecution($fields);
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return bool true when any required execution key is absent
+     */
+    private function executionRequiredKeysMissing(array $fields): bool
+    {
+        return array_any(
+            [
+                'id', 'name', 'kind', 'status', 'started_at', 'ended_at', 'parent_execution_id',
+                'linked_execution_ids', 'sequence', 'context', 'result'],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return bool true when any execution field type is invalid
+     */
+    private function executionFieldTypesInvalid(array $fields): bool
+    {
+        return $fields['context'] !== []
+            || !is_array($fields['linked_execution_ids'])
             || !is_string($fields['id']) || !is_string($fields['name']) || !is_string($fields['kind'])
             || !is_string($fields['status']) || !is_int($fields['started_at']) || !is_int($fields['sequence'])
             || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
-            || (!is_string($fields['parent_execution_id']) && $fields['parent_execution_id'] !== null)) {
-            return null;
-        }
+            || (!is_string($fields['parent_execution_id']) && $fields['parent_execution_id'] !== null);
+    }
 
+    /**
+     * @param array{id: string, name: string, kind: string, status: string, started_at: int, sequence: int, parent_execution_id: string|null, linked_execution_ids: array<int|string, mixed>, result: mixed, context: array<mixed>, ended_at: int|null} $fields
+     */
+    private function buildTypedExecution(array $fields): ?ExecutionInterface
+    {
         try {
             $status = ExecutionStatus::tryFrom($fields['status']);
             if ($status === null) {
@@ -980,29 +1040,58 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedActivity(array $fields): ?ActivityInterface
     {
-        if (array_any(
-            [
-            'id', 'execution_id', 'name', 'kind', 'status', 'started_at', 'ended_at',
-            'parent_activity_id', 'sequence', 'attributes', 'throwable'],
-            fn (string $key): bool => !array_key_exists($key, $fields)
-        )) {
+        if ($this->activityRequiredKeysMissing($fields)) {
             return null;
         }
 
-        if (!is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['name'])
-            || !is_string($fields['kind']) || !is_string($fields['status']) || !is_int($fields['started_at'])
-            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
-            || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
-            || (array_key_exists('duration_ns', $fields) && !is_int($fields['duration_ns']))
-            || (!is_string($fields['parent_activity_id']) && $fields['parent_activity_id'] !== null)) {
+        if ($this->activityFieldTypesInvalid($fields)) {
             return null;
         }
+
+        /** @var array{id: string, execution_id: string, name: string, kind: string, status: string, started_at: int, sequence: int, parent_activity_id: string|null, attributes: array<mixed>, throwable: mixed, ended_at: int|null, duration_ns?: int} $fields */
 
         $attributes = $this->typedAttributes($fields['attributes']);
         if ($attributes === null) {
             return null;
         }
 
+        return $this->buildTypedActivity($fields, $attributes);
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return bool true when any required activity key is absent
+     */
+    private function activityRequiredKeysMissing(array $fields): bool
+    {
+        return array_any(
+            [
+                'id', 'execution_id', 'name', 'kind', 'status', 'started_at', 'ended_at',
+                'parent_activity_id', 'sequence', 'attributes', 'throwable'],
+            fn (string $key): bool => !array_key_exists($key, $fields)
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return bool true when any activity field type is invalid
+     */
+    private function activityFieldTypesInvalid(array $fields): bool
+    {
+        return !is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['name'])
+            || !is_string($fields['kind']) || !is_string($fields['status']) || !is_int($fields['started_at'])
+            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
+            || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
+            || (array_key_exists('duration_ns', $fields) && !is_int($fields['duration_ns']))
+            || (!is_string($fields['parent_activity_id']) && $fields['parent_activity_id'] !== null);
+    }
+
+    /**
+     * @param array{id: string, execution_id: string, name: string, kind: string, status: string, started_at: int, sequence: int, parent_activity_id: string|null, attributes: array<mixed>, throwable: mixed, ended_at: int|null, duration_ns?: int} $fields
+     * @param array<string, array<int|string, mixed>|bool|float|int|string|null> $attributes
+     */
+    private function buildTypedActivity(array $fields, array $attributes): ?ActivityInterface
+    {
         try {
             $status = ActivityStatus::tryFrom($fields['status']);
             $throwable = $this->typedThrowable($fields['throwable']);
@@ -1077,7 +1166,31 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function typedSnapshot(array $fields): ?SnapshotInterface
     {
-        if (array_any(
+        if ($this->snapshotRequiredKeysMissing($fields)) {
+            return null;
+        }
+
+        if ($this->snapshotFieldTypesInvalid($fields)) {
+            return null;
+        }
+
+        /** @var array{id: string, execution_id: string, type: string, classification: string, schema_version: int, created_at: int, content_type: string, content_hash: string, sequence: int, attributes: array<mixed>, activity_id: string|null, predecessor_id: string|null, payload: mixed} $fields */
+
+        $attributes = $this->typedAttributes($fields['attributes']);
+        if ($attributes === null) {
+            return null;
+        }
+
+        return $this->buildTypedSnapshot($fields, $attributes);
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return bool true when any required snapshot key is absent
+     */
+    private function snapshotRequiredKeysMissing(array $fields): bool
+    {
+        return array_any(
             [
                 'id',
                 'activity_id',
@@ -1094,25 +1207,30 @@ final class ClassifyingArtifactPublisher implements
                 'attributes',
             ],
             fn (string $key): bool => !array_key_exists($key, $fields)
-        )) {
-            return null;
-        }
+        );
+    }
 
-        if (!is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['type'])
+    /**
+     * @param array<string, mixed> $fields
+     * @return bool true when any snapshot field type is invalid
+     */
+    private function snapshotFieldTypesInvalid(array $fields): bool
+    {
+        return !is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['type'])
             || !is_string($fields['classification']) || !is_int($fields['schema_version'])
             || !is_int($fields['created_at']) || !is_string($fields['content_type'])
             || !is_string($fields['content_hash'])
             || !is_int($fields['sequence']) || !is_array($fields['attributes'])
             || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)
-            || (!is_string($fields['predecessor_id']) && $fields['predecessor_id'] !== null)) {
-            return null;
-        }
+            || (!is_string($fields['predecessor_id']) && $fields['predecessor_id'] !== null);
+    }
 
-        $attributes = $this->typedAttributes($fields['attributes']);
-        if ($attributes === null) {
-            return null;
-        }
-
+    /**
+     * @param array{id: string, execution_id: string, type: string, classification: string, schema_version: int, created_at: int, content_type: string, content_hash: string, sequence: int, attributes: array<mixed>, activity_id: string|null, predecessor_id: string|null, payload: mixed} $fields
+     * @param array<string, array<int|string, mixed>|bool|float|int|string|null> $attributes
+     */
+    private function buildTypedSnapshot(array $fields, array $attributes): ?SnapshotInterface
+    {
         try {
             $classification = SnapshotClassification::tryFrom($fields['classification']);
             if ($classification === null) {
@@ -1155,7 +1273,7 @@ final class ClassifyingArtifactPublisher implements
 
     /**
      * @param array<mixed> $values
-     * @return array<string, array<mixed>|bool|float|int|string|null>|null
+     * @return array<string, array<int|string, mixed>|bool|float|int|string|null>|null
      */
     private function typedAttributes(array $values): ?array
     {

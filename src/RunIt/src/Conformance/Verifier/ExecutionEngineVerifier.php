@@ -44,19 +44,7 @@ final class ExecutionEngineVerifier implements VerifierInterface
             )));
         }
 
-        if ($value !== 42) {
-            $result = $result->add(new ConformanceViolation(
-                'run.wrong-value',
-                'run() did not return the operation result'
-            ));
-        }
-
-        if ($value !== $again) {
-            $result = $result->add(new ConformanceViolation(
-                'run.not-deterministic',
-                'run() returned different results for identical operations'
-            ));
-        }
+        $result = $this->checkRunValue($result, $value, $again);
 
         try {
             $null = $engine->run($scope, static fn (): ?int => null);
@@ -81,6 +69,28 @@ final class ExecutionEngineVerifier implements VerifierInterface
                 'capability() threw: %s',
                 $throwable->getMessage()
             )));
+        }
+
+        return $result;
+    }
+
+    private function checkRunValue(
+        ConformanceResult $result,
+        mixed $value,
+        mixed $again,
+    ): ConformanceResult {
+        if ($value !== 42) {
+            $result = $result->add(new ConformanceViolation(
+                'run.wrong-value',
+                'run() did not return the operation result'
+            ));
+        }
+
+        if ($value !== $again) {
+            $result = $result->add(new ConformanceViolation(
+                'run.not-deterministic',
+                'run() returned different results for identical operations'
+            ));
         }
 
         return $result;

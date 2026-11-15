@@ -35,7 +35,7 @@ final class MonotonicClockVerifier implements VerifierInterface
         $result = new ConformanceResult($this->port());
 
         try {
-            $wall = $clock->nowSeconds();
+            $clock->nowSeconds();
         } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('nowSeconds.throws', sprintf(
                 'nowSeconds() threw: %s',
@@ -55,11 +55,10 @@ final class MonotonicClockVerifier implements VerifierInterface
             }
 
             if ($previous !== null && $reading < $previous) {
-                $result = $result->add(new ConformanceViolation(
+                return $result->add(new ConformanceViolation(
                     'monotonicNanoseconds.not-monotonic',
                     'monotonicNanoseconds() decreased between readings'
                 ));
-                break;
             }
 
             $previous = $reading;
@@ -75,6 +74,16 @@ final class MonotonicClockVerifier implements VerifierInterface
             )));
         }
 
+        $result = $this->checkMeasureValues($result, $zero, $forward);
+
+        return $result;
+    }
+
+    private function checkMeasureValues(
+        ConformanceResult $result,
+        int $zero,
+        int $forward,
+    ): ConformanceResult {
         if ($zero !== 0) {
             $result = $result->add(new ConformanceViolation(
                 'measure.zero',

@@ -37,14 +37,12 @@ final class ArtifactPublisherVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        $artifacts = [
+        foreach ([
             $fixture->safeObservation(),
             $fixture->occurrence(),
             $fixture->measurement(),
             $fixture->snapshot(),
-        ];
-
-        foreach ($artifacts as $artifact) {
+        ] as $artifact) {
             $before = $artifact->normalize();
 
             try {
@@ -66,29 +64,47 @@ final class ArtifactPublisherVerifier implements VerifierInterface
         }
 
         if ($publisher instanceof FlushablePublisherInterface) {
-            try {
-                $publisher->flush();
-                $publisher->flush();
-            } catch (Throwable $e) {
-                $result = $result->add(new ConformanceViolation(
-                    'flush.throws',
-                    sprintf('flush() threw: %s', $e->getMessage()),
-                    ViolationSeverity::Warning,
-                ));
-            }
+            $result = $this->verifyFlush($result, $publisher);
         }
 
         if ($publisher instanceof CloseablePublisherInterface) {
-            try {
-                $publisher->close();
-                $publisher->close();
-            } catch (Throwable $e) {
-                $result = $result->add(new ConformanceViolation(
-                    'close.throws',
-                    sprintf('close() threw: %s', $e->getMessage()),
-                    ViolationSeverity::Warning,
-                ));
-            }
+            $result = $this->verifyClose($result, $publisher);
+        }
+
+        return $result;
+    }
+
+    private function verifyFlush(
+        ConformanceResult $result,
+        FlushablePublisherInterface $publisher,
+    ): ConformanceResult {
+        try {
+            $publisher->flush();
+            $publisher->flush();
+        } catch (Throwable $throwable) {
+            return $result->add(new ConformanceViolation(
+                'flush.throws',
+                sprintf('flush() threw: %s', $throwable->getMessage()),
+                ViolationSeverity::Warning,
+            ));
+        }
+
+        return $result;
+    }
+
+    private function verifyClose(
+        ConformanceResult $result,
+        CloseablePublisherInterface $publisher,
+    ): ConformanceResult {
+        try {
+            $publisher->close();
+            $publisher->close();
+        } catch (Throwable $throwable) {
+            return $result->add(new ConformanceViolation(
+                'close.throws',
+                sprintf('close() threw: %s', $throwable->getMessage()),
+                ViolationSeverity::Warning,
+            ));
         }
 
         return $result;

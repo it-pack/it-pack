@@ -325,26 +325,19 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $from = $this->records[$fromExportId] ?? null;
         $to = $this->records[$toExportId] ?? null;
 
-        if ($from === null || $from['released'] || $to === null || $to['released']) {
+        if (!$this->areEndpointsVerified($from, $to)) {
             return false;
         }
+
+        /** @var array<string, mixed> $from */
+        /** @var array<string, mixed> $to */
 
         $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
-        if ($roles === null) {
+        if ($roles === null || !$this->areRolesValid($from, $to, $roles)) {
             return false;
         }
 
-        if (
-            !in_array($from['role'], $roles['from'], true)
-            || !in_array($to['role'], $roles['to'], true)
-        ) {
-            return false;
-        }
-
-        if (
-            ($from['executionId'] !== $to['executionId'] || $fromExportId === $toExportId)
-            && str_starts_with($relationshipType, 'activity-')
-        ) {
+        if ($this->isActivityRelationshipInvalid($from, $to, $relationshipType, $fromExportId, $toExportId)) {
             return false;
         }
 
@@ -549,21 +542,12 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return null;
         }
 
+        $executionExportId = null;
         if ($relationshipType !== '') {
-            $executionExportId = $this->exportIdForBusinessId($executionId, $executionId, 'execution');
-            $execution = $executionExportId !== null ? ($this->records[$executionExportId] ?? null) : null;
-            $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
-            if ($execution === null || $execution['released'] || $roles === null
-                || $this->edgeCount >= $this->maxEdges
-                || !in_array($execution['role'], $roles['from'], true)
-                || !in_array($role, $roles['to'], true)
-            ) {
-                $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
-
+            $executionExportId = $this->resolveExecutionExportId($executionId, $relationshipType, $role);
+            if ($executionExportId === null) {
                 return null;
             }
-
-            unset($execution);
         }
 
         try {
@@ -640,6 +624,69 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         } finally {
             $this->reporting = false;
         }
+    }
+
+    /**
+     * @param ?array<string, mixed> $from
+     * @param ?array<string, mixed> $to
+     */
+    private function areEndpointsVerified(?array $from, ?array $to): bool
+    {
+        return $from !== null && $from['released'] !== true && $to !== null && $to['released'] !== true;
+    }
+
+    /**
+     * @param array<string, mixed> $from
+     * @param array<string, mixed> $to
+     * @param array<string, mixed> $roles
+     */
+    private function areRolesValid(array $from, array $to, array $roles): bool
+    {
+        $fromRoles = $roles['from'];
+        $toRoles = $roles['to'];
+        assert(is_array($fromRoles));
+        assert(is_array($toRoles));
+
+        return in_array($from['role'], $fromRoles, true)
+            && in_array($to['role'], $toRoles, true);
+    }
+
+    /**
+     * @param array<string, mixed> $from
+     * @param array<string, mixed> $to
+     */
+    private function isActivityRelationshipInvalid(
+        array $from,
+        array $to,
+        string $relationshipType,
+        string $fromExportId,
+        string $toExportId,
+    ): bool {
+        return ($from['executionId'] !== $to['executionId'] || $fromExportId === $toExportId)
+            && str_starts_with($relationshipType, 'activity-');
+    }
+
+    private function resolveExecutionExportId(
+        string $executionId,
+        string $relationshipType,
+        string $role,
+    ): ?string {
+        $executionExportId = $this->exportIdForBusinessId($executionId, $executionId, 'execution');
+        $execution = $executionExportId !== null ? ($this->records[$executionExportId] ?? null) : null;
+        $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
+        if ($execution === null || $execution['released'] || $roles === null
+            || $this->edgeCount >= $this->maxEdges
+            || !in_array($execution['role'], $roles['from'], true)
+            || !in_array($role, $roles['to'], true)
+        ) {
+            $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
+
+            return null;
+        }
+
+        unset($execution);
+
+        return $executionExportId;
     }
 
     private function reportUnverifiedSafely(): void
@@ -791,20 +838,12 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         string $exportId,
         array $output,
     ): array {
-        $parents = [];
         $linkedClaims = $fields[ArtifactField::LINKED_EXECUTION_IDS] ?? [];
         if (!is_array($linkedClaims)) {
             return $output;
         }
 
-        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
-            $source = $this->records[$sourceId] ?? null;
-            if ($source !== null && $source['role'] === 'execution'
-                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
-                $parents[] = $sourceId;
-            }
-        }
-
+        $parents = $this->collectParentExecutionIds($exportId, $fields);
         $links = $this->linkedExecutionIds($exportId, $linkedClaims);
 
         if (count($parents) === 1) {
@@ -816,6 +855,24 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         }
 
         return $output;
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     * @return list<string>
+     */
+    private function collectParentExecutionIds(string $exportId, array $fields): array
+    {
+        $parents = [];
+        foreach ($this->incoming[$exportId]['parent'] ?? [] as $sourceId => $_) {
+            $source = $this->records[$sourceId] ?? null;
+            if ($source !== null && $source['role'] === 'execution'
+                && ($fields[ArtifactField::PARENT_EXECUTION_ID] ?? null) === $source['businessId']) {
+                $parents[] = $sourceId;
+            }
+        }
+
+        return $parents;
     }
 
     private function releaseCandidate(string $exportId): void

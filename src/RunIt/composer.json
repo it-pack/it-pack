@@ -31,6 +31,7 @@
         "codeception/module-asserts": "^3.3",
         "codeception/module-phpbrowser": "^4.1",
         "infection/codeception-adapter": "^0.4",
+        "it-pack/disenchant-it": "^1.1",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-unit-test-base": "^1.0",

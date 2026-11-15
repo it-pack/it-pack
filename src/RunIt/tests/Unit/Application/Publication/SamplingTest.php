@@ -900,6 +900,35 @@ final class SamplingTest extends Unit
         self::assertSame(2, $inner->calls);
     }
 
+    public function testHeadBasedUsesExactArtifactKindAndStringIdentity(): void
+    {
+        $inner = new class () implements SamplingPolicyInterface {
+            public int $calls = 0;
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                return ++$this->calls % 2 === 1;
+            }
+        };
+        $policy = new HeadBasedSamplingPolicy($inner);
+
+        self::assertTrue($policy->sample(new RedactedArtifact(
+            ['id' => 'exec-1', 'execution_id' => 'other'],
+            'execution',
+        )));
+        foreach (['unknown', 'custom', 'Execution'] as $type) {
+            self::assertTrue($policy->sample(new RedactedArtifact(
+                ['id' => 'other', 'execution_id' => 'exec-1'],
+                $type,
+            )));
+        }
+
+        self::assertFalse($policy->sample(new RedactedArtifact(['id' => 'exec-1'], 'custom')));
+        self::assertTrue($policy->sample(new RedactedArtifact(['id' => 123], 'execution')));
+        self::assertFalse($policy->sample(new RedactedArtifact(['execution_id' => ''], 'unknown')));
+        self::assertSame(4, $inner->calls);
+    }
+
     public function testDecisionCacheIsBoundedAndOldestKeyIsReDecided(): void
     {
         $inner = new class () implements SamplingPolicyInterface {

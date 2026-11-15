@@ -109,12 +109,10 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
      */
     private function assertSafe(mixed $value, int $depth, ?WeakMap $ancestors = null): void
     {
-        if (is_resource($value)) {
-            throw new SerializationException('Unable to serialize snapshot payload: resource values are not allowed.');
-        }
-
-        if ($value instanceof Closure) {
-            throw new SerializationException('Unable to serialize snapshot payload: closures are not allowed.');
+        if (is_resource($value) || $value instanceof Closure) {
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: resource values and closures are not allowed.'
+            );
         }
 
         if ($value instanceof JsonSerializable) {
@@ -138,18 +136,27 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         }
 
         if (is_array($value)) {
-            if ($depth > $this->limits->maxSerializationDepth) {
-                throw new SerializationException(
-                    sprintf(
-                        'Unable to serialize snapshot payload: maximum depth %d exceeded.',
-                        $this->limits->maxSerializationDepth
-                    ),
-                );
-            }
+            $this->assertArraySafe($value, $depth, $ancestors);
+        }
+    }
 
-            foreach ($value as $member) {
-                $this->assertSafe($member, $depth + 1, $ancestors);
-            }
+    /**
+     * @param array<mixed, mixed> $value
+     * @param ?WeakMap<object, mixed> $ancestors
+     */
+    private function assertArraySafe(array $value, int $depth, ?WeakMap $ancestors): void
+    {
+        if ($depth > $this->limits->maxSerializationDepth) {
+            throw new SerializationException(
+                sprintf(
+                    'Unable to serialize snapshot payload: maximum depth %d exceeded.',
+                    $this->limits->maxSerializationDepth
+                ),
+            );
+        }
+
+        foreach ($value as $member) {
+            $this->assertSafe($member, $depth + 1, $ancestors);
         }
     }
 
