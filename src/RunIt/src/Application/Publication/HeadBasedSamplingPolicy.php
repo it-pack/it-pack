@@ -96,25 +96,22 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
             return $artifact->executionId()->toString();
         }
 
-        if ($artifact instanceof TrustedArtifactProjectionInterface
-            || $artifact instanceof VerifiedArtifactProjection) {
-            $normalized = $artifact->normalize();
-            $id = $normalized[$artifact->artifactType() === 'execution'
-                ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
-
-            if (is_string($id)) {
-                return $id;
-            }
-        }
-
-        if ($artifact instanceof RedactedArtifactInterface) {
-            $normalized = $artifact->normalize();
-            $id = $normalized[$artifact->artifactType() === 'execution'
-                ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
-
-            return is_string($id) ? $id : null;
+        if ($artifact instanceof VerifiedArtifactProjection
+            || $artifact instanceof RedactedArtifactInterface) {
+            return $this->executionIdentityFromNormalized($artifact->normalize(), $artifact->artifactType());
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function executionIdentityFromNormalized(array $normalized, string $artifactType): ?string
+    {
+        $key = $artifactType === 'execution' ? ArtifactField::ID : ArtifactField::EXECUTION_ID;
+        $id = $normalized[$key] ?? null;
+
+        return is_string($id) ? $id : null;
     }
 }

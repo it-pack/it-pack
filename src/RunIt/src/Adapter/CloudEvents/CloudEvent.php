@@ -68,26 +68,56 @@ final readonly class CloudEvent
         array $extensions = [],
         string $specVersion = self::SPEC_VERSION_1_0,
     ): self {
-        if ($specVersion === '') {
-            throw InvalidCloudEventException::emptyField(self::SPEC_VERSION_KEY);
-        }
-
-        if ($id === '') {
-            throw InvalidCloudEventException::emptyField('id');
-        }
-
-        if ($source === '') {
-            throw InvalidCloudEventException::emptyField('source');
-        }
-
-        if ($type === '') {
-            throw InvalidCloudEventException::emptyField('type');
-        }
+        self::assertRequiredFieldsNonEmpty([
+            [$specVersion, self::SPEC_VERSION_KEY],
+            [$id, 'id'],
+            [$source, 'source'],
+            [$type, 'type'],
+        ]);
 
         if ($time !== null && preg_match(self::TIME_PATTERN, $time) !== 1) {
             throw InvalidCloudEventException::malformedTime($time);
         }
 
+        $normalizedExtensions = self::validateAndNormalizeExtensions($extensions, $data);
+
+        return new self(
+            $specVersion,
+            $id,
+            $source,
+            $type,
+            $data,
+            $subject,
+            $time,
+            $dataContentType,
+            $dataSchema,
+            $normalizedExtensions,
+        );
+    }
+
+    public static function isValidExtensionKey(string $key): bool
+    {
+        return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
+    }
+
+    /**
+     * @param list<array{0: mixed, 1: string}> $fields
+     */
+    private static function assertRequiredFieldsNonEmpty(array $fields): void
+    {
+        foreach ($fields as [$value, $key]) {
+            if ($value === '') {
+                throw InvalidCloudEventException::emptyField($key);
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $extensions
+     * @return array<string, mixed>
+     */
+    private static function validateAndNormalizeExtensions(array $extensions, mixed $data): array
+    {
         try {
             $validator = new ContextValueValidator();
             $validator->assertSupportedValue($data);
@@ -110,23 +140,7 @@ final readonly class CloudEvent
             );
         }
 
-        return new self(
-            $specVersion,
-            $id,
-            $source,
-            $type,
-            $data,
-            $subject,
-            $time,
-            $dataContentType,
-            $dataSchema,
-            $normalizedExtensions,
-        );
-    }
-
-    public static function isValidExtensionKey(string $key): bool
-    {
-        return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
+        return $normalizedExtensions;
     }
 
     /**

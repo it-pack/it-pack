@@ -37,6 +37,28 @@ final readonly class DefaultObservationLogMapper implements
 {
     use LogEmitterBehavior;
 
+    private const array LEVEL_THRESHOLDS_TO_NUMBER = [
+        ObservationSeverity::LEVEL_EMERGENCY => Severity::FATAL3->value,
+        ObservationSeverity::LEVEL_ALERT => Severity::FATAL2->value,
+        ObservationSeverity::LEVEL_CRITICAL => Severity::FATAL->value,
+        ObservationSeverity::LEVEL_ERROR => Severity::ERROR->value,
+        ObservationSeverity::LEVEL_WARNING => Severity::WARN->value,
+        ObservationSeverity::LEVEL_NOTICE => Severity::INFO2->value,
+        ObservationSeverity::LEVEL_INFO => Severity::INFO->value,
+        ObservationSeverity::LEVEL_DEBUG => Severity::DEBUG->value,
+    ];
+
+    private const array LEVEL_THRESHOLDS_TO_TEXT = [
+        ObservationSeverity::LEVEL_EMERGENCY => ObservationSeverity::Emergency->value,
+        ObservationSeverity::LEVEL_ALERT => ObservationSeverity::Alert->value,
+        ObservationSeverity::LEVEL_CRITICAL => ObservationSeverity::Critical->value,
+        ObservationSeverity::LEVEL_ERROR => ObservationSeverity::Error->value,
+        ObservationSeverity::LEVEL_WARNING => ObservationSeverity::Warning->value,
+        ObservationSeverity::LEVEL_NOTICE => ObservationSeverity::Notice->value,
+        ObservationSeverity::LEVEL_INFO => ObservationSeverity::Info->value,
+        ObservationSeverity::LEVEL_DEBUG => ObservationSeverity::Debug->value,
+    ];
+
     public function __construct(
         ?LoggerProviderInterface         $loggerProvider,
         private SeverityMapInterface     $severityMap,
@@ -261,31 +283,23 @@ final readonly class DefaultObservationLogMapper implements
 
     private function severityLevelToNumber(int $level): int
     {
-        return match (true) {
-            $level >= ObservationSeverity::Emergency->level() => Severity::FATAL3->value,
-            $level >= ObservationSeverity::Alert->level() => Severity::FATAL2->value,
-            $level >= ObservationSeverity::Critical->level() => Severity::FATAL->value,
-            $level >= ObservationSeverity::Error->level() => Severity::ERROR->value,
-            $level >= ObservationSeverity::Warning->level() => Severity::WARN->value,
-            $level >= ObservationSeverity::Notice->level() => Severity::INFO2->value,
-            $level >= ObservationSeverity::Info->level() => Severity::INFO->value,
-            $level >= ObservationSeverity::Debug->level() => Severity::DEBUG->value,
-            default => Severity::TRACE->value,
-        };
+        foreach (self::LEVEL_THRESHOLDS_TO_NUMBER as $threshold => $number) {
+            if ($level >= $threshold) {
+                return $number;
+            }
+        }
+
+        return Severity::TRACE->value;
     }
 
     private function severityLevelToText(int $level): string
     {
-        return match (true) {
-            $level >= ObservationSeverity::Emergency->level() => ObservationSeverity::Emergency->value,
-            $level >= ObservationSeverity::Alert->level() => ObservationSeverity::Alert->value,
-            $level >= ObservationSeverity::Critical->level() => ObservationSeverity::Critical->value,
-            $level >= ObservationSeverity::Error->level() => ObservationSeverity::Error->value,
-            $level >= ObservationSeverity::Warning->level() => ObservationSeverity::Warning->value,
-            $level >= ObservationSeverity::Notice->level() => ObservationSeverity::Notice->value,
-            $level >= ObservationSeverity::Info->level() => ObservationSeverity::Info->value,
-            $level >= ObservationSeverity::Debug->level() => ObservationSeverity::Debug->value,
-            default => ObservationSeverity::Trace->value,
-        };
+        foreach (self::LEVEL_THRESHOLDS_TO_TEXT as $threshold => $label) {
+            if ($level >= $threshold) {
+                return $label;
+            }
+        }
+
+        return ObservationSeverity::Trace->value;
     }
 }

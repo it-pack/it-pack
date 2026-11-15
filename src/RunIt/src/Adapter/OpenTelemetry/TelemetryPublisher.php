@@ -124,13 +124,7 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
         }
 
         if ($artifact instanceof ObservationInterface) {
-            if ($artifact instanceof RedactedArtifactInterface) {
-                $this->publishRedactedArtifact($artifact);
-
-                return;
-            }
-
-            $this->observationMapper->map($artifact);
+            $this->publishObservation($artifact);
 
             return;
         }
@@ -147,6 +141,22 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
             return;
         }
 
+        $this->publishUnclassified($artifact);
+    }
+
+    private function publishObservation(ObservationInterface $artifact): void
+    {
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $this->publishRedactedArtifact($artifact);
+
+            return;
+        }
+
+        $this->observationMapper->map($artifact);
+    }
+
+    private function publishUnclassified(ExecutionArtifactInterface $artifact): void
+    {
         if ($artifact instanceof RedactedArtifactInterface) {
             $this->publishRedactedArtifact($artifact);
 
@@ -171,45 +181,62 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
      */
     private function dispatchRedactedArtifact(string $artifactType, array $normalized): void
     {
-        switch ($artifactType) {
-            case 'observation':
-                $this->publishRedactedObservation($normalized);
+        if ($artifactType === 'observation') {
+            $this->publishRedactedObservation($normalized);
 
-                return;
-            case 'execution':
-                $this->executionMapper->mapRedactedExecution($normalized);
-
-                return;
-            case 'activity':
-                $this->activityMapper->mapRedactedActivity($normalized);
-
-                return;
-            case 'measurement':
-                if ($this->measurementMapper instanceof RedactedMeasurementInstrumentMapperInterface) {
-                    $this->measurementMapper->mapRedactedMeasurement($normalized);
-
-                    return;
-                }
-
-                $this->reportRedactedDrop('Measurement mapper does not support redacted measurements.');
-
-                return;
-            case 'occurrence':
-                $this->occurrenceMapper->mapRedactedOccurrence($normalized);
-
-                return;
-            case 'snapshot':
-                $this->occurrenceMapper->mapRedactedSnapshot($normalized);
-
-                return;
-            default:
-                // Unknown artifact kinds cannot be classified safely.
-                $this->reportRedactedDrop(
-                    'Redacted measurement or unknown artifact kind is not delivered.',
-                );
-
-                return;
+            return;
         }
+
+        if ($artifactType === 'execution') {
+            $this->executionMapper->mapRedactedExecution($normalized);
+
+            return;
+        }
+
+        if ($artifactType === 'activity') {
+            $this->activityMapper->mapRedactedActivity($normalized);
+
+            return;
+        }
+
+        if ($artifactType === 'measurement') {
+            $this->dispatchRedactedMeasurement($normalized);
+
+            return;
+        }
+
+        if ($artifactType === 'occurrence') {
+            $this->occurrenceMapper->mapRedactedOccurrence($normalized);
+
+            return;
+        }
+
+        if ($artifactType === 'snapshot') {
+            $this->occurrenceMapper->mapRedactedSnapshot($normalized);
+
+            return;
+        }
+
+        $this->reportUnknownRedactedArtifact();
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function dispatchRedactedMeasurement(array $normalized): void
+    {
+        if ($this->measurementMapper instanceof RedactedMeasurementInstrumentMapperInterface) {
+            $this->measurementMapper->mapRedactedMeasurement($normalized);
+
+            return;
+        }
+
+        $this->reportRedactedDrop('Measurement mapper does not support redacted measurements.');
+    }
+
+    private function reportUnknownRedactedArtifact(): void
+    {
+        $this->reportRedactedDrop('Redacted measurement or unknown artifact kind is not delivered.');
     }
 
     /**

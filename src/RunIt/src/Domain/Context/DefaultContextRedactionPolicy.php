@@ -42,8 +42,16 @@ final readonly class DefaultContextRedactionPolicy implements ContextRedactionPo
 
     public function redact(ExecutionContextInterface $context): ExecutionContextInterface
     {
-        $result = ExecutionContext::empty();
+        return $this->getResult(
+            $context,
+            ExecutionContext::empty()
+        );
+    }
 
+    private function getResult(
+        ExecutionContextInterface $context,
+        ExecutionContextInterface $result,
+    ): ExecutionContextInterface {
         foreach ($context->entries() as $entry) {
             $classification = $entry->classification();
             $name = $classification->label();

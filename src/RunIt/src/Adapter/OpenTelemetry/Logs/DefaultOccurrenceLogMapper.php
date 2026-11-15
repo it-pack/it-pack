@@ -192,26 +192,45 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
-                ? $normalized[ArtifactField::ID]
-                : AttributeValues::REDACTED_ID,
-            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
-                ? $normalized[ArtifactField::TYPE]
-                : AttributeValues::REDACTED_TYPE,
-            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized[ArtifactField::CLASSIFICATION] ?? null)
-                ? $normalized[ArtifactField::CLASSIFICATION]
-                : AttributeValues::UNKNOWN_CLASSIFICATION,
-            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
-                ? $normalized[ArtifactField::EXECUTION_ID]
-                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::SNAPSHOT_ID => $this->redactedStringField(
+                $normalized,
+                ArtifactField::ID,
+                AttributeValues::REDACTED_ID
+            ),
+            AttributeKeys::SNAPSHOT_TYPE => $this->redactedStringField(
+                $normalized,
+                ArtifactField::TYPE,
+                AttributeValues::REDACTED_TYPE
+            ),
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => $this->redactedStringField(
+                $normalized,
+                ArtifactField::CLASSIFICATION,
+                AttributeValues::UNKNOWN_CLASSIFICATION
+            ),
+            AttributeKeys::EXECUTION_ID => $this->redactedStringField(
+                $normalized,
+                ArtifactField::EXECUTION_ID,
+                AttributeValues::EMPTY_IDENTITY
+            ),
             AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
         ];
 
-        if (is_string($normalized[ArtifactField::ACTIVITY_ID] ?? null)) {
-            $attributes[AttributeKeys::ACTIVITY_ID] = $normalized[ArtifactField::ACTIVITY_ID];
+        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
+        if (is_string($activityId)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function redactedStringField(array $normalized, string $key, string $default): string
+    {
+        $value = $normalized[$key] ?? null;
+
+        return is_string($value) ? $value : $default;
     }
 
     /**
@@ -251,23 +270,32 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null)
-                ? $normalized[ArtifactField::ID]
-                : AttributeValues::REDACTED_ID,
-            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
-                ? $normalized[ArtifactField::TYPE]
-                : AttributeValues::REDACTED_TYPE,
-            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized[ArtifactField::SOURCE] ?? null)
-                ? $normalized[ArtifactField::SOURCE]
-                : AttributeValues::REDACTED_SOURCE,
-            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
-                ? $normalized[ArtifactField::EXECUTION_ID]
-                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::OCCURRENCE_ID => $this->redactedStringField(
+                $normalized,
+                ArtifactField::ID,
+                AttributeValues::REDACTED_ID
+            ),
+            AttributeKeys::OCCURRENCE_TYPE => $this->redactedStringField(
+                $normalized,
+                ArtifactField::TYPE,
+                AttributeValues::REDACTED_TYPE
+            ),
+            AttributeKeys::OCCURRENCE_SOURCE => $this->redactedStringField(
+                $normalized,
+                ArtifactField::SOURCE,
+                AttributeValues::REDACTED_SOURCE
+            ),
+            AttributeKeys::EXECUTION_ID => $this->redactedStringField(
+                $normalized,
+                ArtifactField::EXECUTION_ID,
+                AttributeValues::EMPTY_IDENTITY
+            ),
             AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
         ];
 
-        if (is_string($normalized[ArtifactField::ACTIVITY_ID] ?? null)) {
-            $attributes[AttributeKeys::ACTIVITY_ID] = $normalized[ArtifactField::ACTIVITY_ID];
+        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
+        if (is_string($activityId)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
         }
 
         return $attributes;

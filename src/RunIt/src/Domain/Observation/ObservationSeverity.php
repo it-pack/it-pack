@@ -40,6 +40,18 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
     /**
      * PSR-3/monolog-compatible numeric levels; `trace` extends below `debug`.
      */
+    private const array LEVEL_BY_CASE = [
+        self::Trace->value => self::LEVEL_TRACE,
+        self::Debug->value => self::LEVEL_DEBUG,
+        self::Info->value => self::LEVEL_INFO,
+        self::Notice->value => self::LEVEL_NOTICE,
+        self::Warning->value => self::LEVEL_WARNING,
+        self::Error->value => self::LEVEL_ERROR,
+        self::Critical->value => self::LEVEL_CRITICAL,
+        self::Alert->value => self::LEVEL_ALERT,
+        self::Emergency->value => self::LEVEL_EMERGENCY,
+    ];
+
     case Trace = 'trace';
 
     case Debug = 'debug';
@@ -65,17 +77,7 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
 
     public function level(): int
     {
-        return match ($this) {
-            self::Trace => self::LEVEL_TRACE,
-            self::Debug => self::LEVEL_DEBUG,
-            self::Info => self::LEVEL_INFO,
-            self::Notice => self::LEVEL_NOTICE,
-            self::Warning => self::LEVEL_WARNING,
-            self::Error => self::LEVEL_ERROR,
-            self::Critical => self::LEVEL_CRITICAL,
-            self::Alert => self::LEVEL_ALERT,
-            self::Emergency => self::LEVEL_EMERGENCY,
-        };
+        return self::LEVEL_BY_CASE[$this->value];
     }
 
     public function isError(): bool

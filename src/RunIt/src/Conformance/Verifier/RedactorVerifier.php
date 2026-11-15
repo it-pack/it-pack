@@ -9,7 +9,9 @@ use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Throwable;
 
@@ -56,6 +58,16 @@ final class RedactorVerifier implements VerifierInterface
             ));
         }
 
+        $result = $this->verifySecretRedaction($redactor, $fixture, $result);
+
+        return $result;
+    }
+
+    private function verifySecretRedaction(
+        RedactorInterface $redactor,
+        PortFixtureInterface $fixture,
+        ConformanceResult $result,
+    ): ConformanceResult {
         $secret = $fixture->sensitiveObservation();
         $secretBefore = $secret->normalize();
         try {
@@ -81,9 +93,19 @@ final class RedactorVerifier implements VerifierInterface
             ));
         }
 
+        $result = $this->verifyExecutionNotReassigned($secret, $redactedSecret, $result);
+
+        return $result;
+    }
+
+    private function verifyExecutionNotReassigned(
+        ObservationInterface $secret,
+        ExecutionArtifactInterface $redactedSecret,
+        ConformanceResult $result,
+    ): ConformanceResult {
         if ($redactedSecret instanceof ExecutionOwnedInterface
             && $secret->executionId()->toString() !== $redactedSecret->executionId()->toString()) {
-            $result = $result->add(new ConformanceViolation(
+            return $result->add(new ConformanceViolation(
                 'redact.secret.reassigns-execution',
                 'redact() reassigned a sensitive observation to a different execution'
             ));
@@ -93,7 +115,7 @@ final class RedactorVerifier implements VerifierInterface
 
         if (isset($redactedNormalized[ArtifactField::EXECUTION_ID])
             && $redactedNormalized[ArtifactField::EXECUTION_ID] !== $secret->executionId()->toString()) {
-            $result = $result->add(new ConformanceViolation(
+            return $result->add(new ConformanceViolation(
                 'redact.secret.reassigns-execution',
                 'redact() reassigned a sensitive observation to a different execution'
             ));

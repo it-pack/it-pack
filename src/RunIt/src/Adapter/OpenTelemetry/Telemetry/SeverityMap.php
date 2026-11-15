@@ -19,19 +19,20 @@ use OpenTelemetry\API\Logs\Severity;
  */
 final class SeverityMap implements SeverityMapInterface
 {
+    private const array LABEL_TO_SEVERITY = [
+        'trace' => Severity::TRACE,
+        'debug' => Severity::DEBUG,
+        'notice' => Severity::INFO2,
+        'warning' => Severity::WARN,
+        'error' => Severity::ERROR,
+        'critical' => Severity::FATAL,
+        'alert' => Severity::FATAL2,
+        'emergency' => Severity::FATAL3,
+    ];
+
     public function toSeverity(ObservationSeverityInterface $severity): Severity
     {
-        return match ($severity->label()) {
-            'trace' => Severity::TRACE,
-            'debug' => Severity::DEBUG,
-            'notice' => Severity::INFO2,
-            'warning' => Severity::WARN,
-            'error' => Severity::ERROR,
-            'critical' => Severity::FATAL,
-            'alert' => Severity::FATAL2,
-            'emergency' => Severity::FATAL3,
-            default => Severity::INFO,
-        };
+        return self::LABEL_TO_SEVERITY[$severity->label()] ?? Severity::INFO;
     }
 
     public function toNumber(ObservationSeverityInterface $severity): int

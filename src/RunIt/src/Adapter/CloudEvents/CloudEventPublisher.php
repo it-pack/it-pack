@@ -81,12 +81,58 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
     {
         $normalized = $artifact->normalize();
 
-        $id = $this->asString($normalized[ArtifactField::ID] ?? null, 'redacted');
-        $source = $this->asString($normalized['source'] ?? null, 'runit://redacted');
-        $type = $this->asString($normalized[ArtifactField::TYPE] ?? null, 'runit.artifact.redacted');
-        $subject = $this->asStringOrNull($normalized['subject'] ?? null);
-        $time = $this->asIntOrNull($normalized['time'] ?? null);
+        $id = $this->redactedString($normalized, ArtifactField::ID, 'redacted');
+        $source = $this->redactedString($normalized, 'source', 'runit://redacted');
+        $type = $this->redactedString($normalized, ArtifactField::TYPE, 'runit.artifact.redacted');
+        $subject = $this->redactedStringOrNull($normalized, 'subject');
+        $time = $this->redactedIntOrNull($normalized, 'time');
 
+        $extensions = $this->buildRedactedExtensions($normalized);
+
+        return $this->factory->create(
+            $id,
+            $source,
+            $type,
+            [],
+            $subject,
+            $time !== null ? gmdate('Y-m-d\TH:i:s\Z', $time) : null,
+            MediaTypes::APPLICATION_JSON,
+            null,
+            $extensions,
+            $this->policy->specVersion,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function redactedString(array $normalized, string $key, string $fallback): string
+    {
+        return $this->asString($normalized[$key] ?? null, $fallback);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function redactedStringOrNull(array $normalized, string $key): ?string
+    {
+        return $this->asStringOrNull($normalized[$key] ?? null);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function redactedIntOrNull(array $normalized, string $key): ?int
+    {
+        return $this->asIntOrNull($normalized[$key] ?? null);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    private function buildRedactedExtensions(array $normalized): array
+    {
         $extensions = [
             CloudEventExtensionKey::ExecutionId->value => $this->asString(
                 $normalized[ArtifactField::EXECUTION_ID] ?? null,
@@ -101,18 +147,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
             $extensions[CloudEventExtensionKey::ActivityId->value] = $activityId;
         }
 
-        return $this->factory->create(
-            $id,
-            $source,
-            $type,
-            [],
-            $subject,
-            $time !== null ? gmdate('Y-m-d\TH:i:s\Z', $time) : null,
-            MediaTypes::APPLICATION_JSON,
-            null,
-            $extensions,
-            $this->policy->specVersion,
-        );
+        return $extensions;
     }
 
     private function asString(mixed $value, string $fallback): string

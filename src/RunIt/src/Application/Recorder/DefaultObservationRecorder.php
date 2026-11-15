@@ -116,96 +116,53 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
         ?AttributeCollectionInterface $attributes,
         ?ThrowableDescriptionInterface $description,
     ): ObservationInterface {
-        return match ($severity) {
-            ObservationSeverity::Debug => Observation::debug(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            ObservationSeverity::Notice => Observation::notice(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            ObservationSeverity::Warning => Observation::warning(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            ObservationSeverity::Error => Observation::error(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            ObservationSeverity::Critical => Observation::critical(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            ObservationSeverity::Alert => Observation::alert(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            ObservationSeverity::Emergency => Observation::emergency(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-            default => Observation::info(
-                $id,
-                $this->executionId,
-                $message,
-                $activityId,
-                $diagnosticCode,
-                $attributes,
-                $description,
-                $this->now(),
-                $this->sequence()
-            ),
-        };
+        $now = $this->now();
+        $sequence = $this->sequence();
+        $args = [
+            $id,
+            $this->executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $description,
+            $now,
+            $sequence,
+        ];
+
+        if ($severity === ObservationSeverity::Debug) {
+            return Observation::debug(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Info) {
+            return Observation::info(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Notice) {
+            return Observation::notice(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Warning) {
+            return Observation::warning(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Error) {
+            return Observation::error(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Critical) {
+            return Observation::critical(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Alert) {
+            return Observation::alert(...$args);
+        }
+
+        if ($severity === ObservationSeverity::Emergency) {
+            return Observation::emergency(...$args);
+        }
+
+        return Observation::info(...$args);
     }
 
     private function activityId(): ?ActivityIdInterface

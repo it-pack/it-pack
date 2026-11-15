@@ -18,6 +18,16 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
  */
 final class DefaultObservationToPsr3LevelMapper implements ObservationToPsr3LevelMapperInterface
 {
+    private const array LEVEL_THRESHOLDS_TO_PSR3 = [
+        ObservationSeverity::LEVEL_EMERGENCY => ObservationSeverity::Emergency->value,
+        ObservationSeverity::LEVEL_ALERT => ObservationSeverity::Alert->value,
+        ObservationSeverity::LEVEL_CRITICAL => ObservationSeverity::Critical->value,
+        ObservationSeverity::LEVEL_ERROR => ObservationSeverity::Error->value,
+        ObservationSeverity::LEVEL_WARNING => ObservationSeverity::Warning->value,
+        ObservationSeverity::LEVEL_NOTICE => ObservationSeverity::Notice->value,
+        ObservationSeverity::LEVEL_INFO => ObservationSeverity::Info->value,
+    ];
+
     public function toLevel(ObservationSeverityInterface $severity): string
     {
         return $this->toLevelFromNumeric($severity->level());
@@ -25,15 +35,12 @@ final class DefaultObservationToPsr3LevelMapper implements ObservationToPsr3Leve
 
     public function toLevelFromNumeric(int $level): string
     {
-        return match (true) {
-            $level >= ObservationSeverity::Emergency->level() => ObservationSeverity::Emergency->value,
-            $level >= ObservationSeverity::Alert->level() => ObservationSeverity::Alert->value,
-            $level >= ObservationSeverity::Critical->level() => ObservationSeverity::Critical->value,
-            $level >= ObservationSeverity::Error->level() => ObservationSeverity::Error->value,
-            $level >= ObservationSeverity::Warning->level() => ObservationSeverity::Warning->value,
-            $level >= ObservationSeverity::Notice->level() => ObservationSeverity::Notice->value,
-            $level >= ObservationSeverity::Info->level() => ObservationSeverity::Info->value,
-            default => ObservationSeverity::Debug->value,
-        };
+        foreach (self::LEVEL_THRESHOLDS_TO_PSR3 as $threshold => $psr3Level) {
+            if ($level >= $threshold) {
+                return $psr3Level;
+            }
+        }
+
+        return ObservationSeverity::Debug->value;
     }
 }
