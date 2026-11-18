@@ -13,7 +13,12 @@ cd "$(dirname "$0")/.."
 
 class_exists() {
     local class="$1"
-    php -r "exit(class_exists($argv[1]) ? 0 : 1);" "$class" 2>/dev/null
+    php -r 'exit(class_exists($argv[1]) ? 0 : 1);' "$class" 2>/dev/null
+}
+
+extension_loaded() {
+    local ext="$1"
+    php -r 'exit(extension_loaded($argv[1]) ? 0 : 1);' "$ext" 2>/dev/null
 }
 
 for f in examples/*.php; do
@@ -31,6 +36,18 @@ for f in examples/*.php; do
         opentelemetry.php)
             if ! class_exists "OpenTelemetry\\SDK\\Trace\\TracerProvider"; then
                 echo "==> SKIP $f (open-telemetry/sdk not installed)"
+                skip=1
+            fi
+            ;;
+        swoole.php)
+            if ! extension_loaded "swoole"; then
+                echo "==> SKIP $f (ext-swoole not installed)"
+                skip=1
+            fi
+            ;;
+        cloudevents.php)
+            if ! class_exists "Nyholm\\Psr7\\Factory\\Psr17Factory"; then
+                echo "==> SKIP $f (nyholm/psr7 not installed)"
                 skip=1
             fi
             ;;
