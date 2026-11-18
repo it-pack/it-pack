@@ -41,6 +41,7 @@ use WeakMap;
 final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 {
     private const string ATTR_FROM = 'from';
+
     private const string ATTR_TO = 'to';
 
     /**
@@ -53,87 +54,87 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         'parent' => [
             self::ATTR_FROM => [
                 'execution',
-                'activity'
+                'activity',
             ],
             self::ATTR_TO => [
-                'execution'
+                'execution',
             ],
         ],
         'link' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
-                'execution'
+                'execution',
             ],
         ],
         'execution-activity' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
-                'activity'
+                'activity',
             ],
         ],
         'execution-observation' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
-                'observation'
+                'observation',
             ],
         ],
         'execution-occurrence' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
-                'occurrence'
+                'occurrence',
             ],
         ],
         'execution-measurement' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
-                'measurement'
+                'measurement',
             ],
         ],
         'execution-snapshot' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
-                'snapshot'
+                'snapshot',
             ],
         ],
         'execution-terminal-snapshot' => [
             self::ATTR_FROM => [
-                'execution'
+                'execution',
             ],
             self::ATTR_TO => [
                 'snapshot',
-                'terminal-snapshot'
+                'terminal-snapshot',
             ],
         ],
         'activity-artifact' => [
             self::ATTR_FROM => [
-                'activity'
+                'activity',
             ],
             self::ATTR_TO => [
                 'observation',
                 'occurrence',
                 'measurement',
                 'snapshot',
-                'terminal-snapshot'
+                'terminal-snapshot',
             ],
         ],
         'activity-parent' => [
             self::ATTR_FROM => [
-                'activity'
+                'activity',
             ],
             self::ATTR_TO => [
-                'activity'
+                'activity',
             ],
         ],
     ];

@@ -77,29 +77,7 @@ final class ExecutionScope implements ExecutionScopeInterface
     private readonly ActivityRunnerInterface $activityRunner;
 
     /**
-     * @param ExecutionInterface $execution
-     * @param ExecutionIdInterface $executionId
-     * @param ExecutionContextInterface $context
-     * @param SequenceAllocatorInterface $sequenceAllocator
-     * @param MonotonicClockInterface $clock
-     * @param ArtifactPublisherInterface $publisher
-     * @param SerializerInterface $serializer
-     * @param ThrowableMapperInterface $throwableMapper
-     * @param StringIdentifierFactoryInterface $observationIdFactory
-     * @param StringIdentifierFactoryInterface $occurrenceIdFactory
-     * @param StringIdentifierFactoryInterface $snapshotIdFactory
-     * @param StringIdentifierFactoryInterface $activityIdFactory
-     * @param HashCalculatorInterface $hashCalculator
-     * @param SnapshotStoreInterface|null $snapshotStore
-     * @param Closure|null $onSnapshotStoreFailure
-     * @param SecurityLimits $limits
      * @param (Closure(): ?ActivityIdInterface)|null $currentActivityId
-     * @param ProvenanceAuthority $authority
-     * @param ContextStorageInterface|null $contextStorage
-     * @param ActivityContextStorageInterface|null $activityStorage
-     * @param string $activityContextFailurePolicy
-     * @param Closure|null $onActivityContextFailure
-     * @param bool $runOnActivityContextAttachFailure
      */
     public function __construct(
         private readonly ExecutionInterface $execution,
