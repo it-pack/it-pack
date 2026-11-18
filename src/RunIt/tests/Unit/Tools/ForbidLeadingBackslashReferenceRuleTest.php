@@ -34,6 +34,8 @@ final class ForbidLeadingBackslashReferenceRuleTest extends RuleTestCase
         ], [
             [$message, 16],
             [$message, 18],
+            [$message, 18],
+            [$message, 20],
         ]);
     }
 }
