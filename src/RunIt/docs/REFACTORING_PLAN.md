@@ -1420,17 +1420,17 @@ On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
 
-**Phase 2 implementation status (2026-11-13):**
+**Phase 2 implementation status (2026-11-18):**
 
 Implemented within already-approved decisions:
 
 - Default SDK field classification runs before sampling for observations, occurrences, measurements, lifecycle artifacts, and snapshots. Each classifier retains verified export IDs and relationships, removes or replaces unclassified fields, and reports drops with payload-free health notices.
 - Terminal snapshot payloads and content hashes omitted before sampling on the default SDK path; explicit null or custom redactor opt-outs still pass through SDK verification and classification before reaching the configured publisher stack.
-- Trace observations retain typed `ObservationInterface`; `ClassifiedTraceObservation`
-  restores trace severity before sampling, so a debug severity floor treats them as trace.
+- Trace observations retain typed `ObservationInterface`; `ClassifiedTraceObservation` restores trace severity before sampling, so a debug severity floor treats them as trace.
 - Custom health reporters produce payload-free fallback diagnostics; throwing reporters are contained.
 - Low `maxAttributeCount` limits cause fail-closed drops (not truncated metadata) for observation/activity throwable and execution result structures.
 - Explicit redactor opt-outs (`withRedactor(null)`) and custom redactors still pass through SDK verification and classification before the configured publisher stack; custom factories receive classified projections.
+- Overlapping activity provenance blocker resolved: `ExecutionScope::__construct()` resolves activity context per-record through fiber-local `ActivityContextStorageInterface` (PHP 8.1 first-class callable closures on `$verifiedActivityExportId`, `$shouldDrop`, and `$activityId`), not once at construction. `OverlappingActivityProvenanceTest` passes for both completion orders; shared `$currentActivityId` is only the legacy non-context-storage path.
 
 Historical open gaps (2026-11-13; see the current update below):
 
@@ -1460,27 +1460,37 @@ dispatches typed redacted artifacts through redacted mappers first. Execution to
 artifact provenance edges reject different execution owners. Focused tests cover
 those cases and a projection queued before cleanup and consumed after cleanup;
 deferred raw artifacts remain untrusted. Arbitrary custom publisher compositions
-can bypass these controls. Phase 2 remains open pending final integrated evidence,
-including activity interleaving, contract review and final quality. Downstream
-migration and checks remain deferred, not passed; no release is authorized.
+can bypass these controls. Activity interleaving (the overlapping-activity blocker)
+is resolved; the custom factory boundary contract review and final `composer quality`
+gate remain open. Downstream migration and checks remain deferred, not passed;
+no release is authorized.
 
-**Open blocker (2026-11-18):** `OverlappingActivityProvenanceTest` reproduces
-two interleaved activities sharing one execution scope: the first activity's
-observation can acquire the second activity's verified relationship, and the
-second can lose its activity relationship after the first completes. Isolating
-the execution context storage alone does not isolate the scope's mutable current
-activity. A runtime-neutral ownership and activity-context design needs review
-before changing these semantics; the test characterizes the defect rather than
-endorsing it. Do not claim Phase 2 complete on the strength of the provenance
-edge checks alone.
+**Blocker resolved (2026-11-18):** `OverlappingActivityProvenanceTest` previously
+reproduced two interleaved activities sharing one execution scope where the first
+activity's observation could acquire the second activity's verified relationship and
+the second could lose its activity relationship after the first completes. Root cause
+was `ExecutionScope::__construct()` capturing `$verifiedActivityExportId` and
+`$shouldDrop` once at construction before any fiber-local activity context existed.
+The constructor already resolves activity context per-record through fiber-local
+`ActivityContextStorageInterface` (PHP 8.1 first-class callable closures), so each
+recorder re-resolves the owning activity on every call. `OverlappingActivityProvenanceTest`
+passes for both completion orders. Shared `$currentActivityId` is only the legacy
+non-context-storage path; `count(openActivities()) + 1` depth semantics are unchanged.
 
-Validation on the integrated tree on PHP 8.5.12: `composer -q quality` and
-separate `composer api:check` passed. The quality script includes all four test
-suites and both audits; quiet output does not establish individual skip counts.
-On PHP 8.4.27 the concurrency suite passed 9 tests/181 assertions, telemetry
-publisher tests passed 25/207, and provenance boundary tests passed 7/38. PHP 8.6
-was unavailable. These checks do not resolve the overlapping-activity blocker or
-establish downstream compatibility. See `benchmarks.md` for measurement limits.
+**Validation on the integrated tree (2026-11-18):** PHP 8.5.12:
+`composer validate --strict` pass; `composer api:check` pass (no breaks);
+`composer analyse` (PHPStan max) pass (0 errors); `composer architecture` pass
+(0 violations); `composer lint:length` pass (0 violations); concurrency suite pass
+(11 tests, 381 assertions) including `OverlappingActivityProvenanceTest` both orders.
+`composer cs:check` exits 8 on `ProvenanceAuthority.php` trailing commas — this is
+the preserved uncommitted formatting diff and is intentionally not reverted or
+`cs:fix`ed. `composer refactor:dry` (Rector) exits 2 on a pre-existing
+`RemoveUselessParamTagRector` suggestion. `composer test` does not complete because
+`tests/Functional/_bootstrap.php` is missing (pre-existing); Unit, Integration,
+Conformance, and Concurrency suites all pass. `composer security:audit` reports no
+advisories; `security:audit:full` reports abandoned `doctrine/annotations` only.
+PHP 8.4.27 and 8.6 were not available in this environment; OpenSwoole and Swow are
+reported as skips, not failures.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
