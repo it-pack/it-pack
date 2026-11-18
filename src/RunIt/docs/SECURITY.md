@@ -92,10 +92,18 @@ SDK execution and activity projections replace names and kinds, omit
 unclassified context and attributes, and retain verified relationships, validated
 statuses, timing, and bounded throwable class/code metadata. A sampling resolver
 keyed by business execution IDs will not match the export IDs it receives.
-Overlapping activities that share one execution scope can misattribute an
-observation to another activity, including through a verified provenance edge;
-do not rely on those activity relationships for concurrent shared-scope work.
-See the Phase 2 blocker in `REFACTORING_PLAN.md`.
+The separate runtime-local activity-context implementation is still undergoing
+verification. Do not rely on these worktree changes as a completed concurrency
+guarantee; see the Phase 2 blocker in `REFACTORING_PLAN.md`.
+
+The activity-context implementation requires exact owning-scope
+matching and verified activity handles before establishing trusted relationships;
+legacy activity IDs alone are untrusted claims. Missing or mismatched execution
+context will default to execution-level attribution, with opt-in strict
+payload-free drop-and-report or explicitly configured throwing. A dropped
+artifact or a recorder return value is not proof of publication or export.
+See [`EXECUTION.md`](EXECUTION.md#planned-runtime-local-activity-attribution).
+
 The default
 redactor examines a top-level `throwable` and a failed execution's
 `result.throwable`. It masks throwable messages, replaces traces with null, omits

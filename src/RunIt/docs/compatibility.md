@@ -6,6 +6,29 @@ changes.
 
 ## Public API scope
 
+### Runtime-local activity context (in progress)
+
+The in-progress separate activity-context implementation preserves
+the identity observed by current-execution consumers rather than attaching an
+activity as the current execution. Integrations and custom runtime adapters will
+need paired execution and activity storage appropriate to their concurrency model
+and explicit propagation into new Fibers or coroutines; synchronous storage alone
+does not isolate concurrent work. It adds an activity-storage port and concrete
+builder methods; custom integrations must migrate to compatible paired storage.
+
+The planned default for missing or mismatched execution context is execution-level
+recording without an activity edge; opt-in strict behavior drops and reports
+without payload by default or throws when explicitly configured. Recording with
+the matching execution attached and no active activity remains valid. Consumers
+must not interpret a recorder return value as proof of persistence or export.
+Verified handles, not legacy activity IDs alone, establish activity relationships.
+The existing open-activity limit and completion semantics remain unchanged.
+
+Custom storage, recorders and activity-resolution extensions require compatibility
+review. The API baseline has been updated with the maintainer's approval; consumer
+migration and downstream verification remain outstanding. No normalization schema
+change is included in this work.
+
 ### Current Phase 2 publication behavior
 
 The SDK builder invokes a configured custom redactor on the original artifact

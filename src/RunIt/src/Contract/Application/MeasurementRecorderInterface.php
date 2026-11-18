@@ -13,8 +13,8 @@ use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
  * Contract for recording measurements bound to the ambient execution (and activity).
  *
  * The recorder fills ownership, timing, and sequence automatically; the caller
- * supplies only the measurable facts. The recorded measurement is published before
- * it is returned.
+ * supplies only the measurable facts. A returned measurement is not proof of publication:
+ * configured safety policies may drop it before publication.
  *
  * @api
  *

@@ -38,7 +38,13 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
     use InstantClockBehavior;
 
     /**
+     * The capture resolver returns context validity, activity ID, and its verified export ID.
+     * Invalid captures discard both IDs; a missing resolver uses the legacy raw ID only.
+     * The drop callback receives the captured validity (null for the legacy path).
+     *
      * @param Closure(): ?ActivityIdInterface $currentActivityId
+     * @param null|Closure(?string, ?bool): bool $shouldDrop
+     * @param null|Closure(): array{bool, ?ActivityIdInterface, ?string} $verifiedActivityExportId
      */
     public function __construct(
         private ExecutionIdInterface       $executionId,
@@ -47,6 +53,8 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         private MonotonicClockInterface    $clock,
         private ArtifactPublisherInterface $publisher,
         private ProvenanceAuthority        $authority = new ProvenanceAuthority(),
+        private ?Closure                   $shouldDrop = null,
+        private ?Closure                   $verifiedActivityExportId = null,
     ) {
     }
 
@@ -56,16 +64,17 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         return $this->publish(Measurement::counter(
             $this->name($name),
             $this->executionId,
             $value,
-            $this->activityId(),
+            $activityId,
             $this->now(),
             $this->sequence(),
             $attributes,
             $unit ?? MeasurementUnit::Count
-        ));
+        ), $activityExportId, $valid);
     }
 
     public function gauge(
@@ -74,16 +83,17 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         return $this->publish(Measurement::gauge(
             $this->name($name),
             $this->executionId,
             $value,
-            $this->activityId(),
+            $activityId,
             $this->now(),
             $this->sequence(),
             $attributes,
             $unit ?? MeasurementUnit::Percent
-        ));
+        ), $activityExportId, $valid);
     }
 
     /**
@@ -95,16 +105,17 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         return $this->publish(Measurement::duration(
             $this->name($name),
             $this->executionId,
             $value,
-            $this->activityId(),
+            $activityId,
             $this->now(),
             $this->sequence(),
             $attributes,
             $unit ?? MeasurementUnit::Milliseconds
-        ));
+        ), $activityExportId, $valid);
     }
 
     /**
@@ -116,16 +127,17 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         return $this->publish(Measurement::size(
             $this->name($name),
             $this->executionId,
             $value,
-            $this->activityId(),
+            $activityId,
             $this->now(),
             $this->sequence(),
             $attributes,
             $unit ?? MeasurementUnit::Bytes
-        ));
+        ), $activityExportId, $valid);
     }
 
     /**
@@ -137,16 +149,17 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         return $this->publish(Measurement::ratio(
             $this->name($name),
             $this->executionId,
             $value,
-            $this->activityId(),
+            $activityId,
             $this->now(),
             $this->sequence(),
             $attributes,
             $unit ?? MeasurementUnit::Ratio
-        ));
+        ), $activityExportId, $valid);
     }
 
     private function name(string|MeasurementNameInterface $name): MeasurementNameInterface
@@ -154,9 +167,15 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         return $name instanceof MeasurementNameInterface ? $name : MeasurementName::fromString($name);
     }
 
-    private function activityId(): ?ActivityIdInterface
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activity(): array
     {
-        return ($this->currentActivityId)();
+        if ($this->verifiedActivityExportId instanceof Closure) {
+            [$valid, $id, $exportId] = ($this->verifiedActivityExportId)();
+            return [$valid ? $id : null, $valid && $id !== null ? $exportId : null, $valid];
+        }
+
+        return [($this->currentActivityId)(), null, null];
     }
 
     private function sequence(): ArtifactSequenceInterface
@@ -167,8 +186,16 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
     /**
      * @throws Throwable
      */
-    private function publish(MeasurementInterface $measurement): MeasurementInterface
-    {
+    private function publish(
+        MeasurementInterface $measurement,
+        ?string $activityExportId,
+        ?bool $valid,
+    ): MeasurementInterface {
+        if ($this->shouldDrop instanceof Closure
+            && ($this->shouldDrop)($measurement->activityId()?->toString(), $valid)) {
+            return $measurement;
+        }
+
         // Issue an SDK-controlled export ID bound to the measurement's unique
         // sequence (each measurement gets a distinct sequence from the allocator)
         // and register the execution→measurement relationship edge. The name is
@@ -184,15 +211,8 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
             );
 
             $this->authority->attest($measurement, $exportId);
-            $activityBusinessId = $measurement->activityId()?->toString();
-            if ($exportId !== null && $activityBusinessId !== null) {
-                $executionId = $this->authority->executionIdForExportId($exportId);
-                $activityExportId = $executionId !== null
-                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
-                    : null;
-                if ($activityExportId !== null) {
-                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
-                }
+            if ($exportId !== null && $activityExportId !== null) {
+                $this->authority->bindActivityRelationship($exportId, $activityExportId);
             }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Measurement publication preparation failed.'));

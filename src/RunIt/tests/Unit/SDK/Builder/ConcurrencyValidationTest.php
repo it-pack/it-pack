@@ -11,6 +11,7 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Propagation\StackActivityContextStorage;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -95,6 +96,29 @@ final class ConcurrencyValidationTest extends Unit
         ;
 
         self::assertInstanceOf(RunItInterface::class, $runtime);
+    }
+
+    public function testConcurrentEngineRejectsSharedActivityStorage(): void
+    {
+        $engine = new class () implements ExecutionEngineInterface {
+            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
+            {
+                return $operation($scope);
+            }
+
+            public function capability(): EngineCapabilityInterface
+            {
+                return new EngineCapability(supportsFibers: true, supportsCoroutines: false, concurrent: true);
+            }
+        };
+
+        $this->expectException(IncompatibleContextStorageException::class);
+        $this->builder()
+            ->withExecutionEngine($engine)
+            ->withContextStorage(new FiberContextStorage())
+            ->withActivityContextStorage(new StackActivityContextStorage())
+            ->build()
+        ;
     }
 
     public function testConcurrentEngineWithIsolatedStorageAndRejectingValidatorIsRejected(): void

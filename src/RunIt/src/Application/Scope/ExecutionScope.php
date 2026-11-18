@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Scope;
 
 use Closure;
+use InvalidArgumentException;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Recorder\DefaultMeasurementRecorder;
 use ItPack\RunIt\Application\Recorder\DefaultObservationRecorder;
@@ -12,6 +13,7 @@ use ItPack\RunIt\Application\Recorder\DefaultOccurrenceRecorder;
 use ItPack\RunIt\Application\Recorder\DefaultSnapshotRecorder;
 use ItPack\RunIt\Application\Runner\DefaultActivityRunner;
 use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
+use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
@@ -29,11 +31,15 @@ use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use RuntimeException;
+use Throwable;
 
 /**
  * The runtime collaborator handed to a consumer operation during an execution.
@@ -51,6 +57,8 @@ final class ExecutionScope implements ExecutionScopeInterface
 {
     private ?ActivityIdInterface $currentActivityId = null;
 
+    private int $activityContextSuppression = 0;
+
     /**
      * @var list<ActivityInterface>
      */
@@ -66,6 +74,7 @@ final class ExecutionScope implements ExecutionScopeInterface
 
     private readonly ActivityRunnerInterface $activityRunner;
 
+    /** @param (Closure(): ?ActivityIdInterface)|null $currentActivityId */
     public function __construct(
         private readonly ExecutionInterface $execution,
         ExecutionIdInterface $executionId,
@@ -89,8 +98,23 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly SecurityLimits $limits = new SecurityLimits(),
         ?Closure $currentActivityId = null,
         private readonly ProvenanceAuthority $authority = new ProvenanceAuthority(),
+        private readonly ?ContextStorageInterface $contextStorage = null,
+        private readonly ?ActivityContextStorageInterface $activityStorage = null,
+        private readonly string $activityContextFailurePolicy = 'fallback',
+        private readonly ?Closure $onActivityContextFailure = null,
+        bool $runOnActivityContextAttachFailure = false,
     ) {
-        $activityId = $currentActivityId ?? $this->currentActivityId(...);
+        if (!in_array($activityContextFailurePolicy, ['fallback', 'drop', 'throw'], true)) {
+            throw new InvalidArgumentException('Invalid activity context failure policy.');
+        }
+
+        $legacyActivityId = $currentActivityId ?? $this->currentActivityId(...);
+        $activityId = $contextStorage instanceof ContextStorageInterface
+            ? (fn (): ?ActivityIdInterface => $this->resolveActivityContext()[1])
+            : fn (): ?ActivityIdInterface => $this->activityContextSuppression > 0 ? null : $legacyActivityId();
+        $shouldDrop = $contextStorage instanceof ContextStorageInterface ? $this->shouldDrop(...) : null;
+        $verifiedActivityExportId = $contextStorage instanceof ContextStorageInterface
+            ? $this->resolveActivityContext(...) : null;
 
         $this->measurementRecorder = new DefaultMeasurementRecorder(
             $executionId,
@@ -98,7 +122,9 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->sequenceAllocator,
             $this->clock,
             $this->publisher,
-            $this->authority
+            $this->authority,
+            $shouldDrop,
+            $verifiedActivityExportId
         );
         $this->observationRecorder = new DefaultObservationRecorder(
             $executionId,
@@ -108,7 +134,9 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->publisher,
             $this->throwableMapper,
             $this->observationIdFactory,
-            $this->authority
+            $this->authority,
+            $shouldDrop,
+            $verifiedActivityExportId
         );
         $this->occurrenceRecorder = new DefaultOccurrenceRecorder(
             $executionId,
@@ -117,7 +145,9 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->clock,
             $this->publisher,
             $this->occurrenceIdFactory,
-            $this->authority
+            $this->authority,
+            $shouldDrop,
+            $verifiedActivityExportId
         );
         $this->snapshotRecorder = new DefaultSnapshotRecorder(
             $executionId,
@@ -130,7 +160,9 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->hashCalculator,
             $this->snapshotStore,
             $this->onSnapshotStoreFailure,
-            $this->authority
+            $this->authority,
+            $shouldDrop,
+            $verifiedActivityExportId
         );
         $this->activityRunner = new DefaultActivityRunner(
             $this,
@@ -141,7 +173,10 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->throwableMapper,
             $this->activityIdFactory,
             $this->limits,
-            $this->authority
+            $this->authority,
+            $contextStorage instanceof ContextStorageInterface ? $activityStorage : null,
+            $this->reportActivityContextFailure(...),
+            $runOnActivityContextAttachFailure
         );
     }
 
@@ -209,5 +244,79 @@ final class ExecutionScope implements ExecutionScopeInterface
     public function openActivities(): array
     {
         return $this->openActivities;
+    }
+
+    public function runWithoutActivityContext(callable $operation): mixed
+    {
+        // Suppression is execution-wide: overlapping activities also lose attribution until restored.
+        ++$this->activityContextSuppression;
+        try {
+            return $operation();
+        } finally {
+            --$this->activityContextSuppression;
+        }
+    }
+
+    /** @return array{bool, ?ActivityIdInterface, ?string} */
+    private function resolveActivityContext(): array
+    {
+        if ($this->activityContextSuppression > 0) {
+            return [false, null, null];
+        }
+
+        try {
+            if ($this->contextStorage?->current() !== $this) {
+                return [false, null, null];
+            }
+
+            $activityScope = $this->activityStorage?->current();
+            if (!$activityScope instanceof ActivityScopeInterface) {
+                return [true, null, null];
+            }
+
+            $activity = $activityScope->activity();
+            $id = $activity->activityId();
+            $exportId = $this->authority->exportIdForArtifact($activity);
+            if ($activityScope->parentScope() !== $this
+                || !in_array($activity, $this->openActivities, true)
+                || $exportId === null
+                || !$this->authority->verifyExportId($exportId, 'activity', $this->execution->id()->toString())
+                || !$id instanceof ActivityIdInterface) {
+                return [false, null, null];
+            }
+
+            return [true, $id, $exportId];
+        } catch (Throwable) {
+            return [false, null, null];
+        }
+    }
+
+    private function reportActivityContextFailure(string $reason): void
+    {
+        try {
+            ($this->onActivityContextFailure)?->__invoke($reason);
+        } catch (Throwable) {
+            // Health reporting must not replace the operation's result or exception.
+        }
+    }
+
+    private function shouldDrop(?string $recordedActivityId, ?bool $captureValid = null): bool
+    {
+        [$valid, $currentActivityId] = $this->resolveActivityContext();
+        if ($recordedActivityId !== null && $recordedActivityId !== $currentActivityId?->toString()) {
+            $this->reportActivityContextFailure('activity_context_changed');
+            return true;
+        }
+
+        if ($valid && $captureValid !== false) {
+            return false;
+        }
+
+        $this->reportActivityContextFailure('activity_context_unavailable');
+        if ($this->activityContextFailurePolicy === 'throw') {
+            throw new RuntimeException('Activity context is unavailable or invalid.');
+        }
+
+        return $this->activityContextFailurePolicy === 'drop';
     }
 }

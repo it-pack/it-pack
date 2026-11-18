@@ -28,6 +28,14 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Added an in-progress separate runtime-local activity context, with paired storage
+  adapters, execution-level fallback, and opt-in strict rejection. This adds SDK
+  configuration methods and changes recorder and direct-composition behavior;
+  consumers must configure compatible activity storage and review migration notes.
+  Attachment failure is fail-closed by default, with an opt-in callback fallback
+  that suppresses activity attribution for the entire execution until it finishes.
+  Reentrant-storage hardening and the remaining Phase 2 checks are still open. The
+  execution-wide open-activity limit is unchanged.
 - Phase 2 is incomplete. The SDK builder checks provenance, invokes a configured
   custom redactor on the original artifact, then verifies and projects its output
   and applies strict classifiers before the configured stack, regardless of

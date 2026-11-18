@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Runner;
 
+use Closure;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Scope\ActivityScope;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
@@ -15,10 +16,13 @@ use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
@@ -52,6 +56,9 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         private StringIdentifierFactoryInterface $activityIdFactory,
         private SecurityLimits                   $limits = new SecurityLimits(),
         private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
+        private ?ActivityContextStorageInterface $activityStorage = null,
+        private ?Closure                         $onActivityContextFailure = null,
+        private bool                             $runOnActivityContextAttachFailure = false,
     ) {
     }
 
@@ -64,7 +71,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         }
 
         $activityId = $this->activityIdFactory->build();
-        $startedAt = $this->now();
+        $startedAt = $this->currentInstant();
         $startedAtMonotonic = $this->clock->monotonicNanoseconds();
         $sequence = $this->sequenceAllocator->allocate($this->executionId);
 
@@ -94,34 +101,129 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         }
 
         $this->scope->trackOpenActivity($activity);
-        $previousActivityId = $this->scope->currentActivityId();
-        $this->scope->setCurrentActivityId($activityId);
+        return $this->runActivity($activity, $activityId, $startedAtMonotonic, $operation);
+    }
 
-        $this->publisher->publish($activity);
+    private function currentInstant(): InstantInterface
+    {
+        return $this->now();
+    }
+
+    private function runActivity(
+        ActivityInterface $activity,
+        ActivityIdInterface $activityId,
+        int $startedAtMonotonic,
+        callable $operation,
+    ): mixed {
+        $previousActivityId = $this->scope->currentActivityId();
+        $token = null;
+        $activityScope = new ActivityScope($this->scope, $activity);
+        try {
+            try {
+                $token = $this->attach($activityScope, $activityId);
+            } catch (Throwable $failure) {
+                if (!$this->runOnActivityContextAttachFailure) {
+                    throw $failure;
+                }
+
+                return $this->scope->runWithoutActivityContext(
+                    fn (): mixed => $this->runAttached($activity, $activityScope, $startedAtMonotonic, $operation),
+                );
+            }
+
+            return $this->runAttached($activity, $activityScope, $startedAtMonotonic, $operation);
+        } finally {
+            try {
+                if ($token instanceof ContextTokenInterface) {
+                    $this->activityStorage?->detach($token);
+                }
+            } catch (Throwable) {
+                $this->reportFailure('activity_context_detach_failed');
+            } finally {
+                $this->scope->clearOpenActivity($activityId);
+                if (!$this->activityStorage instanceof ActivityContextStorageInterface) {
+                    $this->scope->setCurrentActivityId($previousActivityId);
+                }
+            }
+        }
+    }
+
+    private function runAttached(
+        ActivityInterface $activity,
+        ActivityScope $activityScope,
+        int $startedAtMonotonic,
+        callable $operation,
+    ): mixed {
+        try {
+            $this->publisher->publish($activity);
+        } catch (Throwable) {
+            $this->reportFailure('activity_start_publication_failed');
+        }
+
+        $result = $this->invokeOperation($operation, $activityScope, $activity, $startedAtMonotonic);
+        $this->publishSuccess($activity, $startedAtMonotonic);
+
+        return $result;
+    }
+
+    private function invokeOperation(
+        callable $operation,
+        ActivityScope $scope,
+        ActivityInterface $activity,
+        int $startedAtMonotonic,
+    ): mixed {
+        try {
+            return $operation($scope);
+        } catch (Throwable $throwable) {
+            $this->publishFailure($activity, $throwable, $startedAtMonotonic);
+            throw $throwable;
+        }
+    }
+
+    private function attach(ActivityScope $activityScope, ActivityIdInterface $activityId): ?ContextTokenInterface
+    {
+        if (!$this->activityStorage instanceof ActivityContextStorageInterface) {
+            $this->scope->setCurrentActivityId($activityId);
+            return null;
+        }
 
         try {
-            $result = $operation(new ActivityScope($this->scope, $activity));
-
-            $completed = $this->complete(
-                $activity,
-                ActivityStatus::Succeeded,
-                description: null,
-                startedAtMonotonic: $startedAtMonotonic,
-            );
-            $this->authority->attestSuccessor($activity, $completed);
-            $this->publisher->publish($completed);
-
-            return $result;
+            return $this->activityStorage->attach($activityScope);
         } catch (Throwable $throwable) {
+            $this->reportFailure('activity_context_attach_failed');
+            throw $throwable;
+        }
+    }
+
+    private function publishFailure(ActivityInterface $activity, Throwable $throwable, int $startedAtMonotonic): void
+    {
+        try {
             $description = $this->throwableMapper->describe($throwable);
             $completed = $this->complete($activity, ActivityStatus::Failed, $description, $startedAtMonotonic);
             $this->authority->attestSuccessor($activity, $completed);
             $this->publisher->publish($completed);
+        } catch (Throwable) {
+            $this->reportFailure('activity_terminal_publication_failed');
+        }
+    }
 
-            throw $throwable;
-        } finally {
-            $this->scope->clearOpenActivity($activityId);
-            $this->scope->setCurrentActivityId($previousActivityId);
+    private function publishSuccess(ActivityInterface $activity, int $startedAtMonotonic): void
+    {
+        try {
+            $completed = $this->complete($activity, ActivityStatus::Succeeded, null, $startedAtMonotonic);
+            $this->authority->attestSuccessor($activity, $completed);
+            $this->publisher->publish($completed);
+        } catch (Throwable) {
+            $this->reportFailure('activity_terminal_publication_failed');
+        }
+    }
+
+    private function reportFailure(string $reason): void
+    {
+        try {
+            ($this->onActivityContextFailure)?->__invoke($reason);
+        } catch (Throwable) {
+            // Reporting is secondary to the activity lifecycle.
         }
     }
 
