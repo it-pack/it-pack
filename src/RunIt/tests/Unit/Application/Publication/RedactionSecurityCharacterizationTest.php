@@ -41,8 +41,8 @@ use Throwable;
  * These tests document the *current* deny-list redaction behavior: only configured
  * keys and the toggled throwable/message/value fields are masked. Caller-supplied
  * identifiers, relationships, arbitrary metadata and unclassified attributes pass
- * through to samplers and sinks unchanged. No delivery policy is changed here;
- * the assertions capture the gap that the Phase 2 decision gate must resolve.
+ * through the standalone redactor unchanged. The composed factory must instead
+ * reject artifacts whose provenance cannot be verified.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -143,7 +143,7 @@ final class RedactionSecurityCharacterizationTest extends Unit
         self::assertSame($before, $original->normalize(), 'The original occurrence is unchanged.');
     }
 
-    public function testSamplerAndSinkReceiveUnclassifiedNestedOccurrenceData(): void
+    public function testStandaloneFactoryDropsUnverifiedOccurrenceBeforeSamplerAndSink(): void
     {
         $spy = new class () implements SamplingPolicyInterface {
             /** @var list<array<string, mixed>> */
@@ -170,18 +170,21 @@ final class RedactionSecurityCharacterizationTest extends Unit
         $before = $original->normalize();
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveDataKeys: ['password']));
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $error,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = [$error->getMessage(), $artifact->normalize()];
+        });
 
-        new PublisherStackFactory()->compose($sink, $redactor, $spy)->publish($original);
+        new PublisherStackFactory()->compose($sink, $redactor, $spy, $health)->publish($original);
+        new PublisherStackFactory()->compose($sink, null, null, $health)->publish($original);
 
-        self::assertCount(1, $spy->seen);
-        self::assertIsArray($spy->seen[0]['data']);
-        self::assertSame([
-            'password' => '[redacted]',
-            'synthetic-secret-key' => 'synthetic-secret-value',
-        ], $spy->seen[0]['data']['nested']);
-        self::assertSame('synthetic-source-secret', $spy->seen[0]['source']);
-        self::assertCount(1, $sink->published());
-        self::assertSame($spy->seen[0], $sink->published()[0]->normalize());
+        self::assertSame([], $spy->seen);
+        self::assertSame([], $sink->published());
+        self::assertCount(2, $reports);
+        self::assertStringNotContainsString('synthetic-', json_encode($reports, JSON_THROW_ON_ERROR));
         self::assertSame($before, $original->normalize());
     }
 

@@ -94,6 +94,18 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertNull($authority->exportIdentityFields($artifact));
     }
 
+    public function testExecutionArtifactRelationshipsRejectDifferentOwners(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $first = $authority->issueExportId('execution', 'execution', 'first', 'first');
+        $second = $authority->issueExportId('execution', 'execution', 'second', 'second');
+        $observation = $authority->issueExportId('observation', 'observation', 'second', 'obs');
+
+        self::assertFalse($authority->registerRelationship($first, $observation, 'execution-observation'));
+        self::assertSame([], $authority->allRecords()[$first]['relationships']);
+        self::assertTrue($authority->registerRelationship($second, $observation, 'execution-observation'));
+    }
+
     public function testCapacityRejectsBindingsWithoutRetainingOrPublishingEvidence(): void
     {
         $authority = new ProvenanceAuthority(null, 2, 1, 1024);

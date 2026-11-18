@@ -34,6 +34,25 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Interim Phase 2 Sample (2026-11-18)
+
+On PHP 8.5.12 CLI NTS and PHPBench 1.7.0, while the worktree was being edited
+and other checks were running, the following command completed without errors:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/NestedSnapshotBench.php --config=phpbench.json --filter=benchPublisher --report=aggregate
+```
+
+The 8-row and 64-row lower-level redacting publisher subjects reported modes of
+177.551 and 703.121 microseconds respectively, with relative standard deviations
+35.90% and 40.81%. Each used five iterations of 100 revolutions after two
+warmups, a prebuilt snapshot and an in-memory JSON sink. This is not the verified
+SDK pipeline and does not measure provenance retention or exporter I/O. The
+earlier historical modes below were obtained on a different tree and under
+different load; no controlled before/after comparison or performance conclusion
+is justified. A full `composer benchmark` invocation during integration timed
+out after 120 seconds before completing the suite.
+
 ## Focused Synthetic SDK Workload (2026-11-13)
 
 This is a deliberately small synthetic workload, not production representative.
@@ -169,6 +188,12 @@ representative delivery-loss and retention-cost evidence remains **unmet**;
 these numbers are neither production loss rates nor regression thresholds.
 
 ## Phase 2 Delivery And Retention Assessment (2026-11-13)
+
+On 2026-11-18 the maintainer authorized deferring representative delivery-loss,
+provenance-retention and real-exporter I/O measurements as Phase 2 exit
+requirements. The follow-up is unassigned. Until measured, production loss,
+capacity and resource costs remain unknown; the historical unmet-requirement
+statements below describe the earlier decision, not the current exit criteria.
 
 The Phase 2 pre-adoption decision requires delivery-loss and retention-cost
 measurements on representative workloads for the proposed SDK-issued identity

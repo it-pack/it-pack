@@ -38,6 +38,7 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -91,6 +92,25 @@ use Throwable;
 #[UsesClass(SecurityLimits::class)]
 final class SamplingTest extends Unit
 {
+    /** Reproduces the legacy unverified stack only for lower-level policy tests. */
+    private function unsafeTestStack(
+        ArtifactPublisherInterface $sink,
+        ?RedactorInterface $redactor,
+        ?SamplingPolicyInterface $policy,
+    ): ArtifactPublisherInterface {
+        if (!$redactor instanceof RedactorInterface && !$policy instanceof SamplingPolicyInterface) {
+            return $sink;
+        }
+
+        $publisher = new ClassifyingArtifactPublisher($sink);
+        if ($policy instanceof SamplingPolicyInterface) {
+            $publisher = new SamplingArtifactPublisher($policy, $publisher);
+        }
+
+        return $redactor instanceof RedactorInterface
+            ? new RedactingArtifactPublisher($redactor, $publisher) : $publisher;
+    }
+
     public function testVerifiedTerminalSnapshotIsSanitizedBeforeSamplerAndSink(): void
     {
         $authority = new ProvenanceAuthority();
@@ -574,7 +594,7 @@ final class SamplingTest extends Unit
     public function testClassifierDeliversTypedObservationOnlyFromRedactedFields(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $publisher = new PublisherStackFactory()->compose(
+        $publisher = $this->unsafeTestStack(
             $sink,
             new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret'])),
             null,
@@ -1055,7 +1075,7 @@ final class SamplingTest extends Unit
     /**
      * @throws Throwable
      */
-    public function testHealthAwareFactoryReportsSamplingDrops(): void
+    public function testHealthAwareFactoryReportsUnverifiedDrops(): void
     {
         $health = new class () implements InternalHealthReporterInterface {
             public int $calls = 0;
@@ -1077,7 +1097,7 @@ final class SamplingTest extends Unit
     /**
      * @throws Throwable
      */
-    public function testFactorySamplesRedactedArtifactsAfterRedaction(): void
+    public function testUnsafeStackSamplesRedactedArtifactsAfterRedaction(): void
     {
         $policy = new class () implements SamplingPolicyInterface {
             /** @var list<ExecutionArtifactInterface> */
@@ -1095,7 +1115,7 @@ final class SamplingTest extends Unit
             sensitiveAttributeKeys: ['secret'],
             redactObservationMessages: true,
         ));
-        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $publisher = $this->unsafeTestStack($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $id = ExecutionId::fromString('exec-1');
         $changed = Observation::info(ObservationId::fromString('changed'), $id, 'keep', attributes: $attributes);
@@ -1122,12 +1142,11 @@ final class SamplingTest extends Unit
         self::assertNotSame($unchanged, $sink->published()[2]);
     }
 
-    public function testFactoryHandlesNullDecorators(): void
+    public function testUnsafeStackHandlesNullDecorators(): void
     {
-        $factory = new PublisherStackFactory();
         $sink = new InMemoryArtifactPublisher();
         $artifact = $this->observation();
-        self::assertSame($sink, $factory->compose($sink, null, null));
+        self::assertSame($sink, $this->unsafeTestStack($sink, null, null));
 
         $sampling = new class () implements SamplingPolicyInterface {
             /** @var list<ExecutionArtifactInterface> */
@@ -1140,7 +1159,7 @@ final class SamplingTest extends Unit
                 return true;
             }
         };
-        $factory->compose($sink, null, $sampling)->publish($artifact);
+        $this->unsafeTestStack($sink, null, $sampling)->publish($artifact);
         self::assertCount(1, $sampling->seen);
         self::assertInstanceOf(Observation::class, $sampling->seen[0]);
         self::assertSame($artifact->normalize(), $sampling->seen[0]->normalize());
@@ -1159,7 +1178,7 @@ final class SamplingTest extends Unit
             redactObservationMessages: true,
         ));
         $redactedSink = new InMemoryArtifactPublisher();
-        $factory->compose($redactedSink, $redactor, null)->publish($changed);
+        $this->unsafeTestStack($redactedSink, $redactor, null)->publish($changed);
         self::assertCount(1, $redactedSink->published());
         self::assertNotSame($changed, $redactedSink->published()[0]);
         self::assertSame(['secret' => '[redacted]'], $redactedSink->published()[0]->normalize()['attributes']);
@@ -1168,7 +1187,7 @@ final class SamplingTest extends Unit
     /**
      * @throws Throwable
      */
-    public function testFactorySamplesObservationSeverityAfterRedaction(): void
+    public function testUnsafeStackSamplesObservationSeverityAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
@@ -1176,7 +1195,7 @@ final class SamplingTest extends Unit
             redactObservationMessages: true,
         ));
         $policy = new SeveritySamplePolicy(ObservationSeverity::Warning->level());
-        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $publisher = $this->unsafeTestStack($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $id = ExecutionId::fromString('exec-1');
         $low = Observation::info(ObservationId::fromString('low'), $id, 'low', attributes: $attributes);
@@ -1197,7 +1216,7 @@ final class SamplingTest extends Unit
     /**
      * @throws Throwable
      */
-    public function testFactorySamplesErrorOverrideAfterRedaction(): void
+    public function testUnsafeStackSamplesErrorOverrideAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
@@ -1205,7 +1224,7 @@ final class SamplingTest extends Unit
             redactObservationMessages: true,
         ));
         $policy = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
-        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $publisher = $this->unsafeTestStack($sink, $redactor, $policy);
         $id = ExecutionId::fromString('exec-1');
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $error = Observation::error(ObservationId::fromString('error'), $id, 'error', attributes: $attributes);
@@ -1232,7 +1251,7 @@ final class SamplingTest extends Unit
     /**
      * @throws Throwable
      */
-    public function testFactorySamplesExecutionKindAfterRedaction(): void
+    public function testUnsafeStackSamplesExecutionKindAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
@@ -1247,7 +1266,7 @@ final class SamplingTest extends Unit
             },
             ['http.request' => true, 'cli.command' => false],
         );
-        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $publisher = $this->unsafeTestStack($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $kept = Observation::info(
             ObservationId::fromString('kept'),

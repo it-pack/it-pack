@@ -19,11 +19,18 @@ fields need migration. SDK snapshot projections omit payload and content hash;
 SDK measurements are dropped and reported, including with custom or null
 redactors. Occurrence routing by the original type is unavailable on this path.
 
-Standalone pipeline composition remains unsafe without independent controls.
+Standalone `PublisherStackFactory` composition without a shared issuing authority
+now reports and drops unverifiable artifacts before sampling or delivery. A default
+standalone `PublicationPipeline` does not automatically share the SDK authority.
+Arbitrary custom composition can bypass this boundary and remains unsafe without
+independent controls. OpenTelemetry uses redacted mapper methods for redacted
+projections even when they also implement typed domain interfaces; custom mappers
+depending on typed dispatch need review.
 The planned configurable extension-input modes and independent classification
 and provenance bypasses are not implemented. Phase 2 is incomplete; affected
 downstream packages must not be released until their issues are fixed and
-verified. These behavioral changes require compatibility review alongside any
+verified. Consumer migration and downstream verification are deferred; no release
+is made by this work. These behavioral changes require compatibility review alongside any
 API and schema differences; no baseline update is implied.
 
 The public API is the set of symbols under these source directories:

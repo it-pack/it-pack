@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 
@@ -66,7 +67,10 @@ final readonly class PublicationPipeline implements PublicationPipelineInterface
             );
         }
 
-        $publisher = $this->stackFactory->compose($publisher, $this->redactor, $this->sampling);
+        $publisher = $this->health instanceof InternalHealthReporterInterface
+            && $this->stackFactory instanceof HealthAwarePublisherStackFactoryInterface
+            ? $this->stackFactory->composeWithHealth($publisher, $this->redactor, $this->sampling, $this->health)
+            : $this->stackFactory->compose($publisher, $this->redactor, $this->sampling);
 
         if ($this->filter instanceof ArtifactFilterInterface) {
             $publisher = new FilteringArtifactPublisher($this->filter, $publisher);

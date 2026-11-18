@@ -1281,11 +1281,19 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 
 **Depends on:** Phase 0 and the redaction/routing decisions; mapping and regression tests may proceed while tracked Phase 1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
 
+**Measurement deferral (2026-11-18):** The maintainer authorized deferring
+representative-workload delivery-loss, provenance-retention cost and real-exporter
+I/O measurements as Phase 2 exit requirements. Follow-up owner: unassigned. The
+missing evidence leaves production delivery loss, capacity and resource costs
+unknown; synthetic results are preliminary and cannot establish those outcomes.
+This does not defer the other Phase 2 exit criteria, downstream migration or
+verification into passed status, or authorize a release.
+
 **Current investigation (2026-11-13):** Phase 2 remains open for implementation, but all documented Phase 0–2 decisions are explicitly approved. The field-policy proposal at lines 1202-1220 is now authorized for implementation under the approved identifier provenance and unsafe-mapping drops decisions. Prior characterizations are current-behavior documentation, not security guarantees.
 
-The factory-level `RedactionSecurityCharacterizationTest` spy demonstrates that
+Historically, the factory-level `RedactionSecurityCharacterizationTest` spy demonstrated that
 an unclassified nested occurrence key, value and source reach both sampler and
-sink, while a configured sensitive data value is masked. This is current behavior,
+sink, while a configured sensitive data value was masked. This was observed behavior,
 not a guarantee or approval to expose those fields. Builder tests also demonstrate
 that a normal custom stack receives an attested artifact's raw business execution
 ID and that the default terminal snapshot sink receives the business execution ID
@@ -1313,7 +1321,7 @@ every configuration is affected, and do not authorize a change in delivery.
 - [x] `ProvenanceAuthority::reportUnverified()` error-log fallback when no health
   reporter is configured (standalone composition observable, not silently dropped).
 
-Open implementation gaps (decisions approved, implementation pending):
+Historical implementation gaps (2026-11-13; see the current update below):
 
 - The standalone factory characterization still sends unclassified occurrence
   data to its sampler and sink. Bounded traversal is not deny-by-default field
@@ -1327,8 +1335,8 @@ Open implementation gaps (decisions approved, implementation pending):
   enforce classification within custom code. The projection boundary is now
   approved; RunIt implementation and contract review remain. Consumer migration
   and downstream checks are deferred under the downstream scope decision.
-- No representative workload, delivery-loss measurement, or real exporter I/O
-  baseline established for Phase 2 cost evaluation.
+- Representative workload delivery-loss, provenance retention and real exporter
+  I/O measurements are deferred as described in the 2026-11-18 decision above.
 
 Phase 2 cannot be closed until the approved field-policy is implemented, tested,
 and documented with corresponding updates to `docs/SECURITY.md`,
@@ -1424,7 +1432,7 @@ Implemented within already-approved decisions:
 - Low `maxAttributeCount` limits cause fail-closed drops (not truncated metadata) for observation/activity throwable and execution result structures.
 - Explicit redactor opt-outs (`withRedactor(null)`) and custom redactors still pass through SDK verification and classification before the configured publisher stack; custom factories receive classified projections.
 
-Open gaps (the Phase 0-2 policy direction is approved; implementation and compatibility verification remain necessary):
+Historical open gaps (2026-11-13; see the current update below):
 
 - Standalone factory characterization shows unclassified occurrence data reaching both sampler and sink. Bounded traversal is not deny-by-default field classification; full enforcement before both boundaries remains open for standalone/custom compositions.
 - Custom factories receive artifacts only after the SDK boundary: the builder
@@ -1433,7 +1441,8 @@ Open gaps (the Phase 0-2 policy direction is approved; implementation and compat
   `RedactingArtifactPublisher` outermost, so artifacts reach a custom factory only
   after SDK classification and redaction. RunIt implementation and contract review
   remain; downstream migration is deferred.
-- No representative workload, delivery-loss measurement, or real exporter I/O baseline established for Phase 2 cost evaluation. Synthetic benchmarks exist in `docs/benchmarks.md` but do not measure representative production traffic.
+- Representative workload delivery-loss, provenance retention and real exporter
+  I/O measurements are deferred; synthetic benchmarks are not representative.
 - Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. The approved asynchronous path queues safe projections, not raw work; its full verification remains open.
 
 The `ProvenanceBoundaryTest` regression now retains a runner-issued raw execution
@@ -1443,7 +1452,61 @@ verification; it does not implement ownership for deferred raw work.
 
 Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run, PHPStan at level max, architecture, lint:length, all four test suites, security audit) passes on the final tree and the approved custom factory boundary and RunIt contract review are complete. Consumer migration and downstream verification are deferred.
 
+**Integration update (2026-11-18):** The standalone default factory now reports
+and drops inputs without provenance from its issuing authority before the sampler
+or sink. Its former raw pass-through behavior is a breaking behavioral change.
+The SDK custom-factory projection boundary remains in place. OpenTelemetry now
+dispatches typed redacted artifacts through redacted mappers first. Execution to
+artifact provenance edges reject different execution owners. Focused tests cover
+those cases and a projection queued before cleanup and consumed after cleanup;
+deferred raw artifacts remain untrusted. Arbitrary custom publisher compositions
+can bypass these controls. Phase 2 remains open pending final integrated evidence,
+including activity interleaving, contract review and final quality. Downstream
+migration and checks remain deferred, not passed; no release is authorized.
+
+**Open blocker (2026-11-18):** `OverlappingActivityProvenanceTest` reproduces
+two interleaved activities sharing one execution scope: the first activity's
+observation can acquire the second activity's verified relationship, and the
+second can lose its activity relationship after the first completes. Isolating
+the execution context storage alone does not isolate the scope's mutable current
+activity. A runtime-neutral ownership and activity-context design needs review
+before changing these semantics; the test characterizes the defect rather than
+endorsing it. Do not claim Phase 2 complete on the strength of the provenance
+edge checks alone.
+
+Validation on the integrated tree on PHP 8.5.12: `composer -q quality` and
+separate `composer api:check` passed. The quality script includes all four test
+suites and both audits; quiet output does not establish individual skip counts.
+On PHP 8.4.27 the concurrency suite passed 9 tests/181 assertions, telemetry
+publisher tests passed 25/207, and provenance boundary tests passed 7/38. PHP 8.6
+was unavailable. These checks do not resolve the overlapping-activity blocker or
+establish downstream compatibility. See `benchmarks.md` for measurement limits.
+
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
+
+### Default SDK field matrix
+
+This matrix describes the intended verified SDK projection boundary, not a
+guarantee for arbitrary publisher compositions. Verification must bind both export
+IDs and relationships to the issuing authority; unknown or expired provenance
+is reported and dropped. Invalid required fields likewise cause a reported drop.
+No raw source artifact is retained by a safe projection.
+
+| Artifact    | Retained or replaced                                                                                                                                 | Omitted or dropped                                                                                                  |
+|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Execution   | Verified export ID and relationships, validated status, non-negative timing and sequence; name and kind become `runit.redacted`                      | Context and result content; terminal result retains status and restricted throwable only                            |
+| Activity    | Verified export and execution IDs and parent relationship, validated status, non-negative timing and sequence; name and kind become `runit.redacted` | Attributes and unrestricted throwable data                                                                          |
+| Observation | Verified export and relationship IDs, validated severity and level, non-negative timestamp and sequence; required message becomes `[redacted]`       | Diagnostic code and attributes; unrestricted throwable data. Configured drop/report may replace delivery            |
+| Occurrence  | Verified export and relationship IDs, non-negative time and sequence; fixed redacted type, source, version and content type                          | Original type, source, subject, schema, data and extension attributes                                               |
+| Measurement | No approved safe required-field representation                                                                                                       | Reported drop before sampling, including names, units, values and attributes                                        |
+| Snapshot    | Verified export and relationship IDs and approved structural fields                                                                                  | Arbitrary embedded execution fields, payload, attributes and original content hash; no replacement hash is invented |
+
+Throwable class and code are permitted by the approved default policy, but may
+themselves contain user-controlled information. Messages are masked and traces
+omitted; nested causes and low limits must be handled fail-closed. Bounded strings
+are not inherently safe. Generic projections need not implement the original
+typed interface: routing must deliver safely or report a drop, not silently claim
+delivery. Health reports must not include artifact payloads or identifiers.
 
 **Artifact `normalize()` shapes (built-in domain values):**
 

@@ -294,7 +294,9 @@ redactor and their stacks receive classified projections. SDK measurements are
 reported and dropped, occurrence types are replaced, and snapshot projections omit
 payload and hash; consumers must account for these delivery changes.
 
-The standalone pipeline remains unsafe without independent controls. Phase 2 is
+The default standalone factory without the issuing authority reports and drops
+unverifiable artifacts before sampling or delivery. Arbitrary custom composition
+remains unsafe without independent controls. Phase 2 is
 incomplete, and the planned configurable alternative input and bypass modes are not
 yet implemented. Affected downstream packages must not be released until their
 issues are fixed and verified. See the security documentation for remaining gaps.

@@ -53,6 +53,8 @@ use Throwable;
  */
 final class TelemetryPublisher implements ArtifactPublisherInterface
 {
+    private bool $writingHealthFallback = false;
+
     public function __construct(
         public readonly BridgeConfig                          $config,
         private readonly ExecutionSpanMapperInterface         $executionMapper,
@@ -105,6 +107,12 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $this->publishRedactedArtifact($artifact);
+
+            return;
+        }
+
         if ($artifact instanceof ExecutionInterface) {
             $this->executionMapper->map($artifact);
 
@@ -259,15 +267,12 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
      * Reports a suppressed redacted artifact through the health channel and drops it.
      *
      * Only a constant, payload-free notice is sent to the health reporter.
-     * Health reporter failures are contained so the drop path stays fail-open.
-     *
+     * Health reporter failures and re-entry use a guarded, payload-free fallback.
      */
     private function reportRedactedDrop(string $reason): void
     {
         if ($this->publishingHealthReport) {
-            // Re-entry guard: health reporting must not re-enter the same
-            // publication path. Skip the health notice and drop the redacted
-            // artifact fail-open.
+            $this->writeHealthFallback();
             return;
         }
 
@@ -290,11 +295,26 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
                 },
             );
         } catch (Throwable) {
-            // Contain health reporter failures so the drop path stays
-            // fail-open: a throwing reporter must not change the business
-            // result or let a publication exception escape.
+            $this->writeHealthFallback();
         } finally {
             $this->publishingHealthReport = false;
+        }
+    }
+
+    private function writeHealthFallback(): void
+    {
+        if ($this->writingHealthFallback) {
+            return;
+        }
+
+        $this->writingHealthFallback = true;
+        try {
+            /** @noinspection ForgottenDebugOutputInspection */
+            error_log('[runit] publication health: unable to report a redacted artifact drop.');
+        } catch (Throwable) {
+            // Last-resort diagnostics must not affect publication or business outcomes.
+        } finally {
+            $this->writingHealthFallback = false;
         }
     }
 }

@@ -6,6 +6,17 @@ Milestone M13 ("Conformance Tooling and QA Completion") static-analysis work.
 
 ## Gate overview
 
+### Publication security verification
+
+Current source places provenance projection and strict classification before
+sampling in the default SDK stack. The default standalone stack without the
+issuer's authority reports and drops unverifiable artifacts; custom composition
+must be assessed separately. Focused publication and OpenTelemetry tests cover
+these paths, but their presence is not evidence that final checks passed on the
+current worktree. Consumer migration, downstream verification, representative
+delivery-loss and retention measurements, and real-exporter I/O remain deferred.
+No release or Phase 2 completion is implied.
+
 ### Downstream compatibility
 
 The monorepo's `.github/workflows/runit-downstream-compat.yml` exercises RunIt
@@ -384,25 +395,25 @@ to closures can remove coverage of array-specific behavior.
 
 ## RunIt-authored rules
 
-| Rule | Enforces | AGENTS.md basis |
-| --- | --- | --- |
-| `forbidden-mixed` | No *implicit* (undeclared) parameter/return/property types. | "Avoid implicit `mixed`." |
-| `forbidden-unsafe-types` | No `resource` type in signatures/properties. | `resource` cannot be serialized/observed safely; the other documented untyped types (`array`, `string`, `int`, `float`, `bool`, `object`, `callable`, `iterable`) remain permitted. |
-| `no-var` | No `var` keyword; visibility must be explicit. | General PHP style. |
-| `no-explicit-strict-types` | Every library file declares `declare(strict_types=1)`. | AGENTS.md: every file begins with `declare(strict_types=1)`. |
-| `explicit-foreach` | No by-reference (`as &$v`) `foreach` binding. | Performance/determinism: avoid silent aliasing. |
-| `forbid-reflection-on-hot-path` | No `Reflection*` usage in `Domain`, `Application\Runner`, `Application\Engine`. | AGENTS.md performance requirements (no reflection on hot paths). |
-| `require-final` | Every concrete class is `final`. | "Every concrete class must be `final`." |
-| `no-mutable-static` | Static properties must be `readonly`; no assignments to static properties. | Prohibits global mutable state. |
-| `forbid-arbitrary-object-serialization` | No `serialize()` / `unserialize()` of objects. | "Arbitrary PHP object serialization is prohibited." |
-| `forbid-direct-wall-clock` | No `time()` / `date()` / `new DateTime` / … outside `Adapter` (plus a small allowlist). | Time comes from the `MonotonicClockInterface` port. |
-| `forbid-domain-imports-adapters` | Core layers must not `use` adapter implementations. | Hexagonal boundary (also enforced by DepTrac in M13.3). |
-| `no-empty-catch` | No empty `catch` blocks (swallowed exceptions). | ADR-008: preserve the original failure. |
-| `require-initialized-properties` | Properties are `readonly`, defaulted, or assigned in the class. | src-scoped equivalent of `checkUninitializedProperties`. |
-| `require-readonly-artifact` | Domain artifacts (`Execution`, `Activity`, `Measurement`, `Observation`, `Occurrence`, `Snapshot`) are `readonly`. | ADR-002: artifacts are immutable. |
-| `require-interface` | Every concrete class implements an interface (with a documented exemption list). | "Every concrete class must implement an appropriate interface." |
-| `member-order` | Canonical class-member ordering: trait `use` → constants → properties → constructor → static methods → instance methods, with public before protected/private within each group. | Phase 1 T1.1 / AGENTS.md conventions. |
-| `forbid-leading-backslash-reference` | Inlined leading-backslash FQCNs (written as `\Foo\Bar`) must be replaced by a `use` import; two Swoole probe files are exempt. | Phase 1 T1.2 / REVIEW R-1. |
+| Rule                                    | Enforces                                                                                                                                                                         | AGENTS.md basis                                                                                                                                                                     |
+|-----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `forbidden-mixed`                       | No *implicit* (undeclared) parameter/return/property types.                                                                                                                      | "Avoid implicit `mixed`."                                                                                                                                                           |
+| `forbidden-unsafe-types`                | No `resource` type in signatures/properties.                                                                                                                                     | `resource` cannot be serialized/observed safely; the other documented untyped types (`array`, `string`, `int`, `float`, `bool`, `object`, `callable`, `iterable`) remain permitted. |
+| `no-var`                                | No `var` keyword; visibility must be explicit.                                                                                                                                   | General PHP style.                                                                                                                                                                  |
+| `no-explicit-strict-types`              | Every library file declares `declare(strict_types=1)`.                                                                                                                           | AGENTS.md: every file begins with `declare(strict_types=1)`.                                                                                                                        |
+| `explicit-foreach`                      | No by-reference (`as &$v`) `foreach` binding.                                                                                                                                    | Performance/determinism: avoid silent aliasing.                                                                                                                                     |
+| `forbid-reflection-on-hot-path`         | No `Reflection*` usage in `Domain`, `Application\Runner`, `Application\Engine`.                                                                                                  | AGENTS.md performance requirements (no reflection on hot paths).                                                                                                                    |
+| `require-final`                         | Every concrete class is `final`.                                                                                                                                                 | "Every concrete class must be `final`."                                                                                                                                             |
+| `no-mutable-static`                     | Static properties must be `readonly`; no assignments to static properties.                                                                                                       | Prohibits global mutable state.                                                                                                                                                     |
+| `forbid-arbitrary-object-serialization` | No `serialize()` / `unserialize()` of objects.                                                                                                                                   | "Arbitrary PHP object serialization is prohibited."                                                                                                                                 |
+| `forbid-direct-wall-clock`              | No `time()` / `date()` / `new DateTime` / … outside `Adapter` (plus a small allowlist).                                                                                          | Time comes from the `MonotonicClockInterface` port.                                                                                                                                 |
+| `forbid-domain-imports-adapters`        | Core layers must not `use` adapter implementations.                                                                                                                              | Hexagonal boundary (also enforced by DepTrac in M13.3).                                                                                                                             |
+| `no-empty-catch`                        | No empty `catch` blocks (swallowed exceptions).                                                                                                                                  | ADR-008: preserve the original failure.                                                                                                                                             |
+| `require-initialized-properties`        | Properties are `readonly`, defaulted, or assigned in the class.                                                                                                                  | src-scoped equivalent of `checkUninitializedProperties`.                                                                                                                            |
+| `require-readonly-artifact`             | Domain artifacts (`Execution`, `Activity`, `Measurement`, `Observation`, `Occurrence`, `Snapshot`) are `readonly`.                                                               | ADR-002: artifacts are immutable.                                                                                                                                                   |
+| `require-interface`                     | Every concrete class implements an interface (with a documented exemption list).                                                                                                 | "Every concrete class must implement an appropriate interface."                                                                                                                     |
+| `member-order`                          | Canonical class-member ordering: trait `use` → constants → properties → constructor → static methods → instance methods, with public before protected/private within each group. | Phase 1 T1.1 / AGENTS.md conventions.                                                                                                                                               |
+| `forbid-leading-backslash-reference`    | Inlined leading-backslash FQCNs (written as `\Foo\Bar`) must be replaced by a `use` import; two Swoole probe files are exempt.                                                   | Phase 1 T1.2 / REVIEW R-1.                                                                                                                                                          |
 
 ### Key decision: explicit `mixed` is permitted
 
@@ -575,15 +586,15 @@ is retained for history.
 <details>
 <summary>Formerly-accepted notices (resolved 2026-08-23)</summary>
 
-| # | Symbol | File | Kind | Resolution |
-|---|--------|------|------|------------|
-| 1 | `PublicationPipelineInterface::build` | `src/Application/Publication/PublicationPipelineInterface.php:21` | Public port contract method | Interface marked `@api`. |
-| 2 | `VerifierInterface::port` | `src/Conformance/Contract/VerifierInterface.php:23` | Conformance harness contract method | Interface marked `@api`. |
-| 3 | `SnapshotIntegrityVerifierInterface::verifyIntegrity` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:25` | Public security contract method | Interface marked `@api`. |
-| 4 | `SnapshotIntegrityVerifierInterface::verifyChain` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:30` | Public security contract method | Interface marked `@api`. |
-| 5 | `AttributeValidatorInterface::assertValidKey` | `src/Contract/Domain/AttributeValidatorInterface.php:20` | Public domain contract method | Interface marked `@api`. |
-| 6 | `AttributeValidatorInterface::assertValidAttributes` | `src/Contract/Domain/AttributeValidatorInterface.php:25` | Public domain contract method | Interface marked `@api`. |
-| 7–15 | `SecurityLimits::withMax*` (9 withers) | `src/Domain/Shared/SecurityLimits.php:87–151` | Public fluent withers | Class marked `@api`; reachable via `RunItBuilder::withSecurityLimits()`. |
+| #    | Symbol                                                | File                                                                          | Kind                                | Resolution                                                               |
+|------|-------------------------------------------------------|-------------------------------------------------------------------------------|-------------------------------------|--------------------------------------------------------------------------|
+| 1    | `PublicationPipelineInterface::build`                 | `src/Application/Publication/PublicationPipelineInterface.php:21`             | Public port contract method         | Interface marked `@api`.                                                 |
+| 2    | `VerifierInterface::port`                             | `src/Conformance/Contract/VerifierInterface.php:23`                           | Conformance harness contract method | Interface marked `@api`.                                                 |
+| 3    | `SnapshotIntegrityVerifierInterface::verifyIntegrity` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:25` | Public security contract method     | Interface marked `@api`.                                                 |
+| 4    | `SnapshotIntegrityVerifierInterface::verifyChain`     | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:30` | Public security contract method     | Interface marked `@api`.                                                 |
+| 5    | `AttributeValidatorInterface::assertValidKey`         | `src/Contract/Domain/AttributeValidatorInterface.php:20`                      | Public domain contract method       | Interface marked `@api`.                                                 |
+| 6    | `AttributeValidatorInterface::assertValidAttributes`  | `src/Contract/Domain/AttributeValidatorInterface.php:25`                      | Public domain contract method       | Interface marked `@api`.                                                 |
+| 7–15 | `SecurityLimits::withMax*` (9 withers)                | `src/Domain/Shared/SecurityLimits.php:87–151`                                 | Public fluent withers               | Class marked `@api`; reachable via `RunItBuilder::withSecurityLimits()`. |
 
 </details>
 

@@ -92,14 +92,20 @@ SDK execution and activity projections replace names and kinds, omit
 unclassified context and attributes, and retain verified relationships, validated
 statuses, timing, and bounded throwable class/code metadata. A sampling resolver
 keyed by business execution IDs will not match the export IDs it receives.
+Overlapping activities that share one execution scope can misattribute an
+observation to another activity, including through a verified provenance edge;
+do not rely on those activity relationships for concurrent shared-scope work.
+See the Phase 2 blocker in `REFACTORING_PLAN.md`.
 The default
 redactor examines a top-level `throwable` and a failed execution's
 `result.throwable`. It masks throwable messages, replaces traces with null, omits
 unknown throwable fields, and limits throwable cause traversal to 16 levels.
 
-The standalone publication pipeline does not automatically have the SDK's issuing
-authority or strict SDK classification boundary and remains unsafe for untrusted
-artifacts or sensitive data without independently verified controls. Phase 2 is
+The default standalone `PublisherStackFactory` creates an unshared authority when
+none is supplied. It reports and drops unverifiable artifacts before the redactor,
+sampler or sink. A default standalone `PublicationPipeline` does not share the SDK
+authority. Arbitrary custom composition can bypass this boundary and remains unsafe
+for untrusted artifacts without independently verified controls. Phase 2 is
 incomplete: the planned configurable extension-input modes and independent
 classification and provenance bypasses are not yet implemented. These incremental
 changes do not establish the full Phase 2 security guarantees. Affected downstream
@@ -111,14 +117,16 @@ normalized fields. `artifactType()` is a routing assertion, not validation or
 sanitization of the artifact's contents: a recognized delivery kind does not make
 the projection safe to export or free of sensitive data. Adapters must still apply
 their own redaction policy before delivery.
-OpenTelemetry delivers redacted executions, activities,
+OpenTelemetry dispatches redacted executions, activities,
 occurrences, and snapshots through their redacted mappers, and redacted observations
 through the redacted observation mapper (suppressing free-form attributes) or, when
 the mapper lacks that capability, reports the drop through the health channel and
-drops the artifact fail-open. Redacted measurements are not delivered: they are
-reported through the health channel and dropped, since there is no typed redacted
-measurement mapper. Third-party redacted projections that carry no trusted type
-signal are likewise reported and dropped rather than routed by heuristic.
+drops the artifact fail-open. Redacted measurements require a mapper implementing
+`RedactedMeasurementInstrumentMapperInterface`; otherwise they are reported and
+dropped. SDK measurements are dropped earlier. Unknown redacted types are reported
+and dropped rather than inferred from normalized fields. A disabled provider can
+suppress output without a mapping-drop report; dispatch does not guarantee export.
+A type signal alone does not establish provenance.
 
 Configured payload-key masking is deny-list based and the default key lists are
 empty. Configured sensitive observation-attribute keys are masked at the top level

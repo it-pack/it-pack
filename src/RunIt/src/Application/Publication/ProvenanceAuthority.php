@@ -337,7 +337,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return false;
         }
 
-        if ($this->isActivityRelationshipInvalid($from, $to, $relationshipType, $fromExportId, $toExportId)) {
+        if ((str_starts_with($relationshipType, 'execution-') && $from['executionId'] !== $to['executionId'])
+            || $this->isActivityRelationshipInvalid($from, $to, $relationshipType, $fromExportId, $toExportId)) {
             return false;
         }
 

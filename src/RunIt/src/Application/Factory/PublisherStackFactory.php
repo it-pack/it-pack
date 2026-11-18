@@ -9,6 +9,7 @@ use ItPack\RunIt\Application\Publication\DefaultLifecycleClassifier;
 use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
 use ItPack\RunIt\Application\Publication\DefaultObservationClassifier;
 use ItPack\RunIt\Application\Publication\DefaultOccurrenceClassifier;
+use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
@@ -23,11 +24,9 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
 /**
  * Default {@see PublisherStackFactoryInterface}.
  *
- * The redactor (when configured) wraps the sampling layer, so publish calls
- * reach the redactor before the sampler. The default redactor masks observation
- * messages and throwable details as well as explicitly configured sensitive keys.
- * Other fields can pass through unchanged, so this order alone does not make
- * every sampler input safe.
+ * Artifacts are verified and classified before reaching sampling or the sink.
+ * Without a shared provenance authority, artifacts cannot be verified and are
+ * reported and dropped.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -50,34 +49,29 @@ final class PublisherStackFactory implements HealthAwarePublisherStackFactoryInt
         ?SecurityLimits $limits = null,
         ?ProvenanceAuthority $authority = null,
     ): ArtifactPublisherInterface {
+        $health ??= new ErrorLogHealthReporter();
+        $authority ??= new ProvenanceAuthority($health);
         $composed = $base;
 
         // The innermost classifier bounds the projection before sink delivery;
         // bounded fields are not necessarily safe for every custom composition.
-        if ($redactor instanceof RedactorInterface || $samplingPolicy instanceof SamplingPolicyInterface
-            || $authority instanceof ProvenanceAuthority) {
-            $composed = new ClassifyingArtifactPublisher($composed, $health, $limits ?? new SecurityLimits());
-        }
+        $composed = new ClassifyingArtifactPublisher($composed, $health, $limits ?? new SecurityLimits());
 
         // Sampling runs after redaction and the default SDK classifiers.
         if ($samplingPolicy instanceof SamplingPolicyInterface) {
             $composed = new SamplingArtifactPublisher($samplingPolicy, $composed, $health);
         }
 
-        if ($authority instanceof ProvenanceAuthority) {
-            // Classification is independent of the configured redactor.
-            $composed = new DefaultObservationClassifier($composed, $health, $limits ?? new SecurityLimits());
-            $composed = new DefaultOccurrenceClassifier($composed, $health, $limits ?? new SecurityLimits());
-            $composed = new DefaultMeasurementClassifier($composed, $health);
-            $composed = new DefaultLifecycleClassifier($composed, $health, $limits ?? new SecurityLimits());
-        }
+        // Classification is independent of the configured redactor.
+        $composed = new DefaultObservationClassifier($composed, $health, $limits ?? new SecurityLimits());
+        $composed = new DefaultOccurrenceClassifier($composed, $health, $limits ?? new SecurityLimits());
+        $composed = new DefaultMeasurementClassifier($composed, $health);
+        $composed = new DefaultLifecycleClassifier($composed, $health, $limits ?? new SecurityLimits());
 
         // Redaction runs outermost so the redactor sees the concrete artifact
         // type (SnapshotInterface, ObservationInterface, etc.) and can mask
         // throwable messages, observation messages, and sensitive keys.
-        if ($redactor instanceof RedactorInterface || $authority instanceof ProvenanceAuthority) {
-            $composed = new RedactingArtifactPublisher($redactor, $composed, authority: $authority);
-        }
+        $composed = new RedactingArtifactPublisher($redactor, $composed, authority: $authority);
 
         return $composed;
     }
