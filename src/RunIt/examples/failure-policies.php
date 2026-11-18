@@ -68,8 +68,8 @@ $publisher = new FailSafeArtifactPublisher(
 try {
     $publisher->publish($artifact);
     echo "FailClosedPolicy: unexpected swallow\n";
-} catch (Throwable $exception) {
-    echo 'FailClosedPolicy: rethrew transport error: ' . $exception->getMessage() . "\n";
+} catch (Throwable $throwable) {
+    echo 'FailClosedPolicy: rethrew transport error: ' . $throwable->getMessage() . "\n";
 }
 
 // --- CollectAndContinuePolicy: collects error ---

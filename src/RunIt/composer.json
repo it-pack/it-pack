@@ -119,6 +119,7 @@
             "@test",
             "@security:audit",
             "@security:audit:full",
+            "@examples",
             "@dogfood"
         ],
         "rector": "vendor/bin/rector",

@@ -10,6 +10,13 @@ declare(strict_types=1);
  * a subprocess with its own bootstrap, so this process never instruments the
  * measured tool: the bootstrap path stays intentionally uninstrumented.
  *
+ * Phase 2 showcase: dogfood configures publication security end-to-end — a custom
+ * redactor masks sensitive keys, security limits bound artifact data, and a
+ * publication failure handler contains any transport fault without replacing the
+ * tool outcome. Metrics are recorded as observations (not measurements) so they
+ * pass through every classifier in the publication stack without triggering
+ * `DefaultMeasurementClassifier`'s delivery-loss report.
+ *
  * Run from the package root: `composer dogfood`
  */
 
@@ -21,9 +28,12 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\BufferConfiguration;
 use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RecordingBatchFlushObserver;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use Tools\Dogfood\Process\ShellProcessRunner;
 use Tools\Dogfood\Run\DogfoodRunner;
@@ -33,6 +43,35 @@ $workingDirectory = dirname(__DIR__, 2);
 
 $recorder = new InMemoryArtifactPublisher();
 $flushObserver = new RecordingBatchFlushObserver();
+
+// Phase 2: security limits bound artifact data before it can leave the process.
+$limits = SecurityLimits::default()
+    ->withMaxAttributeCount(8)
+    ->withMaxAttributeValueBytes(256)
+    ->withMaxSnapshotPayloadBytes(4096)
+    ->withMaxOccurrencePayloadBytes(2048)
+;
+
+// Phase 2: custom redactor masks sensitive attribute/data keys before publication.
+$redactor = new DefaultArtifactRedactor(
+    new ArtifactRedactionConfig(
+        sensitiveAttributeKeys: ['password', 'token', 'secret', 'api_key'],
+        sensitiveDataKeys: ['password', 'token', 'secret'],
+        marker: '[redacted]',
+        redactThrowableMessages: true,
+        redactOccurrenceData: true,
+        redactSnapshotPayloads: true,
+        redactObservationMessages: true,
+        redactMeasurementValues: false,
+    ),
+);
+
+// Phase 2: publication failure handler contains transport faults without
+// replacing the tool outcome.
+$publicationFailures = [];
+$failureHandler = static function (\Throwable $failure) use (&$publicationFailures): void {
+    $publicationFailures[] = $failure->getMessage();
+};
 
 $publisher = new BufferedArtifactPublisher(
     BufferConfiguration::default(),
@@ -49,6 +88,9 @@ $runIt = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
+    ->withRedactor($redactor)
+    ->withSecurityLimits($limits)
+    ->withPublicationFailureHandler($failureHandler)
     ->build()
 ;
 
@@ -68,5 +110,12 @@ echo sprintf(
     $flushObserver->totalFlushed(),
     $flushObserver->maxBatch(),
 );
+
+if ($publicationFailures !== []) {
+    echo sprintf(
+        'publication failures contained: %d (original tool outcomes preserved)' . PHP_EOL,
+        count($publicationFailures),
+    );
+}
 
 exit($report->exitCode());
