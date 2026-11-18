@@ -59,6 +59,8 @@ final class ExecutionScope implements ExecutionScopeInterface
 
     private int $activityContextSuppression = 0;
 
+    private int $activityContextFailureReporting = 0;
+
     /**
      * @var list<ActivityInterface>
      */
@@ -293,10 +295,21 @@ final class ExecutionScope implements ExecutionScopeInterface
 
     private function reportActivityContextFailure(string $reason): void
     {
+        // Guard against re-entry: a callback that records through this scope while the
+        // context is invalid would invoke this reporter again before the first call
+        // returns. Bound nested failures are suppressed so health reporting cannot
+        // recurse into the same publication path or replace the operation result.
+        if ($this->activityContextFailureReporting > 0) {
+            return;
+        }
+
+        $this->activityContextFailureReporting++;
         try {
             ($this->onActivityContextFailure)?->__invoke($reason);
         } catch (Throwable) {
             // Health reporting must not replace the operation's result or exception.
+        } finally {
+            $this->activityContextFailureReporting--;
         }
     }
 

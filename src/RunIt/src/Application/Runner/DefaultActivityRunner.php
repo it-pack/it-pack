@@ -220,11 +220,47 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
 
     private function reportFailure(string $reason): void
     {
-        try {
-            ($this->onActivityContextFailure)?->__invoke($reason);
-        } catch (Throwable) {
-            // Reporting is secondary to the activity lifecycle.
+        // Guard against re-entry: a reporting callback that re-enters this runner
+        // before the first report returns would recurse into the publication path.
+        // Bound nested reports are suppressed; later independent reports proceed
+        // once the guard is released in finally.
+        /** @var array<int, bool> */
+        static $reportingInstances = [];
+
+        $id = spl_object_id($this);
+        if (array_key_exists($id, $reportingInstances)) {
+            return;
         }
+
+        $reportingInstances[$id] = true;
+
+        try {
+            if ($this->onActivityContextFailure instanceof Closure) {
+                try {
+                    ($this->onActivityContextFailure)($reason);
+                } catch (Throwable) {
+                    $this->reportFallback($reason);
+                }
+            }
+
+            if ($this->onActivityContextFailure instanceof Closure) {
+                return;
+            }
+
+            // No health callback is configured: report through an independent,
+            // payload-free path so publication failures are not silently discarded.
+            $this->reportFallback($reason);
+        } finally {
+            unset($reportingInstances[$id]);
+        }
+    }
+
+    private function reportFallback(string $reason): void
+    {
+        // Independent, payload-free fallback. It does not traverse the publication
+        // stack, so it cannot recurse into this runner or replace the business
+        // result or exception.
+        @error_log(sprintf('run-it: activity context failure: %s', $reason));
     }
 
     private function complete(
