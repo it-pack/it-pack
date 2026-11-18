@@ -305,11 +305,34 @@ final class ExecutionScope implements ExecutionScopeInterface
 
         $this->activityContextFailureReporting++;
         try {
-            ($this->onActivityContextFailure)?->__invoke($reason);
-        } catch (Throwable) {
-            // Health reporting must not replace the operation's result or exception.
+            $callbackThrew = false;
+            if ($this->onActivityContextFailure instanceof Closure) {
+                try {
+                    ($this->onActivityContextFailure)($reason);
+                } catch (Throwable) {
+                    // Callback threw: fall through to fallback.
+                    $callbackThrew = true;
+                }
+            }
+
+            if (!$this->onActivityContextFailure instanceof Closure || $callbackThrew) {
+                // No callback configured or callback threw: use an independent,
+                // payload-free fallback so failures are not silently discarded.
+                $this->reportActivityContextFallback($reason);
+            }
         } finally {
             $this->activityContextFailureReporting--;
+        }
+    }
+
+    private function reportActivityContextFallback(string $reason): void
+    {
+        // Independent, payload-free fallback. It does not traverse the publication
+        // stack and cannot recurse into this scope or replace the operation result.
+        try {
+            @error_log(sprintf('run-it: activity context failure: %s', $reason));
+        } catch (Throwable) {
+            // Fallback logging itself must never propagate.
         }
     }
 
@@ -318,6 +341,10 @@ final class ExecutionScope implements ExecutionScopeInterface
         [$valid, $currentActivityId] = $this->resolveActivityContext();
         if ($recordedActivityId !== null && $recordedActivityId !== $currentActivityId?->toString()) {
             $this->reportActivityContextFailure('activity_context_changed');
+            if ($this->activityContextFailurePolicy === 'throw') {
+                throw new RuntimeException('Activity context changed.');
+            }
+
             return true;
         }
 
