@@ -76,7 +76,31 @@ final class ExecutionScope implements ExecutionScopeInterface
 
     private readonly ActivityRunnerInterface $activityRunner;
 
-    /** @param (Closure(): ?ActivityIdInterface)|null $currentActivityId */
+    /**
+     * @param ExecutionInterface $execution
+     * @param ExecutionIdInterface $executionId
+     * @param ExecutionContextInterface $context
+     * @param SequenceAllocatorInterface $sequenceAllocator
+     * @param MonotonicClockInterface $clock
+     * @param ArtifactPublisherInterface $publisher
+     * @param SerializerInterface $serializer
+     * @param ThrowableMapperInterface $throwableMapper
+     * @param StringIdentifierFactoryInterface $observationIdFactory
+     * @param StringIdentifierFactoryInterface $occurrenceIdFactory
+     * @param StringIdentifierFactoryInterface $snapshotIdFactory
+     * @param StringIdentifierFactoryInterface $activityIdFactory
+     * @param HashCalculatorInterface $hashCalculator
+     * @param SnapshotStoreInterface|null $snapshotStore
+     * @param Closure|null $onSnapshotStoreFailure
+     * @param SecurityLimits $limits
+     * @param (Closure(): ?ActivityIdInterface)|null $currentActivityId
+     * @param ProvenanceAuthority $authority
+     * @param ContextStorageInterface|null $contextStorage
+     * @param ActivityContextStorageInterface|null $activityStorage
+     * @param string $activityContextFailurePolicy
+     * @param Closure|null $onActivityContextFailure
+     * @param bool $runOnActivityContextAttachFailure
+     */
     public function __construct(
         private readonly ExecutionInterface $execution,
         ExecutionIdInterface $executionId,
@@ -279,11 +303,13 @@ final class ExecutionScope implements ExecutionScopeInterface
             $activity = $activityScope->activity();
             $id = $activity->activityId();
             $exportId = $this->authority->exportIdForArtifact($activity);
-            if ($activityScope->parentScope() !== $this
+            if (
+                $exportId === null
+                || !$id instanceof ActivityIdInterface
+                || $activityScope->parentScope() !== $this
                 || !in_array($activity, $this->openActivities, true)
-                || $exportId === null
                 || !$this->authority->verifyExportId($exportId, 'activity', $this->execution->id()->toString())
-                || !$id instanceof ActivityIdInterface) {
+            ) {
                 return [false, null, null];
             }
 
