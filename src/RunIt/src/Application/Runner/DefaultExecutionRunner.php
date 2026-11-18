@@ -6,6 +6,8 @@ namespace ItPack\RunIt\Application\Runner;
 
 use Closure;
 use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
+use ItPack\RunIt\Application\Propagation\StackActivityContextStorage;
+use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
@@ -40,6 +42,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -140,6 +143,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         ?ExecutionEngineInterface                     $engine = null,
         private SecurityLimits                         $limits = new SecurityLimits(),
         private ProvenanceAuthority                   $authority = new ProvenanceAuthority(),
+        private ?ActivityContextStorageInterface      $activityContextStorage = null,
+        private string                                $activityContextPolicy = 'fallback',
+        private bool                                  $runOnActivityContextAttachFailure = false,
     ) {
         $health = $this->onPublicationFailure instanceof Closure
             ? new CallbackHealthReporter($this->onPublicationFailure)
@@ -259,6 +265,13 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
                 $this->limits,
                 null,
                 $scopeAuthority,
+                $this->contextStorage,
+                $this->activityContextStorage ?? ($this->contextStorage instanceof StackContextStorage
+                    ? new StackActivityContextStorage()
+                    : null),
+                $this->activityContextPolicy,
+                static fn (string $reason) => $scopeAuthority->reportUnverified(new RuntimeException($reason)),
+                $this->runOnActivityContextAttachFailure,
             );
 
             return new ExecutionScopeSetup($scope, $execution, $id, $exportId, $scopeAuthority);

@@ -40,7 +40,13 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
     use InstantClockBehavior;
 
     /**
+     * The capture resolver returns context validity, activity ID, and its verified export ID.
+     * Invalid captures discard both IDs; a missing resolver uses the legacy raw ID only.
+     * The drop callback receives the captured validity (null for the legacy path).
+     *
      * @param Closure(): ?ActivityIdInterface $currentActivityId
+     * @param null|Closure(?string, ?bool): bool $shouldDrop
+     * @param null|Closure(): array{bool, ?ActivityIdInterface, ?string} $verifiedActivityExportId
      */
     public function __construct(
         private ExecutionIdInterface             $executionId,
@@ -52,6 +58,8 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
         /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
         private StringIdentifierFactoryInterface $observationIdFactory,
         private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
+        private ?Closure                         $shouldDrop = null,
+        private ?Closure                         $verifiedActivityExportId = null,
     ) {
     }
 
@@ -62,6 +70,7 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
         ?Throwable $throwable = null,
         ?string $diagnosticCode = null,
     ): ObservationInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         $severity ??= ObservationSeverity::Info;
         $id = $this->observationIdFactory->build();
         $description = $throwable instanceof Throwable ? $this->throwableMapper->describe($throwable) : null;
@@ -69,11 +78,16 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
             $severity,
             $id,
             $message,
-            $this->activityId(),
+            $activityId,
             $diagnosticCode,
             $attributes,
             $description
         );
+
+        if ($this->shouldDrop instanceof Closure
+            && ($this->shouldDrop)($observation->activityId()?->toString(), $valid)) {
+            return $observation;
+        }
 
         // Issue an SDK-controlled export ID for the observation and register the
         // execution→observation edge so provenance can be verified at publication.
@@ -87,15 +101,8 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
             );
 
             $this->authority->attest($observation, $exportId);
-            $activityBusinessId = $observation->activityId()?->toString();
-            if ($exportId !== null && $activityBusinessId !== null) {
-                $executionId = $this->authority->executionIdForExportId($exportId);
-                $activityExportId = $executionId !== null
-                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
-                    : null;
-                if ($activityExportId !== null) {
-                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
-                }
+            if ($exportId !== null && $activityExportId !== null) {
+                $this->authority->bindActivityRelationship($exportId, $activityExportId);
             }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Observation publication preparation failed.'));
@@ -165,9 +172,21 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
         return Observation::info(...$args);
     }
 
-    private function activityId(): ?ActivityIdInterface
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activity(): array
     {
-        return ($this->currentActivityId)();
+        if ($this->verifiedActivityExportId instanceof Closure) {
+            [$valid, $id, $exportId] = ($this->verifiedActivityExportId)();
+            return [$valid ? $id : null, $valid && $id !== null ? $exportId : null, $valid];
+        }
+
+        return $this->activityLegacy(($this->currentActivityId)());
+    }
+
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activityLegacy(?ActivityIdInterface $activityId): array
+    {
+        return [$activityId, null, null];
     }
 
     private function sequence(): ArtifactSequenceInterface

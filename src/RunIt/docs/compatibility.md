@@ -6,6 +6,29 @@ changes.
 
 ## Public API scope
 
+### Runtime-local activity context (in progress)
+
+The in-progress separate activity-context implementation preserves
+the identity observed by current-execution consumers rather than attaching an
+activity as the current execution. Integrations and custom runtime adapters will
+need paired execution and activity storage appropriate to their concurrency model
+and explicit propagation into new Fibers or coroutines; synchronous storage alone
+does not isolate concurrent work. It adds an activity-storage port and concrete
+builder methods; custom integrations must migrate to compatible paired storage.
+
+The planned default for missing or mismatched execution context is execution-level
+recording without an activity edge; opt-in strict behavior drops and reports
+without payload by default or throws when explicitly configured. Recording with
+the matching execution attached and no active activity remains valid. Consumers
+must not interpret a recorder return value as proof of persistence or export.
+Verified handles, not legacy activity IDs alone, establish activity relationships.
+The existing open-activity limit and completion semantics remain unchanged.
+
+Custom storage, recorders and activity-resolution extensions require compatibility
+review. The API baseline has been updated with the maintainer's approval; consumer
+migration and downstream verification remain outstanding. No normalization schema
+change is included in this work.
+
 ### Current Phase 2 publication behavior
 
 The SDK builder invokes a configured custom redactor on the original artifact
@@ -19,11 +42,18 @@ fields need migration. SDK snapshot projections omit payload and content hash;
 SDK measurements are dropped and reported, including with custom or null
 redactors. Occurrence routing by the original type is unavailable on this path.
 
-Standalone pipeline composition remains unsafe without independent controls.
+Standalone `PublisherStackFactory` composition without a shared issuing authority
+now reports and drops unverifiable artifacts before sampling or delivery. A default
+standalone `PublicationPipeline` does not automatically share the SDK authority.
+Arbitrary custom composition can bypass this boundary and remains unsafe without
+independent controls. OpenTelemetry uses redacted mapper methods for redacted
+projections even when they also implement typed domain interfaces; custom mappers
+depending on typed dispatch need review.
 The planned configurable extension-input modes and independent classification
 and provenance bypasses are not implemented. Phase 2 is incomplete; affected
 downstream packages must not be released until their issues are fixed and
-verified. These behavioral changes require compatibility review alongside any
+verified. Consumer migration and downstream verification are deferred; no release
+is made by this work. These behavioral changes require compatibility review alongside any
 API and schema differences; no baseline update is implied.
 
 The public API is the set of symbols under these source directories:

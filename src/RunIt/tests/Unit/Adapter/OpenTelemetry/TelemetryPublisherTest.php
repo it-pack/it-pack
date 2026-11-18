@@ -20,16 +20,17 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
-use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -217,10 +218,10 @@ final class TelemetryPublisherTest extends Unit
             Instant::of(1001),
         );
         $before = $execution->normalize();
-        $publisher = new PublisherStackFactory()->compose(
-            $this->publisher(),
+        // Exercise the mapper with an explicitly unverified, lower-level composition.
+        $publisher = new RedactingArtifactPublisher(
             new DefaultArtifactRedactor($config),
-            null,
+            new ClassifyingArtifactPublisher($this->publisher()),
         );
         $publisher->publish($execution);
 
@@ -850,6 +851,56 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('runit.occurrence', $events[0]->getName());
         self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_SUBJECT, $events[0]->getAttributes()->toArray());
         self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
+    }
+
+    public function testTypedRedactedOccurrenceUsesSuppressedLogAndSpanEventPaths(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-typed'),
+            ExecutionId::fromString('exec-typed'),
+            OccurrenceType::fromString('payment.captured.v1'),
+            'test',
+            Instant::of(1600),
+            ['password' => 'data-secret'],
+            subject: 'subject-secret',
+            extensionAttributes: AttributeCollection::fromArray(['extra' => 'extension-secret']),
+        );
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['password'],
+            redactOccurrenceData: true,
+        ))
+            ->redact($occurrence)
+        ;
+        $sink = new InMemoryArtifactPublisher();
+        new ClassifyingArtifactPublisher($sink)->publish($redacted);
+        $classified = $sink->published()[0];
+        self::assertInstanceOf(OccurrenceInterface::class, $classified);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $classified);
+
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withOccurrenceLogging(true)
+            ->withOccurrenceSpanEvents(true)
+            ->build()
+        ;
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            TelemetryPublisher::fromConfig($config)->publish($classified);
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        $log = $this->kit->log(0)->getAttributes()->toArray();
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        foreach ([$log, $events[0]->getAttributes()->toArray()] as $attributes) {
+            self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
+            self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_SUBJECT, $attributes);
+            self::assertArrayNotHasKey('extra', $attributes);
+        }
     }
 
     /** Verifies the None policy and the redacted snapshot timestamp. */

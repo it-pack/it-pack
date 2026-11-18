@@ -1002,6 +1002,50 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\Fiber\\FiberActivityContextStorage": {
+        "kind": "class",
+        "final": true,
+        "extends": "ItPack\\RunIt\\Contract\\Support\\ActivityContextStorage",
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "current": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                "params": []
+            },
+            "attach": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "detach": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "token",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\Fiber\\FiberContextStorage": {
         "kind": "class",
         "final": true,
@@ -3974,6 +4018,56 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\Swoole\\CoroutineActivityContextStorage": {
+        "kind": "class",
+        "final": true,
+        "extends": "ItPack\\RunIt\\Contract\\Support\\ActivityContextStorage",
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "coroutines",
+                        "type": "ItPack\\RunIt\\Adapter\\Swoole\\Contract\\CoroutineIdProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "current": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                "params": []
+            },
+            "attach": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "detach": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "token",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\Swoole\\CoroutineContextStorage": {
         "kind": "class",
         "final": true,
@@ -4859,6 +4953,71 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Propagation\\CompositeActivityContextStorage": {
+        "kind": "class",
+        "final": true,
+        "extends": "ItPack\\RunIt\\Contract\\Support\\ActivityContextStorage",
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "synchronous",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fiber",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "coroutine",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "detector",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\RuntimeContextDetectorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "current": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                "params": []
+            },
+            "attach": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "detach": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "token",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Propagation\\CompositeContextStorage": {
         "kind": "class",
         "final": true,
@@ -5024,6 +5183,50 @@
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Application\\ExecutionScopeInterface",
                 "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Propagation\\StackActivityContextStorage": {
+        "kind": "class",
+        "final": true,
+        "extends": "ItPack\\RunIt\\Contract\\Support\\ActivityContextStorage",
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "current": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                "params": []
+            },
+            "attach": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "detach": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "token",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -8493,6 +8696,16 @@
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
+                    },
+                    {
+                        "name": "shouldDrop",
+                        "type": "null|Closure",
+                        "optional": true
+                    },
+                    {
+                        "name": "verifiedActivityExportId",
+                        "type": "null|Closure",
+                        "optional": true
                     }
                 ]
             },
@@ -8686,6 +8899,16 @@
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
+                    },
+                    {
+                        "name": "shouldDrop",
+                        "type": "null|Closure",
+                        "optional": true
+                    },
+                    {
+                        "name": "verifiedActivityExportId",
+                        "type": "null|Closure",
+                        "optional": true
                     }
                 ]
             },
@@ -8774,6 +8997,16 @@
                     {
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
+                    },
+                    {
+                        "name": "shouldDrop",
+                        "type": "null|Closure",
+                        "optional": true
+                    },
+                    {
+                        "name": "verifiedActivityExportId",
+                        "type": "null|Closure",
                         "optional": true
                     }
                 ]
@@ -8894,6 +9127,16 @@
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
+                    },
+                    {
+                        "name": "shouldDrop",
+                        "type": "null|Closure",
+                        "optional": true
+                    },
+                    {
+                        "name": "verifiedActivityExportId",
+                        "type": "null|Closure",
+                        "optional": true
                     }
                 ]
             },
@@ -8992,6 +9235,21 @@
                     {
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
+                    },
+                    {
+                        "name": "activityStorage",
+                        "type": "null|ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "onActivityContextFailure",
+                        "type": "null|Closure",
+                        "optional": true
+                    },
+                    {
+                        "name": "runOnActivityContextAttachFailure",
+                        "type": "bool",
                         "optional": true
                     }
                 ]
@@ -9151,6 +9409,21 @@
                     {
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
+                    },
+                    {
+                        "name": "activityContextStorage",
+                        "type": "null|ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "activityContextPolicy",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "runOnActivityContextAttachFailure",
+                        "type": "bool",
                         "optional": true
                     }
                 ]
@@ -9458,6 +9731,31 @@
                         "name": "authority",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
+                    },
+                    {
+                        "name": "contextStorage",
+                        "type": "null|ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "activityStorage",
+                        "type": "null|ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "activityContextFailurePolicy",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "onActivityContextFailure",
+                        "type": "null|Closure",
+                        "optional": true
+                    },
+                    {
+                        "name": "runOnActivityContextAttachFailure",
+                        "type": "bool",
+                        "optional": true
                     }
                 ]
             },
@@ -9538,6 +9836,17 @@
                 "static": false,
                 "return": "array",
                 "params": []
+            },
+            "runWithoutActivityContext": {
+                "static": false,
+                "return": "mixed",
+                "params": [
+                    {
+                        "name": "operation",
+                        "type": "callable",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -14134,6 +14443,43 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "current": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                "params": []
+            },
+            "attach": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "detach": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "token",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface": {
         "kind": "interface",
         "final": false,
@@ -14572,6 +14918,56 @@
             "APPLICATION_JSON": "public"
         },
         "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Support\\ActivityContextStorage": {
+        "kind": "class",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "storage",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "current": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                "params": []
+            },
+            "attach": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ActivityScopeInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "detach": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "token",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextTokenInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Domain\\Activity\\Activity": {
@@ -20093,6 +20489,39 @@
                     {
                         "name": "storage",
                         "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withActivityContextStorage": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
+                "params": [
+                    {
+                        "name": "storage",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withActivityContextPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "withActivityContextAttachFailureFallback": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
                         "optional": false
                     }
                 ]

@@ -13,7 +13,8 @@ use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
  * Contract for recording snapshots bound to the ambient execution (and activity).
  *
  * The recorder mints identity, calculates the content hash, fills ownership,
- * timing, and sequence automatically, and publishes the snapshot before returning it.
+ * timing, and sequence automatically. Configured safety policies may drop the snapshot
+ * before publication or persistence; the returned object is not proof of either.
  *
  * @api
  *

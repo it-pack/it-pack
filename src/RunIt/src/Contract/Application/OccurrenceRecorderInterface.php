@@ -13,7 +13,8 @@ use ItPack\RunIt\Contract\Shared\MediaTypes;
  * Contract for recording occurrences bound to the ambient execution (and activity).
  *
  * The recorder mints identity, fills ownership, timing, and sequence automatically,
- * and publishes the occurrence before returning it.
+ * and returns the occurrence. Configured safety policies may drop it before publication,
+ * so the returned object is not proof of publication.
  *
  * @api
  *

@@ -174,6 +174,46 @@ Activity
 Activity
 ```
 
+## Planned runtime-local activity attribution
+
+The implementation is in progress and is not ready for production use. Attribution
+checks need further hardening against reentrant storage. Do not
+rely on these changes as a completed concurrency guarantee. Execution-context
+storage alone does not isolate mutable activity state on a shared scope.
+
+The planned design keeps execution and activity context in separate runtime-local
+storage. Attaching an activity does not replace the current execution scope or
+change its identity. Recording through a captured execution scope may use the
+active activity only when that activity belongs to that exact execution scope.
+Explicit activity parentage remains unchanged; ambient attribution does not infer
+new parent relationships.
+
+Context must be explicitly propagated into a new Fiber or coroutine. Integrations
+must pair execution and activity storage appropriate to their concurrency model;
+the synchronous stack is suitable only for synchronous nesting. Custom runtime
+adapters will need corresponding activity storage as well as execution storage.
+The core will not detect particular runtimes to choose storage.
+
+When execution context is missing or mismatched, the planned default records at
+execution level without an activity edge. An opt-in strict policy instead drops
+and reports without payload by default, or throws when explicitly configured.
+Recording at execution level remains valid when the matching execution is attached
+and no activity is active. A different execution's activity is never used.
+Strict drops must not reach publication or snapshot persistence, and a configured
+throw must not replace an already-thrown business exception.
+
+An activity-context attachment failure is reported and propagated by default,
+before the callback runs. The opt-in builder setting
+`withActivityContextAttachFailureFallback(true)` instead runs the callback while
+suppressing activity attribution for the entire execution scope until it finishes.
+This can temporarily affect concurrent siblings as well as the failed activity.
+The configured detached-context policy still applies during suppression, so an
+explicitly configured throw policy can interrupt a recording call.
+
+The existing activity limit and completion semantics are not changed by this
+design; the current limit counts simultaneously open activities, not only nesting
+depth. Any change to that behavior requires a separate decision.
+
 An Activity maps naturally to an OpenTelemetry Span but is intentionally not defined in those terms.
 
 Activities answer

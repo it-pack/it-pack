@@ -143,6 +143,43 @@ final class ProvenanceBoundaryTest extends Unit
         new RedactingArtifactPublisher($redactor, $inner, authority: $authority)->publish($artifact);
     }
 
+    public function testQueuedProjectionSurvivesCleanupWithoutRetainingRawIdentity(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $root = $authority->issueExportId('execution', 'execution', 'secret-exec', 'secret-exec');
+        $id = $authority->bindArtifact(
+            'observation',
+            'observation',
+            'secret-exec',
+            'secret-obs',
+            'execution-observation',
+        );
+        $artifact = self::createStub(ObservationInterface::class);
+        $artifact->method('normalize')->willReturn([
+            'id' => 'secret-obs', 'execution_id' => 'secret-exec', 'message' => 'secret-message',
+        ]);
+        self::assertTrue($authority->attest($artifact, $id));
+        $redactor = self::createStub(RedactorInterface::class);
+        $redactor->method('redact')->willReturn(new RedactedArtifact([
+            'id' => 'secret-obs', 'execution_id' => 'secret-exec', 'message' => '[redacted]',
+        ], 'observation'));
+        $queued = null;
+        $sink = self::createStub(ArtifactPublisherInterface::class);
+        $sink->method('publish')->willReturnCallback(
+            static function (ExecutionArtifactInterface $projection) use (&$queued): void {
+                $queued = $projection;
+            },
+        );
+
+        new RedactingArtifactPublisher($redactor, $sink, authority: $authority)->publish($artifact);
+        $authority->releaseExecution('secret-exec');
+
+        self::assertInstanceOf(ExecutionArtifactInterface::class, $queued);
+        self::assertNull($authority->exportIdForArtifact($artifact));
+        self::assertSame(['message' => '[redacted]', 'id' => $id, 'execution_id' => $root], $queued->normalize());
+        self::assertStringNotContainsString('secret', serialize($queued));
+    }
+
     public function testObservationDropUsesRedactorResultNotIdentityProjection(): void
     {
         foreach (['none', 'same', 'redacted'] as $mode) {

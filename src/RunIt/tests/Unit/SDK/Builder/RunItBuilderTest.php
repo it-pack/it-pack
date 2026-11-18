@@ -404,6 +404,7 @@ final class RunItBuilderTest extends TestCase
         };
         $runtime = $this->builder()
             ->withIdentifierGenerator($generator)
+            ->withRedactor(null)
             ->withPublisherStackFactory($factory)
             ->build()
         ;
@@ -416,6 +417,13 @@ final class RunItBuilderTest extends TestCase
         self::assertTrue($factory->called);
         self::assertIsString($businessId);
         self::assertStringStartsWith('synthetic-secret-identity-', $businessId);
+        foreach ($seen->published() as $artifact) {
+            self::assertStringNotContainsString(
+                'synthetic-secret-identity-',
+                json_encode($artifact->normalize(), JSON_THROW_ON_ERROR),
+            );
+        }
+
         $executions = array_values(array_filter(
             $seen->published(),
             static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,

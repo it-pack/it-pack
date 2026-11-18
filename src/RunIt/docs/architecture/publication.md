@@ -16,7 +16,7 @@ any order and are independently testable.
 The pipeline stages are composed outside-in:
 
 ```
-guard → fail-safe → redact → default-SDK classification → sample → classify → sink
+guard → fail-safe → filter → verify/redact/project → strict classification → sample → classify → buffer → sink
 ```
 
 Redaction runs before sampling, but it is not a complete allowlist. In the default
@@ -27,14 +27,17 @@ these classifiers, and ordinary and health-aware custom stacks receive classifie
 projections. The SDK invokes a custom redactor once and passes null as the factory's
 redactor argument. This is a compatibility change for custom stack factories.
 The later generic classifier bounds projections, but bounding alone does not prove
-that retained content is safe. Standalone compositions do not yet have the same
-verified boundary and must not be treated as safe for untrusted artifact data.
+that retained content is safe. The default standalone factory creates an unshared
+authority when none is supplied, so unverifiable artifacts are reported and dropped
+before the redactor, sampler and sink. Arbitrary custom composition can bypass this
+boundary and must not be treated as safe without independent controls.
 
 ```mermaid
 flowchart TD;
     Recorder["Recorder"] --> Guard["PublicationGuard<br/>(recursion guard)"];
     Guard --> FailSafe["FailSafeArtifactPublisher<br/>(failure policy)"];
-    FailSafe --> Redact["RedactingArtifactPublisher<br/>(Redactor)"];
+    FailSafe --> Filter["Optional filter"];
+    Filter --> Redact["Verify, redact and project"];
     Redact --> DefaultClassify["Default SDK artifact classification"];
     DefaultClassify --> Sample["SamplingArtifactPublisher<br/>(SamplingPolicy)"];
     Sample --> Classify["ClassifyingArtifactPublisher<br/>(Classifier)"];
@@ -42,18 +45,37 @@ flowchart TD;
     FailSafe -. "on failure" .-> Health["InternalHealthReporter<br/>(no recursion)"];
 ```
 
-| Stage        | Contract / class                                   | Responsibility                                                      |
-|--------------|----------------------------------------------------|--------------------------------------------------------------------|
-| Guard        | `PublicationGuard`, `GuardedArtifactPublisher`      | Prevents recursive publication on one execution path.               |
-| Fail-safe    | `FailSafeArtifactPublisher` + `PublicationFailurePolicyInterface` | Applies the failure policy when the inner publisher throws.  |
-| Redact       | `RedactingArtifactPublisher` + `RedactorInterface`   | Masks configured sensitive fields before sampling; concrete types visible. |
-| Default classification | Internal default-SDK classifiers | Classifies lifecycle artifacts, observations, occurrences and snapshots and drops unclassified measurements before sampling. |
-| Sample       | `SamplingArtifactPublisher` + `SamplingPolicyInterface` | Drops artifacts the sampling policy rejects. Not a security boundary. |
-| Classify     | `ClassifyingArtifactPublisher`                      | Projects artifacts to bounded, type-safe fields before the sink.     |
-| Sink         | any `ArtifactPublisherInterface` adapter            | The real transport (in-memory, log, OpenTelemetry, ...).          |
+| Stage                  | Contract / class                                                  | Responsibility                                                                                                               |
+|------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| Guard                  | `PublicationGuard`, `GuardedArtifactPublisher`                    | Prevents recursive publication on one execution path.                                                                        |
+| Fail-safe              | `FailSafeArtifactPublisher` + `PublicationFailurePolicyInterface` | Applies the failure policy when the inner publisher throws.                                                                  |
+| Redact                 | `RedactingArtifactPublisher` + `RedactorInterface`                | Masks configured sensitive fields before sampling; concrete types visible.                                                   |
+| Default classification | Internal default-SDK classifiers                                  | Classifies lifecycle artifacts, observations, occurrences and snapshots and drops unclassified measurements before sampling. |
+| Sample                 | `SamplingArtifactPublisher` + `SamplingPolicyInterface`           | Drops artifacts the sampling policy rejects. Not a security boundary.                                                        |
+| Classify               | `ClassifyingArtifactPublisher`                                    | Projects artifacts to bounded, type-safe fields before the sink.                                                             |
+| Sink                   | any `ArtifactPublisherInterface` adapter                          | The real transport (in-memory, log, OpenTelemetry, ...).                                                                     |
 
 Filtering runs first by design: a dropped artifact never reaches redaction, sampling,
 buffering, or the adapter, so volume costs are paid as late as possible.
+
+### Activity-context rejection (in progress)
+
+The in-progress runtime-local activity-context implementation has an
+opt-in strict policy that rejects recordings with missing or mismatched execution
+context before publication and snapshot persistence, by payload-free drop and
+report by default or by an explicitly configured throw. Recorders must still
+honor their return contracts on a drop; a returned artifact is not evidence that
+it was persisted, published, or exported. The default policy instead records at
+execution level without an activity edge. An attached matching execution with no
+active activity is ordinary execution-level recording, not a strict rejection.
+
+Trusted activity relationships require verified handles bound to the exact owning
+execution scope; legacy activity IDs alone are untrusted claims. Verification of
+an artifact does not by itself prove a correct activity relationship, and neither
+verification nor dispatch guarantees delivery. Existing provenance cleanup and
+fail-closed behavior for retained raw work remain in force; this design adds no
+ownership lease. Until verification is complete, the concurrency warning in
+[`../SECURITY.md`](../SECURITY.md#current-publication-limitations) still applies.
 
 ## Redaction happens before external publication
 
@@ -99,10 +121,10 @@ With the SDK builder's default stack, provenance verification and export-ID
 projection happen synchronously, followed by sampling and classification before
 the configured base publisher is called. A buffer used as that base therefore
 receives the classified projection while the records are live; later delivery of
-that projection does not need the authority. This does not guarantee delivery or
-make every earlier sampler input safe. Buffer limits, expiry, and failures still
-apply. A standalone `PublicationPipeline` is not automatically connected to the
-SDK authority; its behavior depends on how it is composed.
+that projection does not need the authority. This does not guarantee delivery.
+Buffer limits, expiry, and failures still apply. A default standalone
+`PublicationPipeline` is not connected to the SDK authority and drops artifacts
+it cannot verify; a custom stack may behave differently.
 
 Custom stack factories receive classified export projections through the SDK's
 ownership boundary, not original attested artifacts or business IDs. In
@@ -114,10 +136,7 @@ SDK, and the configured redactor runs only once on the outermost layer. Bufferin
 inside a custom stack operates on these classified projections; later delivery of
 a buffered projection does not need the authority, and provenance verification
 has already occurred before the custom stack receives the artifact. This does not
-guarantee delivery or make every earlier sampler input safe. Buffer limits,
-expiry, and failures still apply. A standalone `PublicationPipeline` is not
-automatically connected to the SDK authority; its behavior depends on how it is
-composed.
+guarantee delivery. Buffer limits, expiry, and failures still apply.
 
 The authority caps records both per execution and across the SDK instance
 (100,000 each by default), and caps relationship edges across the authority
@@ -162,26 +181,11 @@ the `InternalHealthReporterInterface` (for example `CallbackHealthReporter` or
 the guarded publisher, so self-observation (an exporter that records its own export) and
 fallback reporting can never loop.
 
-## Composition example
+## Custom composition
 
-```php
-use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
-use ItPack\RunIt\Application\Publication\ArtifactTypeFilter;
-use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
-use ItPack\RunIt\Application\Publication\FailClosedPolicy;
-use ItPack\RunIt\Application\Publication\ObservationSeverityFilter;
-use ItPack\RunIt\Application\Publication\PublicationPipeline;
-use ItPack\RunIt\Contract\Domain\ObservationSeverity;
-
-$pipeline = (new PublicationPipeline($sink))
-    ->filter(new ArtifactTypeFilter([Observation::class]))
-    ->redactor(new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password'])))
-    ->failurePolicy(new FailClosedPolicy())
-    ->build();
-
-$pipeline->publish($observation);
-```
-
-This keeps every artifact immutable end-to-end, redacts before the adapter, bounds memory,
-prevents recursion, and lets the caller choose fail-open or fail-closed without touching
-the domain or the adapter.
+`PublicationPipeline` accepts its dependencies in its constructor, including an
+optional stack factory. Its filter runs before the default verification boundary
+and therefore receives the original artifact. A custom factory controls its own
+ordering and must independently enforce any required provenance and classification
+before sampling, buffering or delivery. Redaction and size bounds alone do not
+prove that arbitrary content is safe.

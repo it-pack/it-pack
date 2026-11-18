@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Builder;
 
 use Closure;
+use InvalidArgumentException;
 use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
@@ -13,6 +14,7 @@ use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
+use ItPack\RunIt\Application\Propagation\StackActivityContextStorage;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
@@ -36,6 +38,7 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
@@ -105,6 +108,9 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         private ?Closure $onSnapshotStoreFailure = null,
         private ?PublisherStackFactoryInterface $publisherStackFactory = null,
         private ?Closure $concurrencyValidator = null,
+        private ?ActivityContextStorageInterface $activityContextStorage = null,
+        private string $activityContextPolicy = 'fallback',
+        private bool $runOnActivityContextAttachFailure = false,
     ) {
     }
 
@@ -157,6 +163,37 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
     {
         $clone = clone $this;
         $clone->contextStorage = $storage;
+
+        return $clone;
+    }
+
+    /** Configure activity context storage independently of execution storage. */
+    public function withActivityContextStorage(ActivityContextStorageInterface $storage): RunItBuilder
+    {
+        $clone = clone $this;
+        $clone->activityContextStorage = $storage;
+
+        return $clone;
+    }
+
+    /** Select fallback, drop-and-report, or throwing for detached recording. */
+    public function withActivityContextPolicy(string $policy): RunItBuilder
+    {
+        if (!in_array($policy, ['fallback', 'drop', 'throw'], true)) {
+            throw new InvalidArgumentException('Unknown activity context policy.');
+        }
+
+        $clone = clone $this;
+        $clone->activityContextPolicy = $policy;
+
+        return $clone;
+    }
+
+    /** Allow the callback to run with activity attribution suppressed after attachment fails. */
+    public function withActivityContextAttachFailureFallback(bool $enabled): RunItBuilder
+    {
+        $clone = clone $this;
+        $clone->runOnActivityContextAttachFailure = $enabled;
 
         return $clone;
     }
@@ -332,6 +369,8 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         $this->validateConcurrentContextStorage($capability, $contextStorage);
         $this->applyConcurrencyValidator($capability, $contextStorage);
 
+        $activityContextStorage = $this->activityContextStorage;
+
         // Explicit null disables the redactor but retains classification.
         $publisherStackFactory = $this->resolvePublisherStackFactory();
         $redactor = $this->resolveRedactor();
@@ -379,6 +418,9 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             engine: $engine,
             limits: $this->resolveLimits(),
             authority: $authority,
+            activityContextStorage: $activityContextStorage,
+            activityContextPolicy: $this->activityContextPolicy,
+            runOnActivityContextAttachFailure: $this->runOnActivityContextAttachFailure,
         );
 
         return new DefaultRunIt($runner, $currentExecution);
@@ -455,6 +497,15 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             && $contextStorage instanceof StackContextStorage
         ) {
             throw IncompatibleContextStorageException::sharedStackWithConcurrentEngine();
+        }
+
+        if ($capability instanceof EngineCapability
+            && $capability->concurrent
+            && $this->activityContextStorage instanceof StackActivityContextStorage
+        ) {
+            throw new IncompatibleContextStorageException(
+                'Concurrent execution requires runtime-isolated activity context storage.',
+            );
         }
     }
 

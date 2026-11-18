@@ -37,7 +37,13 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
     use InstantClockBehavior;
 
     /**
+     * The capture resolver returns context validity, activity ID, and its verified export ID.
+     * Invalid captures discard both IDs; a missing resolver uses the legacy raw ID only.
+     * The drop callback receives the captured validity (null for the legacy path).
+     *
      * @param Closure(): ?ActivityIdInterface $currentActivityId
+     * @param null|Closure(?string, ?bool): bool $shouldDrop
+     * @param null|Closure(): array{bool, ?ActivityIdInterface, ?string} $verifiedActivityExportId
      */
     public function __construct(
         private ExecutionIdInterface $executionId,
@@ -48,6 +54,8 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
         /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
         private StringIdentifierFactoryInterface $occurrenceIdFactory,
         private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
+        private ?Closure                         $shouldDrop = null,
+        private ?Closure                         $verifiedActivityExportId = null,
     ) {
     }
 
@@ -60,6 +68,7 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
         ?string $dataSchema = null,
         string $contentType = MediaTypes::APPLICATION_JSON,
     ): OccurrenceInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         $occurrence = Occurrence::create(
             $this->occurrenceIdFactory->build(),
             $this->executionId,
@@ -67,13 +76,18 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
             $source,
             $this->now(),
             $data,
-            $this->activityId(),
+            $activityId,
             $subject,
             $dataSchema,
             $contentType,
             $extensionAttributes,
             $this->sequence(),
         );
+
+        if ($this->shouldDrop instanceof Closure
+            && ($this->shouldDrop)($occurrence->activityId()?->toString(), $valid)) {
+            return $occurrence;
+        }
 
         // Issue an SDK-controlled export ID for the occurrence and register the
         // execution→occurrence edge so provenance can be verified at publication.
@@ -87,15 +101,8 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
             );
 
             $this->authority->attest($occurrence, $exportId);
-            $activityBusinessId = $occurrence->activityId()?->toString();
-            if ($exportId !== null && $activityBusinessId !== null) {
-                $executionId = $this->authority->executionIdForExportId($exportId);
-                $activityExportId = $executionId !== null
-                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
-                    : null;
-                if ($activityExportId !== null) {
-                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
-                }
+            if ($exportId !== null && $activityExportId !== null) {
+                $this->authority->bindActivityRelationship($exportId, $activityExportId);
             }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Occurrence publication preparation failed.'));
@@ -107,9 +114,21 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
         return $occurrence;
     }
 
-    private function activityId(): ?ActivityIdInterface
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activity(): array
     {
-        return ($this->currentActivityId)();
+        if ($this->verifiedActivityExportId instanceof Closure) {
+            [$valid, $id, $exportId] = ($this->verifiedActivityExportId)();
+            return [$valid ? $id : null, $valid && $id !== null ? $exportId : null, $valid];
+        }
+
+        return $this->activityLegacy(($this->currentActivityId)());
+    }
+
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activityLegacy(?ActivityIdInterface $activityId): array
+    {
+        return [$activityId, null, null];
     }
 
     private function sequence(): ArtifactSequenceInterface

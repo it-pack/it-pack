@@ -28,10 +28,14 @@ use ItPack\RunIt\Application\Publication\PublicationPipeline;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
+use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -154,6 +158,7 @@ final class PublicationPipelineTest extends Unit
             byteEstimator: $this->estimator,
             filter: new ArtifactTypeFilter([Observation::class]),
             redactor: new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password'])),
+            stackFactory: new UnsafePipelineTestStackFactory(),
         )->build();
 
         $pipeline->publish($this->observation());
@@ -177,6 +182,7 @@ final class PublicationPipelineTest extends Unit
             clock: $this->clock,
             byteEstimator: $this->estimator,
             failurePolicy: new FailClosedPolicy(),
+            stackFactory: new UnsafePipelineTestStackFactory(),
         )->build();
 
         $thrown = null;
@@ -192,7 +198,12 @@ final class PublicationPipelineTest extends Unit
     public function testPipelineFailOpenSwallows(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator)->build();
+        $pipeline = new PublicationPipeline(
+            $sink,
+            $this->clock,
+            $this->estimator,
+            stackFactory: new UnsafePipelineTestStackFactory(),
+        )->build();
 
         $pipeline->publish($this->observation());
 
@@ -207,6 +218,7 @@ final class PublicationPipelineTest extends Unit
             clock: $this->clock,
             byteEstimator: $this->estimator,
             filter: new ObservationSeverityFilter(ObservationSeverity::Error->level()),
+            stackFactory: new UnsafePipelineTestStackFactory(),
         )->build();
 
         $pipeline->publish(Observation::debug(
@@ -221,5 +233,21 @@ final class PublicationPipelineTest extends Unit
         ));
 
         self::assertCount(1, $sink->published());
+    }
+}
+
+/** Deliberately bypasses provenance for isolated pipeline-stage tests. */
+final class UnsafePipelineTestStackFactory implements PublisherStackFactoryInterface
+{
+    public function compose(
+        ArtifactPublisherInterface $base,
+        ?RedactorInterface $redactor,
+        ?SamplingPolicyInterface $samplingPolicy,
+    ): ArtifactPublisherInterface {
+        if ($samplingPolicy instanceof SamplingPolicyInterface) {
+            $base = new SamplingArtifactPublisher($samplingPolicy, $base);
+        }
+
+        return $redactor instanceof RedactorInterface ? new RedactingArtifactPublisher($redactor, $base) : $base;
     }
 }

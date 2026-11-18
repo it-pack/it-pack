@@ -39,6 +39,7 @@ use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
@@ -116,6 +117,8 @@ final class RunItTestKit
         ?ExecutionSnapshotFactoryInterface $snapshotFactory = null,
         ?ProvenanceAuthority $authority = null,
         ?ExecutionFactoryInterface $executionFactory = null,
+        ?ActivityContextStorageInterface $activityContextStorage = null,
+        string $activityContextPolicy = 'fallback',
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
@@ -169,6 +172,8 @@ final class RunItTestKit
             $onSnapshotStoreFailure,
             limits: $limits ?? new SecurityLimits(),
             authority: $authority ?? new ProvenanceAuthority(),
+            activityContextStorage: $activityContextStorage,
+            activityContextPolicy: $activityContextPolicy,
         );
     }
 

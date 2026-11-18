@@ -42,7 +42,13 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
     use InstantClockBehavior;
 
     /**
+     * The capture resolver returns context validity, activity ID, and its verified export ID.
+     * Invalid captures discard both IDs; a missing resolver uses the legacy raw ID only.
+     * The drop callback receives the captured validity (null for the legacy path).
+     *
      * @param Closure(): ?ActivityIdInterface $currentActivityId
+     * @param null|Closure(?string, ?bool): bool $shouldDrop
+     * @param null|Closure(): array{bool, ?ActivityIdInterface, ?string} $verifiedActivityExportId
      */
     public function __construct(
         private ExecutionIdInterface             $executionId,
@@ -57,6 +63,8 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         private ?SnapshotStoreInterface          $store = null,
         private ?Closure                         $onStoreFailure = null,
         private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
+        private ?Closure                         $shouldDrop = null,
+        private ?Closure                         $verifiedActivityExportId = null,
     ) {
     }
 
@@ -67,13 +75,19 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         int $schemaVersion = 1,
         ?AttributeCollectionInterface $attributes = null,
     ): SnapshotInterface {
+        [$activityId, $activityExportId, $valid] = $this->activity();
         $snapshot = $this->build(
             $type,
             $payload,
             $classification ?? SnapshotClassification::Checkpoint,
             $schemaVersion,
-            $attributes
+            $attributes,
+            $activityId,
         );
+
+        if ($this->shouldDrop instanceof Closure && ($this->shouldDrop)($snapshot->activityId()?->toString(), $valid)) {
+            return $snapshot;
+        }
 
         // Issue an SDK-controlled export ID for the snapshot and register the
         // execution→snapshot edge so provenance can be verified at publication.
@@ -87,15 +101,8 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
             );
 
             $this->authority->attest($snapshot, $exportId);
-            $activityBusinessId = $snapshot->activityId()?->toString();
-            if ($exportId !== null && $activityBusinessId !== null) {
-                $executionId = $this->authority->executionIdForExportId($exportId);
-                $activityExportId = $executionId !== null
-                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
-                    : null;
-                if ($activityExportId !== null) {
-                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
-                }
+            if ($exportId !== null && $activityExportId !== null) {
+                $this->authority->bindActivityRelationship($exportId, $activityExportId);
             }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Snapshot publication preparation failed.'));
@@ -120,6 +127,7 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         SnapshotClassificationInterface $classification,
         int $schemaVersion,
         ?AttributeCollectionInterface $attributes,
+        ?ActivityIdInterface $activityId,
     ): SnapshotInterface {
         try {
             $normalized = $this->serializer->normalize($payload);
@@ -135,7 +143,7 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
                 $schemaVersion,
                 [],
                 $this->hashCalculator,
-                $this->activityId(),
+                $activityId,
                 classification: $classification,
                 createdAt: $this->now(),
                 contentType: $this->serializer->contentType(),
@@ -151,7 +159,7 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
             $schemaVersion,
             $normalized,
             $this->hashCalculator,
-            $this->activityId(),
+            $activityId,
             classification: $classification,
             createdAt: $this->now(),
             contentType: $this->serializer->contentType(),
@@ -175,9 +183,21 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         }
     }
 
-    private function activityId(): ?ActivityIdInterface
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activity(): array
     {
-        return ($this->currentActivityId)();
+        if ($this->verifiedActivityExportId instanceof Closure) {
+            [$valid, $id, $exportId] = ($this->verifiedActivityExportId)();
+            return [$valid ? $id : null, $valid && $id !== null ? $exportId : null, $valid];
+        }
+
+        return $this->activityLegacy(($this->currentActivityId)());
+    }
+
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activityLegacy(?ActivityIdInterface $activityId): array
+    {
+        return [$activityId, null, null];
     }
 
     private function sequence(): ArtifactSequenceInterface

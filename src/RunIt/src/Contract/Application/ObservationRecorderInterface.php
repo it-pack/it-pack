@@ -13,7 +13,8 @@ use Throwable;
  * Contract for recording observations bound to the ambient execution (and activity).
  *
  * The recorder maps a throwable through the configured policy, fills ownership,
- * timing, and sequence automatically, publishes the observation, and returns it.
+ * timing, and sequence automatically. A returned observation is not proof of publication:
+ * configured safety policies may drop it before publication.
  *
  * @api
  *
