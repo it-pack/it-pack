@@ -76,6 +76,14 @@ foreach ($publisher->published() as $artifact) {
 - Executions link via `parentExecutionId`; ownership is by identity.
 - On failure, RunIt records the terminal state and rethrows *your* exception.
 
+> **Phase 2 note:** Nested calls resolve through `NestedExecutionPolicyInterface`.
+> Modes: `child_execution` (default — linked parent/child tree), `activity_only`
+> (nested call becomes an activity of the parent), `detached_execution` (correlated
+> root execution), `reject_nested` (refuse to start a nested execution). Configure
+> via `RunItBuilder::withNestedExecutionPolicy()`. See
+> [Tutorial 13 — Publisher failure policies & resilience](13-publisher-failure-policies-and-resilience.md)
+> and [examples/nested-execution-policy.php](https://github.com/it-pack/run-it/blob/main/examples/nested-execution-policy.php).
+
 ## Next
 
 [Part 7 — Publish & integrate](07-publish-and-integrate.md): get artifacts out to

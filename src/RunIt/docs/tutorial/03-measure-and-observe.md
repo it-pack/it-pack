@@ -67,6 +67,11 @@ $runtime->run(
 - `observations()` records messages at PSR-3 severities; throwables are safely normalized.
 - Both bind to the active activity without extra wiring.
 
+> **Phase 2 note:** Unclassified measurements are dropped **before** sampling — this
+> is delivery loss, not value redaction. The measurement value itself never reaches
+> the health path. If a measurement does not reach the sink, check whether its fields
+> are classified (`ClassifyingArtifactPublisher` runs before the sampler).
+
 ## Next
 
 [Part 4 — Occurrences & snapshots](04-occurrences-and-snapshots.md): immutable facts and
