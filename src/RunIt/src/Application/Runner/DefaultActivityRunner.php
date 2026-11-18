@@ -260,7 +260,11 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         // Independent, payload-free fallback. It does not traverse the publication
         // stack, so it cannot recurse into this runner or replace the business
         // result or exception.
-        @error_log(sprintf('run-it: activity context failure: %s', $reason));
+        try {
+            @error_log(sprintf('run-it: activity context failure: %s', $reason));
+        } catch (Throwable) {
+            // Fallback logging itself must never propagate.
+        }
     }
 
     private function complete(

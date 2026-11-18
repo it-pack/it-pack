@@ -191,7 +191,13 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
             return [$valid ? $id : null, $valid && $id !== null ? $exportId : null, $valid];
         }
 
-        return [($this->currentActivityId)(), null, null];
+        return $this->activityLegacy(($this->currentActivityId)());
+    }
+
+    /** @return array{?ActivityIdInterface, ?string, ?bool} */
+    private function activityLegacy(?ActivityIdInterface $activityId): array
+    {
+        return [$activityId, null, null];
     }
 
     private function sequence(): ArtifactSequenceInterface

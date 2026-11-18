@@ -369,6 +369,8 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         $this->validateConcurrentContextStorage($capability, $contextStorage);
         $this->applyConcurrencyValidator($capability, $contextStorage);
 
+        $activityContextStorage = $this->activityContextStorage;
+
         // Explicit null disables the redactor but retains classification.
         $publisherStackFactory = $this->resolvePublisherStackFactory();
         $redactor = $this->resolveRedactor();
@@ -416,7 +418,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             engine: $engine,
             limits: $this->resolveLimits(),
             authority: $authority,
-            activityContextStorage: $this->activityContextStorage,
+            activityContextStorage: $activityContextStorage,
             activityContextPolicy: $this->activityContextPolicy,
             runOnActivityContextAttachFailure: $this->runOnActivityContextAttachFailure,
         );
