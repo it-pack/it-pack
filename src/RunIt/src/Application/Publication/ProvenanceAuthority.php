@@ -40,6 +40,9 @@ use WeakMap;
  */
 final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 {
+    private const string ATTR_FROM = 'from';
+    private const string ATTR_TO = 'to';
+
     /**
      * Valid endpoint role pairs per relationship type. Only these combinations
      * are recorded; anything else is rejected as an invalid edge.
@@ -48,44 +51,90 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      */
     private const array RELATIONSHIP_ROLES = [
         'parent' => [
-            'from' => ['execution', 'activity'],
-            'to' => ['execution'],
+            self::ATTR_FROM => [
+                'execution',
+                'activity'
+            ],
+            self::ATTR_TO => [
+                'execution'
+            ],
         ],
         'link' => [
-            'from' => ['execution'],
-            'to' => ['execution'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'execution'
+            ],
         ],
         'execution-activity' => [
-            'from' => ['execution'],
-            'to' => ['activity'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'activity'
+            ],
         ],
         'execution-observation' => [
-            'from' => ['execution'],
-            'to' => ['observation'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'observation'
+            ],
         ],
         'execution-occurrence' => [
-            'from' => ['execution'],
-            'to' => ['occurrence'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'occurrence'
+            ],
         ],
         'execution-measurement' => [
-            'from' => ['execution'],
-            'to' => ['measurement'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'measurement'
+            ],
         ],
         'execution-snapshot' => [
-            'from' => ['execution'],
-            'to' => ['snapshot'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'snapshot'
+            ],
         ],
         'execution-terminal-snapshot' => [
-            'from' => ['execution'],
-            'to' => ['snapshot', 'terminal-snapshot'],
+            self::ATTR_FROM => [
+                'execution'
+            ],
+            self::ATTR_TO => [
+                'snapshot',
+                'terminal-snapshot'
+            ],
         ],
         'activity-artifact' => [
-            'from' => ['activity'],
-            'to' => ['observation', 'occurrence', 'measurement', 'snapshot', 'terminal-snapshot'],
+            self::ATTR_FROM => [
+                'activity'
+            ],
+            self::ATTR_TO => [
+                'observation',
+                'occurrence',
+                'measurement',
+                'snapshot',
+                'terminal-snapshot'
+            ],
         ],
         'activity-parent' => [
-            'from' => ['activity'],
-            'to' => ['activity'],
+            self::ATTR_FROM => [
+                'activity'
+            ],
+            self::ATTR_TO => [
+                'activity'
+            ],
         ],
     ];
 
@@ -643,8 +692,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      */
     private function areRolesValid(array $from, array $to, array $roles): bool
     {
-        $fromRoles = $roles['from'];
-        $toRoles = $roles['to'];
+        $fromRoles = $roles[self::ATTR_FROM];
+        $toRoles = $roles[self::ATTR_TO];
         assert(is_array($fromRoles));
         assert(is_array($toRoles));
 
@@ -677,8 +726,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
         if ($execution === null || $execution['released'] || $roles === null
             || $this->edgeCount >= $this->maxEdges
-            || !in_array($execution['role'], $roles['from'], true)
-            || !in_array($role, $roles['to'], true)
+            || !in_array($execution['role'], $roles[self::ATTR_FROM], true)
+            || !in_array($role, $roles[self::ATTR_TO], true)
         ) {
             $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
 
