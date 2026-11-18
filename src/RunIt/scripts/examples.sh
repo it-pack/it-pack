@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 
 class_exists() {
     local class="$1"
-    php -r 'exit(class_exists($argv[1]) ? 0 : 1);' "$class" 2>/dev/null
+    php -r "exit(class_exists($argv[1]) ? 0 : 1);" "$class" 2>/dev/null
 }
 
 for f in examples/*.php; do
