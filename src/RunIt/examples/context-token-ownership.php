@@ -14,6 +14,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
+use ItPack\RunIt\SDK\RunItInterface;
 
 /**
  * RunIt — context token ownership: id() is non-unique, exact reference rules.
@@ -33,17 +34,14 @@ require __DIR__ . '/../vendor/autoload.php';
 $storageA = new StackContextStorage();
 $storageB = new StackContextStorage();
 
-$makeRuntime = static function (ContextStorageInterface $storage): \ItPack\RunIt\SDK\RunItInterface {
-    return RunItBuilder::create()
-        ->withPublisher(new InMemoryArtifactPublisher())
-        ->withClock(new SystemMonotonicClock())
-        ->withSequenceAllocator(new InMemorySequenceAllocator())
-        ->withSnapshotSerializer(new JsonSnapshotSerializer())
-        ->withIdentifierGenerator(new RandomIdentifierGenerator())
-        ->withContextStorage($storage)
-        ->build()
-;
-};
+$makeRuntime = (static fn (ContextStorageInterface $storage): RunItInterface => RunItBuilder::create()
+    ->withPublisher(new InMemoryArtifactPublisher())
+    ->withClock(new SystemMonotonicClock())
+    ->withSequenceAllocator(new InMemorySequenceAllocator())
+    ->withSnapshotSerializer(new JsonSnapshotSerializer())
+    ->withIdentifierGenerator(new RandomIdentifierGenerator())
+    ->withContextStorage($storage)
+    ->build());
 
 $runtimeA = $makeRuntime($storageA);
 $runtimeB = $makeRuntime($storageB);
@@ -57,26 +55,26 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 $tokenA = null;
 $runtimeA->run($definition('scope-a'), static function (ExecutionScopeInterface $scope) use (&$tokenA, $storageA): void {
     $tokenA = $storageA->attach($scope);
-    echo "attached scope-a, token id: " . $tokenA->id() . "\n";
+    echo 'attached scope-a, token id: ' . $tokenA->id() . "\n";
 });
 
 // --- Attach in storage B (different instance) ---
 $tokenB = null;
 $runtimeB->run($definition('scope-b'), static function (ExecutionScopeInterface $scope) use (&$tokenB, $storageB): void {
     $tokenB = $storageB->attach($scope);
-    echo "attached scope-b, token id: " . $tokenB->id() . "\n";
+    echo 'attached scope-b, token id: ' . $tokenB->id() . "\n";
 });
 
 // --- id() may collide across storages; exact reference is what matters ---
-echo "tokenA id: " . $tokenA->id() . ", tokenB id: " . $tokenB->id() . "\n";
-echo "ids match: " . (($tokenA->id() === $tokenB->id()) ? 'yes (coincidental)' : 'no') . "\n";
+echo 'tokenA id: ' . $tokenA->id() . ', tokenB id: ' . $tokenB->id() . "\n";
+echo 'ids match: ' . (($tokenA->id() === $tokenB->id()) ? 'yes (coincidental)' : 'no') . "\n";
 
 // --- Detaching storage A's scope with storage B's token is rejected ---
 try {
     $storageA->detach($tokenB);
     echo "ERROR: foreign token was accepted (should not happen)\n";
-} catch (\Throwable $e) {
-    echo "foreign token correctly rejected: " . $e->getMessage() . "\n";
+} catch (Throwable $throwable) {
+    echo 'foreign token correctly rejected: ' . $throwable->getMessage() . "\n";
 }
 
 // --- Detach with the correct token restores the scope ---

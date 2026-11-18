@@ -8,6 +8,9 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
@@ -34,14 +37,14 @@ require __DIR__ . '/../vendor/autoload.php';
 final class ClassifyingStackFactory implements PublisherStackFactoryInterface
 {
     public function compose(
-        \ItPack\RunIt\Contract\Port\ArtifactPublisherInterface $base,
-        ?\ItPack\RunIt\Contract\Application\Publication\RedactorInterface $redactor,
-        ?\ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface $samplingPolicy,
-    ): \ItPack\RunIt\Contract\Port\ArtifactPublisherInterface {
-        echo "custom factory: received redactor=" . ($redactor === null ? 'null' : 'present') . "\n";
+        ArtifactPublisherInterface $base,
+        ?RedactorInterface $redactor,
+        ?SamplingPolicyInterface $samplingPolicy,
+    ): ArtifactPublisherInterface {
+        echo 'custom factory: received redactor=' . ($redactor instanceof RedactorInterface ? 'present' : 'null') . "\n";
         echo "custom factory: classified projection will be published through base\n";
 
-        return new \ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher();
+        return new InMemoryArtifactPublisher();
     }
 }
 

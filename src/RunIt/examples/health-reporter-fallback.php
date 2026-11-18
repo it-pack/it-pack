@@ -7,7 +7,6 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -35,16 +34,19 @@ require __DIR__ . '/../vendor/autoload.php';
 
 final class ThrowingHealthReporter implements InternalHealthReporterInterface
 {
-    public function report(\Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+    public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
     {
-        throw new \RuntimeException('health reporter down');
+        throw new RuntimeException('health reporter down');
     }
 }
 
 $healthCalls = [];
-$health = new class($healthCalls) implements InternalHealthReporterInterface {
-    public function __construct(private array &$calls) {}
-    public function report(\Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+$health = new class ($healthCalls) implements InternalHealthReporterInterface {
+    public function __construct(private array &$calls)
+    {
+    }
+
+    public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
     {
         $this->calls[] = ['message' => $error->getMessage(), 'artifactId' => null];
     }
@@ -59,7 +61,7 @@ $runIt = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->withPublicationFailureHandler(static function (\Throwable $failure) use ($healthCalls): void {
+    ->withPublicationFailureHandler(static function (Throwable $failure) use ($healthCalls): void {
         $healthCalls[] = ['message' => $failure->getMessage(), 'artifactId' => null];
     })
     ->build()

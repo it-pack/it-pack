@@ -12,10 +12,12 @@ use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
 use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
+use ItPack\RunIt\SDK\RunItInterface;
 
 /**
  * RunIt — nested execution policies.
@@ -35,17 +37,14 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$makeRuntime = static function (\ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface $policy): \ItPack\RunIt\SDK\RunItInterface {
-    return RunItBuilder::create()
-        ->withPublisher(new InMemoryArtifactPublisher())
-        ->withClock(new SystemMonotonicClock())
-        ->withSequenceAllocator(new InMemorySequenceAllocator())
-        ->withSnapshotSerializer(new JsonSnapshotSerializer())
-        ->withIdentifierGenerator(new RandomIdentifierGenerator())
-        ->withNestedExecutionPolicy($policy)
-        ->build()
-;
-};
+$makeRuntime = (static fn (NestedExecutionPolicyInterface $policy): RunItInterface => RunItBuilder::create()
+    ->withPublisher(new InMemoryArtifactPublisher())
+    ->withClock(new SystemMonotonicClock())
+    ->withSequenceAllocator(new InMemorySequenceAllocator())
+    ->withSnapshotSerializer(new JsonSnapshotSerializer())
+    ->withIdentifierGenerator(new RandomIdentifierGenerator())
+    ->withNestedExecutionPolicy($policy)
+    ->build());
 
 $definition = static fn (string $name): ExecutionDefinition => ExecutionDefinition::create(
     ExecutionName::fromString($name),
@@ -54,7 +53,7 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 
 echo "ChildExecutionPolicy — nested call becomes a child execution\n";
 $child = $makeRuntime(new ChildExecutionPolicy());
-$child->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($child, $definition): void {
+$child->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($child): void {
     $child->run(
         ExecutionDefinition::create(
             ExecutionName::fromString('child'),
@@ -68,7 +67,7 @@ $child->run($definition('parent'), static function (ExecutionScopeInterface $sco
 
 echo "\nActivityOnlyPolicy — nested call becomes an activity\n";
 $activity = $makeRuntime(new ActivityOnlyPolicy());
-$activity->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($activity, $definition): void {
+$activity->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($activity): void {
     $activity->run(
         ExecutionDefinition::create(
             ExecutionName::fromString('nested.activity'),
@@ -82,7 +81,7 @@ $activity->run($definition('parent'), static function (ExecutionScopeInterface $
 
 echo "\nDetachedExecutionPolicy — nested call becomes a correlated root\n";
 $detached = $makeRuntime(new DetachedExecutionPolicy());
-$detached->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($detached, $definition): void {
+$detached->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($detached): void {
     $detached->run(
         ExecutionDefinition::create(
             ExecutionName::fromString('detached'),
@@ -97,7 +96,7 @@ $detached->run($definition('parent'), static function (ExecutionScopeInterface $
 echo "\nRejectNestedPolicy — nested call rejected\n";
 $reject = $makeRuntime(new RejectNestedPolicy());
 try {
-    $reject->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($reject, $definition): void {
+    $reject->run($definition('parent'), static function (ExecutionScopeInterface $scope) use ($reject): void {
         $reject->run(
             ExecutionDefinition::create(
                 ExecutionName::fromString('rejected'),
@@ -108,8 +107,8 @@ try {
             },
         );
     });
-} catch (\Throwable $e) {
-    echo "  rejected: " . $e->getMessage() . "\n";
+} catch (Throwable $throwable) {
+    echo '  rejected: ' . $throwable->getMessage() . "\n";
 }
 
 echo "\nnested execution policies complete\n";

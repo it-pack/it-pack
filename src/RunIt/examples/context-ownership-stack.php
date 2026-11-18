@@ -7,8 +7,11 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -58,11 +61,11 @@ $runtime->run($definition('outer'), static function (ExecutionScopeInterface $sc
     echo "outer execution: $outerId\n";
 
     $scope->activities()->run(
-        \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
-            \ItPack\RunIt\Domain\Activity\ActivityName::fromString('inner'),
-            \ItPack\RunIt\Domain\Activity\ActivityKind::fromString('step'),
+        ActivityDefinition::create(
+            ActivityName::fromString('inner'),
+            ActivityKind::fromString('step'),
         ),
-        static function (\ItPack\RunIt\Contract\Application\ActivityScopeInterface $activityScope): void {
+        static function (ActivityScopeInterface $activityScope): void {
             $innerId = $activityScope->execution()->id()->toString();
             echo "inner activity execution: $innerId\n";
         },
@@ -77,10 +80,10 @@ echo "outer execution completed and context restored\n\n";
 
 try {
     $runtime->run($definition('will-fail'), static function (ExecutionScopeInterface $scope): never {
-        throw new \RuntimeException('nested failure');
+        throw new RuntimeException('nested failure');
     });
-} catch (\Throwable $e) {
-    echo "caught original exception: " . $e->getMessage() . "\n";
+} catch (Throwable $throwable) {
+    echo 'caught original exception: ' . $throwable->getMessage() . "\n";
 }
 
 echo "scope restored after failure\n";

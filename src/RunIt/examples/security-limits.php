@@ -59,10 +59,10 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 
 $runIt->run($definition('bounded.op'), static function (ExecutionScopeInterface $scope) use ($limits): void {
     echo "security limits active:\n";
-    echo "  max attribute count:   " . $limits->maxAttributeCount . "\n";
-    echo "  max attribute value:   " . $limits->maxAttributeValueBytes . " bytes\n";
-    echo "  max snapshot payload:  " . $limits->maxSnapshotPayloadBytes . " bytes\n";
-    echo "  max occurrence payload:" . $limits->maxOccurrencePayloadBytes . " bytes\n";
+    echo '  max attribute count:   ' . $limits->maxAttributeCount . "\n";
+    echo '  max attribute value:   ' . $limits->maxAttributeValueBytes . " bytes\n";
+    echo '  max snapshot payload:  ' . $limits->maxSnapshotPayloadBytes . " bytes\n";
+    echo '  max occurrence payload:' . $limits->maxOccurrencePayloadBytes . " bytes\n";
     echo "oversized artifacts are dropped/replaced with payload-free marker\n";
     echo "limits are fail-closed — nothing oversized reaches external sinks\n";
 });

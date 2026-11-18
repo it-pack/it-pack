@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 /**
@@ -68,12 +69,12 @@ $runIt->run($definition('overlap.order1'), static function (ExecutionScopeInterf
     echo "order 1: A completes before B starts\n";
 
     $scope->activities()->run($activity1, static function (ActivityScopeInterface $a): void {
-        $a->observations()->record('observation from A', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+        $a->observations()->record('observation from A', ObservationSeverity::Info);
         echo "  A recorded observation\n";
     });
 
     $scope->activities()->run($activity2, static function (ActivityScopeInterface $b): void {
-        $b->observations()->record('observation from B', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+        $b->observations()->record('observation from B', ObservationSeverity::Info);
         echo "  B recorded observation\n";
     });
 
@@ -85,12 +86,12 @@ $runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterf
     echo "order 2: B interleaves with A\n";
 
     $scope->activities()->run($activity1, static function (ActivityScopeInterface $a): void {
-        $a->observations()->record('observation from A', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+        $a->observations()->record('observation from A', ObservationSeverity::Info);
         echo "  A recorded observation\n";
     });
 
     $scope->activities()->run($activity2, static function (ActivityScopeInterface $b): void {
-        $b->observations()->record('observation from B', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+        $b->observations()->record('observation from B', ObservationSeverity::Info);
         echo "  B recorded observation\n";
     });
 

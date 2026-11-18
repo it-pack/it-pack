@@ -50,13 +50,13 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 
 // --- Main stack execution ---
 $runIt->run($definition('main.stack'), static function (ExecutionScopeInterface $scope): void {
-    echo "main stack execution: " . $scope->execution()->id()->toString() . "\n";
+    echo 'main stack execution: ' . $scope->execution()->id()->toString() . "\n";
 });
 
 // --- Fiber execution (isolated scope) ---
-$fiber = new \Fiber(static function () use ($runIt, $definition): void {
+$fiber = new Fiber(static function () use ($runIt, $definition): void {
     $runIt->run($definition('fiber.work'), static function (ExecutionScopeInterface $scope): void {
-        echo "fiber execution:       " . $scope->execution()->id()->toString() . "\n";
+        echo 'fiber execution:       ' . $scope->execution()->id()->toString() . "\n";
     });
 });
 

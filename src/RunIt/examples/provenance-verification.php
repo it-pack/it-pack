@@ -51,9 +51,9 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 
 $runIt->run($definition('order.place'), static function (ExecutionScopeInterface $scope): void {
     $execution = $scope->execution();
-    echo "business execution ID: " . $execution->id()->toString() . "\n";
-    echo "business name:          " . $execution->definition()->name()->toString() . "\n";
-    echo "business kind:          " . $execution->definition()->kind()->toString() . "\n";
+    echo 'business execution ID: ' . $execution->id()->toString() . "\n";
+    echo 'business name:          ' . $execution->definition()->name()->toString() . "\n";
+    echo 'business kind:          ' . $execution->definition()->kind()->toString() . "\n";
     echo "\n";
     echo "The business ID alone is an untrusted claim.\n";
     echo "Only the SDK-issued export ID (verified by ProvenanceAuthority)\n";
@@ -69,8 +69,8 @@ try {
     $runIt->run($definition('duplicate.id'), static function (ExecutionScopeInterface $scope): void {
         echo "second run of duplicate.id — unverified\n";
     });
-} catch (\Throwable $e) {
-    echo "duplicate identity rejected: " . $e->getMessage() . "\n";
+} catch (Throwable $throwable) {
+    echo 'duplicate identity rejected: ' . $throwable->getMessage() . "\n";
 }
 
 echo "provenance verification complete\n";

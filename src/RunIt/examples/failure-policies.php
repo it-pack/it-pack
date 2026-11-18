@@ -1,24 +1,14 @@
 <?php
 
 declare(strict_types=1);
-
-use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
-use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
-use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
-use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CollectAndContinuePolicy;
 use ItPack\RunIt\Application\Publication\FailClosedPolicy;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ReportToFallbackPolicy;
-use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
-use ItPack\RunIt\Domain\Execution\ExecutionKind;
-use ItPack\RunIt\Domain\Execution\ExecutionName;
-use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 /**
  * RunIt — publisher failure policies.
@@ -50,7 +40,7 @@ final class FailingPublisher implements ArtifactPublisherInterface
 {
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        throw new \RuntimeException('transport unavailable');
+        throw new RuntimeException('transport unavailable');
     }
 }
 
@@ -65,7 +55,7 @@ $publisher = new FailSafeArtifactPublisher(
 try {
     $publisher->publish($artifact);
     echo "FailOpenPolicy: publication error swallowed\n";
-} catch (\Throwable) {
+} catch (Throwable) {
     echo "FailOpenPolicy: unexpected rethrow\n";
 }
 
@@ -78,8 +68,8 @@ $publisher = new FailSafeArtifactPublisher(
 try {
     $publisher->publish($artifact);
     echo "FailClosedPolicy: unexpected swallow\n";
-} catch (\RuntimeException $e) {
-    echo "FailClosedPolicy: rethrew transport error: " . $e->getMessage() . "\n";
+} catch (Throwable $exception) {
+    echo 'FailClosedPolicy: rethrew transport error: ' . $exception->getMessage() . "\n";
 }
 
 // --- CollectAndContinuePolicy: collects error ---
@@ -87,7 +77,7 @@ $collected = [];
 $publisher = new FailSafeArtifactPublisher(
     new FailingPublisher(),
     new CollectAndContinuePolicy(
-        static function (\Throwable $error, ExecutionArtifactInterface $a) use (&$collected): void {
+        static function (Throwable $error, ExecutionArtifactInterface $a) use (&$collected): void {
             $collected[] = $error->getMessage();
         },
     ),
@@ -96,11 +86,11 @@ $publisher = new FailSafeArtifactPublisher(
 try {
     $publisher->publish($artifact);
     echo "CollectAndContinuePolicy: continued after error\n";
-} catch (\Throwable) {
+} catch (Throwable) {
     echo "CollectAndContinuePolicy: unexpected rethrow\n";
 }
 
-echo "collected errors: " . count($collected) . "\n";
+echo 'collected errors: ' . count($collected) . "\n";
 
 // --- ReportToFallbackPolicy: forwards to fallback ---
 $fallback = new InMemoryArtifactPublisher();
@@ -112,7 +102,7 @@ $publisher = new FailSafeArtifactPublisher(
 try {
     $publisher->publish($artifact);
     echo "ReportToFallbackPolicy: forwarded to fallback\n";
-} catch (\Throwable) {
+} catch (Throwable) {
     echo "ReportToFallbackPolicy: unexpected rethrow\n";
 }
 

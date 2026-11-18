@@ -6,6 +6,7 @@ use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
+use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Fiber\FiberExecutionEngine;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
@@ -14,6 +15,7 @@ use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -42,8 +44,8 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
 require __DIR__ . '/../vendor/autoload.php';
 
 // --- 1. Concurrent engine + shared stack → rejected ---
-$concurrentEngine = new class implements ExecutionEngineInterface {
-    public function run(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope, callable $operation): mixed
+$concurrentEngine = new class () implements ExecutionEngineInterface {
+    public function run(ExecutionScopeInterface $scope, callable $operation): mixed
     {
         return $operation($scope);
     }
@@ -66,8 +68,8 @@ try {
         ->build()
     ;
     echo "ERROR: build should have rejected shared stack with concurrent engine\n";
-} catch (\ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException $e) {
-    echo "rejected: " . $e->getMessage() . "\n";
+} catch (IncompatibleContextStorageException $incompatibleContextStorageException) {
+    echo 'rejected: ' . $incompatibleContextStorageException->getMessage() . "\n";
 }
 
 // --- 2. FiberExecutionEngine (concurrent: false) + fiber storage → accepted ---
@@ -77,7 +79,7 @@ $runIt = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->withContextStorage(new \ItPack\RunIt\Adapter\Fiber\FiberContextStorage())
+    ->withContextStorage(new FiberContextStorage())
     ->withExecutionEngine(new FiberExecutionEngine())
     ->build()
 ;
@@ -88,7 +90,7 @@ $runIt->run(
         ExecutionKind::fromString('fiber'),
     ),
     static function (ExecutionScopeInterface $scope): void {
-        echo "accepted: fiber storage with FiberExecutionEngine, execution " . $scope->execution()->id()->toString() . "\n";
+        echo 'accepted: fiber storage with FiberExecutionEngine, execution ' . $scope->execution()->id()->toString() . "\n";
     },
 );
 
@@ -114,4 +116,4 @@ RunItBuilder::create()
     ->build()
 ;
 
-echo "custom validator invoked: " . ($customValidatorCalled ? 'yes' : 'no') . "\n";
+echo 'custom validator invoked: ' . ($customValidatorCalled ? 'yes' : 'no') . "\n";
