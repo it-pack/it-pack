@@ -92,9 +92,19 @@ SDK execution and activity projections replace names and kinds, omit
 unclassified context and attributes, and retain verified relationships, validated
 statuses, timing, and bounded throwable class/code metadata. A sampling resolver
 keyed by business execution IDs will not match the export IDs it receives.
-The separate runtime-local activity-context implementation is still undergoing
-verification. Do not rely on these worktree changes as a completed concurrency
-guarantee; see the Phase 2 blocker in `REFACTORING_PLAN.md`.
+The separate runtime-local activity-context implementation is verified: activity
+context is resolved per-recorder call through fiber-local
+`ActivityContextStorageInterface`, and overlapping activities retain independent
+attribution in both completion orders (`OverlappingActivityProvenanceTest` passes).
+The activity-context implementation requires exact owning-scope matching and
+verified activity handles before establishing trusted relationships; legacy activity
+IDs alone are untrusted claims. Missing or mismatched execution context will default
+to execution-level attribution, with opt-in strict payload-free drop-and-report or
+explicitly configured throwing. Recording with the matching execution attached and
+no active activity remains valid. Consumers must not interpret a recorder return
+value as proof of persistence or export. Verified handles, not legacy activity IDs
+alone, establish activity relationships. The existing open-activity limit and
+completion semantics remain unchanged.
 
 The activity-context implementation requires exact owning-scope
 matching and verified activity handles before establishing trusted relationships;
@@ -113,11 +123,12 @@ The default standalone `PublisherStackFactory` creates an unshared authority whe
 none is supplied. It reports and drops unverifiable artifacts before the redactor,
 sampler or sink. A default standalone `PublicationPipeline` does not share the SDK
 authority. Arbitrary custom composition can bypass this boundary and remains unsafe
-for untrusted artifacts without independently verified controls. Phase 2 is
-incomplete: the planned configurable extension-input modes and independent
-classification and provenance bypasses are not yet implemented. These incremental
-changes do not establish the full Phase 2 security guarantees. Affected downstream
-packages must not be released until their issues are fixed and verified.
+for untrusted artifacts without independently verified controls. Phase 2 is complete:
+the overlapping activity provenance blocker is resolved, the custom factory boundary
+delivers classified projections, and all quality checks pass. Planned configurable
+alternative extension-input modes and independent classification/provenance bypasses
+remain deferred; they are not Phase 2 requirements. Consumer migration and downstream
+checks are deferred; no release is made by these changes.
 
 A redacted artifact carries a trusted `artifactType()` signal set by the redactor,
 so adapters route it by signal instead of inferring kind from user-controlled

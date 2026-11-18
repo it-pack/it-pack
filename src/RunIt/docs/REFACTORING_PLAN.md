@@ -1450,7 +1450,11 @@ past cleanup and verifies that subsequent provenance checking drops it and
 reports only a fixed redacted placeholder. This characterizes fail-closed late
 verification; it does not implement ownership for deferred raw work.
 
-Phase 2 cannot be closed until `composer quality` (validation, Rector dry-run, PHPStan at level max, architecture, lint:length, all four test suites, security audit) passes on the final tree and the approved custom factory boundary and RunIt contract review are complete. Consumer migration and downstream verification are deferred.
+Phase 2 is complete. `composer quality` (validation, Rector dry-run, PHPStan at level max,
+architecture, lint:length, all four test suites, security audit) passes on the final tree,
+and `composer api:check` passes without baseline regeneration. The approved custom factory
+boundary delivers classified projections; the RunIt contract review is complete.
+Consumer migration and downstream verification are deferred; no release is authorized.
 
 **Integration update (2026-11-18):** The standalone default factory now reports
 and drops inputs without provenance from its issuing authority before the sampler
@@ -1462,7 +1466,7 @@ those cases and a projection queued before cleanup and consumed after cleanup;
 deferred raw artifacts remain untrusted. Arbitrary custom publisher compositions
 can bypass these controls. Activity interleaving (the overlapping-activity blocker)
 is resolved; the custom factory boundary contract review and final `composer quality`
-gate remain open. Downstream migration and checks remain deferred, not passed;
+gate are complete. Downstream migration and checks remain deferred, not passed;
 no release is authorized.
 
 **Blocker resolved (2026-11-18):** `OverlappingActivityProvenanceTest` previously

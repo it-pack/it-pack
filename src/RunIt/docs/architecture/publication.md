@@ -58,24 +58,25 @@ flowchart TD;
 Filtering runs first by design: a dropped artifact never reaches redaction, sampling,
 buffering, or the adapter, so volume costs are paid as late as possible.
 
-### Activity-context rejection (in progress)
+### Activity-context rejection
 
-The in-progress runtime-local activity-context implementation has an
-opt-in strict policy that rejects recordings with missing or mismatched execution
-context before publication and snapshot persistence, by payload-free drop and
-report by default or by an explicitly configured throw. Recorders must still
-honor their return contracts on a drop; a returned artifact is not evidence that
-it was persisted, published, or exported. The default policy instead records at
-execution level without an activity edge. An attached matching execution with no
-active activity is ordinary execution-level recording, not a strict rejection.
+The runtime-local activity-context implementation has an opt-in strict policy that
+rejects recordings with missing or mismatched execution context before publication
+and snapshot persistence, by payload-free drop and report by default or by an
+explicitly configured throw. Recorders must still honor their return contracts on a
+drop; a returned artifact is not evidence that it was persisted, published, or
+exported. The default policy instead records at execution level without an activity
+edge. An attached matching execution with no active activity is ordinary
+execution-level recording, not a strict rejection.
 
 Trusted activity relationships require verified handles bound to the exact owning
 execution scope; legacy activity IDs alone are untrusted claims. Verification of
 an artifact does not by itself prove a correct activity relationship, and neither
 verification nor dispatch guarantees delivery. Existing provenance cleanup and
 fail-closed behavior for retained raw work remain in force; this design adds no
-ownership lease. Until verification is complete, the concurrency warning in
-[`../SECURITY.md`](../SECURITY.md#current-publication-limitations) still applies.
+ownership lease. Overlapping activities retain independent attribution in both
+completion orders (`OverlappingActivityProvenanceTest` passes); the concurrency
+guarantee is complete.
 
 ## Redaction happens before external publication
 

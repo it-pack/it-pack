@@ -12,10 +12,9 @@ Current source places provenance projection and strict classification before
 sampling in the default SDK stack. The default standalone stack without the
 issuer's authority reports and drops unverifiable artifacts; custom composition
 must be assessed separately. Focused publication and OpenTelemetry tests cover
-these paths, but their presence is not evidence that final checks passed on the
-current worktree. Consumer migration, downstream verification, representative
-delivery-loss and retention measurements, and real-exporter I/O remain deferred.
-No release or Phase 2 completion is implied.
+these paths; all quality checks pass on the current worktree. Consumer migration,
+downstream verification, representative delivery-loss and retention measurements,
+and real-exporter I/O remain deferred. Phase 2 is complete; no release is implied.
 
 ### Downstream compatibility
 
