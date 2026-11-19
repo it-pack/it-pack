@@ -51,26 +51,26 @@ Implement a port or consume RunIt without coupling to internals.
 
 ## Full map
 
-| Area | Entry point | What it covers |
-|---|---|---|
-| **On-ramp** | [getting-started.md](getting-started.md) | Install, hello world, "what happened", where to go next. |
-| **Tutorial** | [tutorial/](tutorial/01-hello-execution.md) | 7 progressive, build-up lessons mapped to the domain model. |
-| **Concepts** | [concepts/semantic-model.md](concepts/semantic-model.md) | Canonical per-artifact reference (execution, activity, …). |
-| **Architecture** | [architecture/](architecture/hexagonal-architecture.md) | Hexagonal design, dependency rules, lifecycle, publication, security, performance. |
-| **Diagrams** | [diagram/runit-runtime.html](diagram/runit-runtime.html) | Interactive runtime architecture: components, primary request path, ports/adapters, and the trust boundary. |
-| **Integrations** | [integrations/README.md](integrations/README.md) | OpenTelemetry, CloudEvents, PSR-3/14, HTTP, Swoole, Fibers, failure policies. |
-| **Recipes** | [recipes/](../README.md#recipes) | Task-oriented snippets: CLI, HTTP, queue, worker, scheduler, testing, … |
-| **Use cases** | [use-cases.md](use-cases.md) | Fit, decision guides, and "RunIt vs X". |
-| **Ecosystem** | [ecosystem.md](ecosystem.md) | This package, the third-party sample, ConfigureIt, future bridges. |
-| **ADRs** | [adr/README.md](adr/README.md) | 24 decision records + a principles summary. |
-| **Releases** | [releases/1.0.0-rc.1.md](releases/1.0.0-rc.1.md) | What shipped in the release candidate. |
-| **Compat / upgrade** | [compatibility.md](compatibility.md), [UPGRADING.md](UPGRADING.md) | Baseline, BC policy, upgrade steps. |
-| **Conformance** | [conformance.md](conformance.md) | Framework-neutral conformance harness. |
-| **QA / Security** | [QA.md](QA.md), [SECURITY.md](SECURITY.md), [security/](security/) | Quality gates and threat model. |
-| **Glossary** | [glossary.md](glossary.md) | Every term, linked to its concept page and vocabulary IRI. |
-| **Vocabulary** | [vocabulary.md](vocabulary.md) | The canonical OWL ontology + SKOS taxonomy, namespaces, and how code links to IRIs. |
-| **Examples** | [`examples/`](https://github.com/it-pack/run-it/tree/main/examples) | 18 runnable scripts; each tutorial/recipe links the one it demonstrates. |
-| **Roadmap** | [ROADMAP.md](ROADMAP.md) | Milestone history and post-1.0 plans. |
+| Area                 | Entry point                                                         | What it covers                                                                                                                                                                                                 |
+|----------------------|---------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **On-ramp**          | [getting-started.md](getting-started.md)                            | Install, hello world, "what happened", where to go next.                                                                                                                                                       |
+| **Tutorial**         | [tutorial/](tutorial/01-hello-execution.md)                         | 13 progressive lessons: 01–07 core model, 08–13 Phase 1/2 advanced features (context ownership, concurrency validation, activity provenance, publication security, custom factory boundary, failure policies). |
+| **Concepts**         | [concepts/semantic-model.md](concepts/semantic-model.md)            | Canonical per-artifact reference (execution, activity, …).                                                                                                                                                     |
+| **Architecture**     | [architecture/](architecture/hexagonal-architecture.md)             | Hexagonal design, dependency rules, lifecycle, publication, security, performance.                                                                                                                             |
+| **Diagrams**         | [diagram/runit-runtime.html](diagram/runit-runtime.html)            | Interactive runtime architecture: components, primary request path, ports/adapters, and the trust boundary.                                                                                                    |
+| **Integrations**     | [integrations/README.md](integrations/README.md)                    | OpenTelemetry, CloudEvents, PSR-3/14, HTTP, Swoole, Fibers, failure policies.                                                                                                                                  |
+| **Recipes**          | [recipes/](../README.md#recipes)                                    | Task-oriented snippets: CLI, HTTP, queue, worker, scheduler, testing, …                                                                                                                                        |
+| **Use cases**        | [use-cases.md](use-cases.md)                                        | Fit, decision guides, and "RunIt vs X".                                                                                                                                                                        |
+| **Ecosystem**        | [ecosystem.md](ecosystem.md)                                        | This package, the third-party sample, ConfigureIt, future bridges.                                                                                                                                             |
+| **ADRs**             | [adr/README.md](adr/README.md)                                      | 24 decision records + a principles summary.                                                                                                                                                                    |
+| **Releases**         | [releases/1.0.0-rc.1.md](releases/1.0.0-rc.1.md)                    | What shipped in the release candidate.                                                                                                                                                                         |
+| **Compat / upgrade** | [compatibility.md](compatibility.md), [UPGRADING.md](UPGRADING.md)  | Baseline, BC policy, upgrade steps.                                                                                                                                                                            |
+| **Conformance**      | [conformance.md](conformance.md)                                    | Framework-neutral conformance harness.                                                                                                                                                                         |
+| **QA / Security**    | [QA.md](QA.md), [SECURITY.md](SECURITY.md), [security/](security/)  | Quality gates and threat model.                                                                                                                                                                                |
+| **Glossary**         | [glossary.md](glossary.md)                                          | Every term, linked to its concept page and vocabulary IRI.                                                                                                                                                     |
+| **Vocabulary**       | [vocabulary.md](vocabulary.md)                                      | The canonical OWL ontology + SKOS taxonomy, namespaces, and how code links to IRIs.                                                                                                                            |
+| **Examples**         | [`examples/`](https://github.com/it-pack/run-it/tree/main/examples) | 29 runnable scripts; each tutorial/recipe links the one it demonstrates.                                                                                                                                       |
+| **Roadmap**          | [ROADMAP.md](ROADMAP.md)                                            | Milestone history and post-1.0 plans.                                                                                                                                                                          |
 
 > Historical planning artifacts (reviews, past refactoring plans) live in
 > [`archive/`](archive/) and are not part of the main reading path.
@@ -84,4 +84,6 @@ Implement a port or consume RunIt without coupling to internals.
 - *"How do errors behave?"* → [tutorial/06-nesting-and-flow.md](tutorial/06-nesting-and-flow.md)
 - *"How do I send this to OpenTelemetry?"* → [integrations/opentelemetry.md](integrations/opentelemetry.md)
 - *"Is my data safe / redacted?"* → [architecture/security.md](architecture/security.md)
+- *"How do I choose context storage for Fibers/coroutines?"* → [tutorial/08-context-ownership-and-storage.md](tutorial/08-context-ownership-and-storage.md)
+- *"How does RunIt reject unsafe concurrency pairings?"* → [tutorial/09-concurrency-validation-boundary.md](tutorial/09-concurrency-validation-boundary.md)
 - *"Can I extend RunIt?"* → [adr/README.md](adr/README.md) + [recipes/third-party-adapter.md](recipes/third-party-adapter.md)

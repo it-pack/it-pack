@@ -66,6 +66,13 @@ traces, or events (ADR-012). See [architecture/security.md](../architecture/secu
 - Secrets are deny-by-default — never exported or serialized.
 - Context is attached through `ExecutionDefinition::create(..., $context)`.
 
+> **Phase 1 note:** The default `StackContextStorage` is synchronous and **not**
+> safe for concurrent Fiber/coroutine work. `RunItBuilder::build()` rejects pairing
+> it with an engine that declares `concurrent: true`. For Fibers, use
+> `FiberContextStorage`; for Swoole/OpenSwoole coroutines, use
+> `CoroutineContextStorage`; for mixed runtimes, use `CompositeContextStorage`.
+> See [Tutorial 8 — Context ownership & storage](08-context-ownership-and-storage.md).
+
 ## Next
 
 [Part 6 — Nesting, flow & errors](06-nesting-and-flow.md): how executions compose and

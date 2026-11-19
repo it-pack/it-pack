@@ -33,14 +33,14 @@ foreach ($publisher->published() as $artifact) {
 RunIt's adapters are optional and sit at the edge — the domain never depends on them.
 Pick what you need:
 
-| I want to… | Start here |
-|---|---|
-| Emit logs / events via PSR-3 or PSR-14 | [integrations/psr.md](../integrations/psr.md) · [recipe: psr-3](../../recipes/psr-3.md) |
+| I want to…                                | Start here                                                                                                                                                               |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Emit logs / events via PSR-3 or PSR-14    | [integrations/psr.md](../integrations/psr.md) · [recipe: psr-3](../../recipes/psr-3.md)                                                                                  |
 | Send traces/metrics/logs to OpenTelemetry | [integrations/opentelemetry.md](../integrations/opentelemetry.md) · [examples/opentelemetry.php](https://github.com/it-pack/run-it/blob/main/examples/opentelemetry.php) |
-| Stream facts as CloudEvents | [integrations/cloudevents.md](../integrations/cloudevents.md) · [examples/cloudevents.php](https://github.com/it-pack/run-it/blob/main/examples/cloudevents.php) |
-| Handle HTTP requests | [integrations/README.md](../integrations/README.md) · [recipe: http-request](../../recipes/http-request.md) |
-| Run under Swoole / OpenSwoole | [integrations/swoole.md](../integrations/swoole.md) · [examples/swoole.php](https://github.com/it-pack/run-it/blob/main/examples/swoole.php) |
-| Isolate context per Fiber / coroutine | [integrations/fibers.md](../integrations/fibers.md) · [examples/fibers.php](https://github.com/it-pack/run-it/blob/main/examples/fibers.php) |
+| Stream facts as CloudEvents               | [integrations/cloudevents.md](../integrations/cloudevents.md) · [examples/cloudevents.php](https://github.com/it-pack/run-it/blob/main/examples/cloudevents.php)         |
+| Handle HTTP requests                      | [integrations/README.md](../integrations/README.md) · [recipe: http-request](../../recipes/http-request.md)                                                              |
+| Run under Swoole / OpenSwoole             | [integrations/swoole.md](../integrations/swoole.md) · [examples/swoole.php](https://github.com/it-pack/run-it/blob/main/examples/swoole.php)                             |
+| Isolate context per Fiber / coroutine     | [integrations/fibers.md](../integrations/fibers.md) · [examples/fibers.php](https://github.com/it-pack/run-it/blob/main/examples/fibers.php)                             |
 
 ## A taste: OpenTelemetry
 
@@ -95,6 +95,15 @@ Whatever adapter you choose, the pipeline is the same: validate → enrich → c
 redact → sample → route → publish. Redaction happens *before* export; failures are
 fails-open with fallback reporting by default; and a recursion guard stops publication
 from observing itself. See [architecture/publication.md](../architecture/publication.md).
+
+> **Phase 2 note:** Custom publisher stack factories receive `null` for the redactor
+> argument — the SDK handles redaction before the custom stack — and receive only
+> classified projections, never raw artifacts or business IDs. Publisher failure
+> policies (`FailOpenPolicy`, `FailClosedPolicy`, `CollectAndContinuePolicy`,
+> `ReportToFallbackPolicy`) decide what happens when the inner transport throws, but
+> they never replace your business exception. See
+> [Tutorial 12 — Custom factory boundary & provenance](12-custom-factory-boundary-and-provenance.md)
+> and [Tutorial 13 — Publisher failure policies & resilience](13-publisher-failure-policies-and-resilience.md).
 
 ## Where to go now
 

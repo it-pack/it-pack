@@ -13,8 +13,17 @@ cd "$(dirname "$0")/.."
 
 class_exists() {
     local class="$1"
-    php -r 'exit(class_exists($argv[1]) ? 0 : 1);' "$class" 2>/dev/null
+    php -r 'require "vendor/autoload.php"; exit(class_exists($argv[1]) ? 0 : 1);' "$class" 2>/dev/null
 }
+
+extension_loaded() {
+    local ext="$1"
+    php -r 'exit(extension_loaded($argv[1]) ? 0 : 1);' "$ext" 2>/dev/null
+}
+
+echo "*******************"
+echo "Running examples"
+echo "*******************"
 
 for f in examples/*.php; do
     name="$(basename "$f")"
@@ -34,12 +43,19 @@ for f in examples/*.php; do
                 skip=1
             fi
             ;;
+        cloudevents.php)
+            if ! class_exists "Nyholm\\Psr7\\Factory\\Psr17Factory"; then
+                echo "==> SKIP $f (nyholm/psr7 not installed)"
+                skip=1
+            fi
+            ;;
     esac
 
     if [ "$skip" -eq 1 ]; then
         continue
     fi
 
+    echo ""
     echo "==> php $f"
     php "$f"
 done

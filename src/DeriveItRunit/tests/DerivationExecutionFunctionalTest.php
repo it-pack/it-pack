@@ -17,12 +17,12 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
-use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
-use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -54,13 +54,13 @@ final class DerivationExecutionFunctionalTest extends TestCase
     }
 
     /**
-     * @return list<Occurrence>
+     * @return list<OccurrenceInterface>
      */
     private function occurrences(): array
     {
         return array_values(array_filter(
             $this->publisher->published(),
-            static fn ($artifact): bool => $artifact instanceof Occurrence,
+            static fn ($artifact): bool => $artifact instanceof OccurrenceInterface,
         ));
     }
 
@@ -81,7 +81,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
         self::assertStringContainsString('render(string $template): string', $source);
 
         $types = array_map(
-            static fn (Occurrence $o): string => $o->type()->toString(),
+            static fn (OccurrenceInterface $o): string => $o->type()->toString(),
             $this->occurrences(),
         );
 
@@ -106,7 +106,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
         // A clean configuration emits no observations.
         $observations = array_filter(
             $this->publisher->published(),
-            static fn ($artifact): bool => $artifact instanceof Observation,
+            static fn ($artifact): bool => $artifact instanceof ObservationInterface,
         );
         self::assertSame([], array_values($observations));
     }
@@ -127,7 +127,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
 
         $warnings = array_values(array_filter(
             $this->publisher->published(),
-            static fn ($artifact): bool => $artifact instanceof Observation,
+            static fn ($artifact): bool => $artifact instanceof ObservationInterface,
         ));
 
         self::assertCount(1, $warnings);
@@ -180,7 +180,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
         );
 
         $types = array_map(
-            static fn (Occurrence $o): string => $o->type()->toString(),
+            static fn (OccurrenceInterface $o): string => $o->type()->toString(),
             $this->occurrences(),
         );
 
@@ -230,9 +230,9 @@ final class DerivationExecutionFunctionalTest extends TestCase
             self::fail('missing measurement ' . $name);
         };
 
-        $occurrenceByDataName = static function (string $name) use ($published): Occurrence {
+        $occurrenceByDataName = static function (string $name) use ($published): OccurrenceInterface {
             foreach ($published as $artifact) {
-                if (!$artifact instanceof Occurrence) {
+                if (!$artifact instanceof OccurrenceInterface) {
                     continue;
                 }
                 $data = $artifact->data();
@@ -243,9 +243,9 @@ final class DerivationExecutionFunctionalTest extends TestCase
             self::fail('missing occurrence ' . $name);
         };
 
-        $observationByMessage = static function (string $message) use ($published): Observation {
+        $observationByMessage = static function (string $message) use ($published): ObservationInterface {
             foreach ($published as $artifact) {
-                if ($artifact instanceof Observation && $artifact->message() === $message) {
+                if ($artifact instanceof ObservationInterface && $artifact->message() === $message) {
                     return $artifact;
                 }
             }
@@ -280,7 +280,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
         $typed = null;
         $emptied = null;
         foreach ($published as $artifact) {
-            if (!$artifact instanceof Occurrence) {
+            if (!$artifact instanceof OccurrenceInterface) {
                 continue;
             }
             $type = $artifact->type()->toString();
@@ -291,7 +291,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
                 $emptied = $artifact;
             }
         }
-        \assert($typed instanceof Occurrence && $emptied instanceof Occurrence);
+        \assert($typed instanceof OccurrenceInterface && $emptied instanceof OccurrenceInterface);
 
         self::assertSame('SubjectX', $typed->subject());
         self::assertSame('z', $typed->data()['extra']);

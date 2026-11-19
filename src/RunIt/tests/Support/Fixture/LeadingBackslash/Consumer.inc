@@ -8,8 +8,6 @@ use DateTimeImmutable;
 
 final class Consumer
 {
-    use ExampleTrait;
-
     public function normalImported(): DateTimeImmutable
     {
         return new DateTimeImmutable();

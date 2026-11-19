@@ -5,8 +5,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.5",
-        "it-pack/hash-it": "*@dev",
-        "it-pack/async-it": "*@dev"
+        "it-pack/hash-it": "^1.1",
+        "it-pack/async-it": "^1.1"
     },
     "autoload": {
         "psr-4": {
@@ -17,10 +17,6 @@
         "psr-4": {
             "Tests\\": "tests/"
         }
-    },
-    "suggest": {
-        "it-pack/hash-it": "The hashing core this bridge delegates to (hashFile).",
-        "it-pack/async-it": "The async runtime this bridge fans work out across."
     },
     "authors": [
         {
@@ -38,29 +34,6 @@
         "nyholm/psr7": "^1.8",
         "psr/http-message": "^2.0"
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../HashIt",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../AsyncIt",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../RunIt",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
     "scripts": {
         "test": "vendor/bin/codecept run",
         "test:unit": "vendor/bin/codecept run Unit",
@@ -96,7 +69,8 @@
             "dantleech/what-changed": true,
             "phpstan/extension-installer": true,
             "php-http/discovery": true,
-            "tbachert/spi": false
+            "tbachert/spi": false,
+            "ergebnis/composer-normalize": true
         }
     }
 }

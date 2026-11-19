@@ -12,10 +12,9 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
-use ItPack\RunIt\Domain\Measurement\MeasurementName;
-use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use ItPack\RunIt\SDK\RunItInterface;
@@ -31,7 +30,7 @@ use Tools\Dogfood\Tool\DevTool;
  * Represents each RunIt dev-tool run as a RunIt execution.
  *
  * For every {@see DevTool} the runner opens an execution through the SDK, runs the
- * tool as a subprocess, and records the outcome as measurements, an occurrence, and
+ * tool as a subprocess, and records the outcome as observations, an occurrence, and
  * a terminal snapshot. The publisher is drained afterwards so buffered artifacts
  * (and any flush observer) are flushed without re-entering the pipeline.
  *
@@ -71,25 +70,30 @@ final readonly class DogfoodRunner
                     $durationMs = max(0, (int) ((hrtime(true) - $startedAt) / 1_000_000));
                     $result = $process;
 
-                    $scope->measurements()->duration(
-                        MeasurementName::fromString('runit.dogfood.tool.duration'),
-                        $durationMs,
-                        MeasurementUnit::Milliseconds,
-                    );
-                    $scope->measurements()->counter(
-                        MeasurementName::fromString('runit.dogfood.tool.exit_code'),
-                        $process->exitCode,
-                        MeasurementUnit::Count,
-                    );
-                    $scope->measurements()->size(
-                        MeasurementName::fromString('runit.dogfood.tool.stdout_bytes'),
-                        strlen($process->stdout),
-                        MeasurementUnit::Bytes,
-                    );
-                    $scope->measurements()->size(
-                        MeasurementName::fromString('runit.dogfood.tool.stderr_bytes'),
-                        strlen($process->stderr),
-                        MeasurementUnit::Bytes,
+                    // Observation fields (exit_code, duration_ms, stdout_bytes,
+                    // stderr_bytes) are delivered through the SDK publication
+                    // stack via $scope->observations()->record().
+                    // DefaultObservationClassifier has no field configuration —
+                    // all observation fields pass through unchanged. Classifiers
+                    // that drop unclassified artifacts (e.g. DefaultMeasurementClassifier)
+                    // do not apply to observations.
+                    $scope->observations()->record(
+                        sprintf(
+                            'dogfood tool %s: exit=%d duration_ms=%d stdout_bytes=%d stderr_bytes=%d',
+                            $tool->name,
+                            $process->exitCode,
+                            $durationMs,
+                            strlen($process->stdout),
+                            strlen($process->stderr),
+                        ),
+                        ObservationSeverity::Info,
+                        diagnosticCode: 'runit.dogfood.tool.metric',
+                        attributes: AttributeCollection::fromArray([
+                            'exit_code' => $process->exitCode,
+                            'duration_ms' => round($durationMs, 3),
+                            'stdout_bytes' => strlen($process->stdout),
+                            'stderr_bytes' => strlen($process->stderr),
+                        ]),
                     );
 
                     $summary = [

@@ -67,6 +67,13 @@ $runtime->run(
 - `observations()` records messages at PSR-3 severities; throwables are safely normalized.
 - Both bind to the active activity without extra wiring.
 
+> **Phase 2 note:** `DefaultMeasurementClassifier` unconditionally drops every
+> measurement before sampling — classifying fields does not make measurements
+> reach the sampler or sink. If you need measurements to reach the sink, configure
+> a supported alternative classification boundary that accepts measurement
+> projections; otherwise treat measurement delivery as suppressed on the SDK path.
+> The measurement value itself never reaches the health path.
+
 ## Next
 
 [Part 4 — Occurrences & snapshots](04-occurrences-and-snapshots.md): immutable facts and

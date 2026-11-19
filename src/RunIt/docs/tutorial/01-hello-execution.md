@@ -69,6 +69,13 @@ execution, recorded the lifecycle, and gave you your result back.
 - `$runtime->run(definition, callable)` is the universal entry point.
 - Your business code does not change — the result flows through untouched.
 
+> **Phase 1/2 note:** Every execution is issued a verified, SDK-controlled export ID
+> by `ProvenanceAuthority` before any artifact is recorded. Business-facing IDs
+> (name/kind) are untrusted claims — only verified export IDs establish trust.
+> Field classification runs before the sampler and sink, so unclassified fields
+> are dropped with a payload-free health notice. These behaviors are automatic;
+> you do not need to opt in.
+
 ## Next
 
 [Part 2 — Activities](02-activities.md): break the work into bounded steps.

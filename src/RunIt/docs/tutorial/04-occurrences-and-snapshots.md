@@ -68,6 +68,12 @@ $runtime->run(
 - Occurrences are versioned facts for event streaming (CloudEvents); observations are notes for humans.
 - Snapshots are integrity-checked state projections, not debug dumps.
 
+> **Phase 2 note:** Snapshot payloads and content hashes are omitted before sampling
+> on the default SDK path — only structural fields (ID, type, relationships) are
+> retained. Terminal snapshots follow the same rule. Explicit null or custom redactor
+> opt-outs still pass through SDK verification and classification before the publisher
+> stack.
+
 ## Next
 
 [Part 5 — Context & classification](05-context-and-propagation.md): the metadata that

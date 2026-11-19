@@ -20,22 +20,32 @@ final class ForbidLeadingBackslashReferenceRuleTest extends RuleTestCase
         return new ForbidLeadingBackslashReferenceRule(dirname(__DIR__, 2) . '/Support/Fixture/LeadingBackslash');
     }
 
-    public function testTraitAndClassReferences(): void
+    public function testTraitReferences(): void
     {
         require_once __DIR__ . '/../../Support/Fixture/LeadingBackslash/ExampleTrait.inc';
-        require_once __DIR__ . '/../../Support/Fixture/LeadingBackslash/Consumer.inc';
 
         $message = 'Leading-backslash reference "DateTimeImmutable" must be imported via a `use` statement '
             . 'instead of being inlined (RunIt T2.2).';
 
         $this->analyse([
             __DIR__ . '/../../Support/Fixture/LeadingBackslash/ExampleTrait.inc',
+        ], [
+            [$message, 9],
+            [$message, 14],
+        ]);
+    }
+
+    public function testClassReferences(): void
+    {
+        require_once __DIR__ . '/../../Support/Fixture/LeadingBackslash/Consumer.inc';
+
+        $message = 'Leading-backslash reference "DateTimeImmutable" must be imported via a `use` statement '
+            . 'instead of being inlined (RunIt T2.2).';
+
+        $this->analyse([
             __DIR__ . '/../../Support/Fixture/LeadingBackslash/Consumer.inc',
         ], [
             [$message, 16],
-            [$message, 18],
-            [$message, 18],
-            [$message, 20],
         ]);
     }
 }

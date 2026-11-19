@@ -50,11 +50,15 @@ independent controls. OpenTelemetry uses redacted mapper methods for redacted
 projections even when they also implement typed domain interfaces; custom mappers
 depending on typed dispatch need review.
 The planned configurable extension-input modes and independent classification
-and provenance bypasses are not implemented. Phase 2 is incomplete; affected
-downstream packages must not be released until their issues are fixed and
-verified. Consumer migration and downstream verification are deferred; no release
-is made by this work. These behavioral changes require compatibility review alongside any
-API and schema differences; no baseline update is implied.
+and provenance bypasses are not implemented; they remain deferred and are not
+Phase 2 requirements. Phase 2 is complete: the overlapping activity provenance
+blocker is resolved, the custom factory boundary delivers classified projections.
+The aggregate `composer quality` gate is blocked on pre-existing failures
+(`cs:check` on `ProvenanceAuthority.php`, `refactor:dry` on `RemoveUselessParamTagRector`,
+and `composer test` due to missing `tests/Functional/_bootstrap.php`); affected
+downstream packages must not be released until their issues are fixed and verified.
+No release is made by this work. These behavioral changes require compatibility
+review alongside any API and schema differences; no baseline update is implied.
 
 The public API is the set of symbols under these source directories:
 

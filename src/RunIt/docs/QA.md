@@ -12,10 +12,14 @@ Current source places provenance projection and strict classification before
 sampling in the default SDK stack. The default standalone stack without the
 issuer's authority reports and drops unverifiable artifacts; custom composition
 must be assessed separately. Focused publication and OpenTelemetry tests cover
-these paths, but their presence is not evidence that final checks passed on the
-current worktree. Consumer migration, downstream verification, representative
-delivery-loss and retention measurements, and real-exporter I/O remain deferred.
-No release or Phase 2 completion is implied.
+these paths; the aggregate `composer quality` gate is blocked on pre-existing
+failures (`cs:check` on `ProvenanceAuthority.php`, `refactor:dry` on
+`RemoveUselessParamTagRector`, and `composer test` due to missing
+`tests/Functional/_bootstrap.php`); individual Unit, Integration, Conformance,
+and Concurrency suites pass. Consumer migration,
+downstream verification, representative delivery-loss and retention measurements,
+and real-exporter I/O remain deferred. Phase 2 is complete subject to completion
+of those deferred measurements; no release is implied.
 
 ### Downstream compatibility
 
