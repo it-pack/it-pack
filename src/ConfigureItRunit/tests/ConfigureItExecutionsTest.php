@@ -21,10 +21,11 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
-use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -54,7 +55,7 @@ final class ConfigureItExecutionsTest extends TestCase
 
     }
 
-    private function runtime(bool $defaultRedaction = false): \ItPack\RunIt\SDK\RunItInterface
+    private function runtime(bool $defaultRedaction = false, ?ArtifactRedactionConfig $redactionConfig = null): \ItPack\RunIt\SDK\RunItInterface
     {
         $builder = RunItBuilder::create()
             ->withPublisher($this->publisher)
@@ -65,7 +66,7 @@ final class ConfigureItExecutionsTest extends TestCase
 
         if (!$defaultRedaction) {
             // Inspect bridge mapping before the SDK's security projection in these tests only.
-            $builder = $builder->withRedactor(null)->withPublisherStackFactory(new class implements PublisherStackFactoryInterface {
+            $builder = $builder->withRedactor(null)->withPublisherStackFactory(new class () implements PublisherStackFactoryInterface {
                 public function compose(
                     ArtifactPublisherInterface $base,
                     ?RedactorInterface $redactor,
@@ -74,6 +75,8 @@ final class ConfigureItExecutionsTest extends TestCase
                     return $base;
                 }
             });
+        } elseif ($redactionConfig !== null) {
+            $builder = $builder->withRedactor(new DefaultArtifactRedactor($redactionConfig));
         }
 
         return $builder->build();
@@ -230,12 +233,15 @@ final class ConfigureItExecutionsTest extends TestCase
         self::assertCount(1, $warnings);
         $warning = $warnings[0]->normalize();
         self::assertSame('careful: db.host overridden', $warning['message']);
-        self::assertSame('db.host', $warning['attributes']['path']);
+        $attributes = $warning['attributes'] ?? [];
+        self::assertIsArray($attributes);
+        self::assertSame('db.host', $attributes['path']);
 
         $snapshots = $this->configSnapshots();
         self::assertCount(1, $snapshots);
-        self::assertSame(2, $snapshots[0]->payload()['validation_errors']);
-        self::assertSame(1, $snapshots[0]->payload()['validation_warnings']);
+        $payload = (array) $snapshots[0]->payload();
+        self::assertSame(2, $payload['validation_errors']);
+        self::assertSame(1, $payload['validation_warnings']);
     }
 
     public function testDefaultRedactionProjectsWarningAndTerminalSnapshot(): void
@@ -274,17 +280,15 @@ final class ConfigureItExecutionsTest extends TestCase
 
         $snapshots = array_values(array_filter(
             $artifacts,
-            static fn ($artifact): bool => ($artifact instanceof RedactedArtifactInterface
-                || $artifact instanceof TrustedArtifactProjectionInterface)
-                && $artifact->artifactType() === 'snapshot',
+            static fn ($artifact): bool => $artifact instanceof SnapshotInterface,
         ));
         self::assertCount(2, $snapshots);
         foreach ($snapshots as $snapshot) {
             $normalized = $snapshot->normalize();
-            self::assertArrayNotHasKey('payload', $normalized);
-            self::assertArrayNotHasKey('content_hash', $normalized);
             self::assertNotEmpty($normalized['id']);
             self::assertNotEmpty($normalized['execution_id']);
+            self::assertArrayHasKey('payload', $normalized);
+            self::assertArrayHasKey('content_hash', $normalized);
         }
         foreach ($artifacts as $artifact) {
             $encoded = json_encode($artifact->normalize(), JSON_THROW_ON_ERROR);
@@ -318,5 +322,54 @@ final class ConfigureItExecutionsTest extends TestCase
             static fn ($artifact): bool => isset($artifact->normalize()['severity']),
         ));
         self::assertSame([], $observations);
+    }
+
+    /**
+     * Configured sensitiveDataKeys mask snapshot payload values; default
+     * redaction (empty sensitiveDataKeys) permits payload values unmasked.
+     */
+    public function testConfiguredRedactionMasksSnapshotPayloadSecrets(): void
+    {
+        // Default redaction: sensitiveDataKeys is empty, payload values pass
+        // through unmasked.
+        ConfigureItExecutions::run(
+            $this->runtime(true),
+            'config.resolve',
+            static function (ResolutionReporterInterface $reporter): void {
+                $reporter->record(new ConfigureItOccurrence(
+                    OccurrenceType::SnapshotCreated,
+                    microtime(true),
+                ));
+            },
+        );
+
+        $defaultSnapshots = $this->configSnapshots();
+        self::assertCount(1, $defaultSnapshots);
+        $payload = (array) $defaultSnapshots[0]->payload();
+        self::assertArrayHasKey('graph_nodes', $payload);
+        self::assertIsInt($payload['graph_nodes']);
+
+        // Configured redaction: graph_nodes is in sensitiveDataKeys, so it is
+        // masked in the snapshot payload.
+        $this->publisher = new InMemoryArtifactPublisher();
+
+        ConfigureItExecutions::run(
+            $this->runtime(
+                true,
+                new ArtifactRedactionConfig(sensitiveDataKeys: ['graph_nodes']),
+            ),
+            'config.resolve',
+            static function (ResolutionReporterInterface $reporter): void {
+                $reporter->record(new ConfigureItOccurrence(
+                    OccurrenceType::SnapshotCreated,
+                    microtime(true),
+                ));
+            },
+        );
+
+        $redactedSnapshots = $this->configSnapshots();
+        self::assertCount(1, $redactedSnapshots);
+        $redactedPayload = (array) $redactedSnapshots[0]->payload();
+        self::assertSame('[redacted]', $redactedPayload['graph_nodes']);
     }
 }

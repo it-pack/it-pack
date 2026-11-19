@@ -1,5 +1,14 @@
 parameters:
-    level: 8
+    tmpDir: var/cache/phpstan
+    level: max
     paths:
-        - src
-        - tests
+        - ./src
+        - ./tests
+    excludePaths:
+        - tests/_output/*
+        - tests/Support/*
+    parallel:
+        maximumNumberOfProcesses: 1
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors: []

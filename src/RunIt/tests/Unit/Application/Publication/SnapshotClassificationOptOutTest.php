@@ -100,8 +100,8 @@ final class SnapshotClassificationOptOutTest extends TestCase
                 $snapshots = array_values(array_filter($artifacts, $isTerminalSnapshot));
                 self::assertCount(1, $snapshots, $mode);
                 $fields = $snapshots[0]->normalize();
-                self::assertArrayNotHasKey('payload', $fields, $mode);
-                self::assertArrayNotHasKey('content_hash', $fields, $mode);
+                self::assertArrayHasKey('payload', $fields, $mode);
+                self::assertArrayHasKey('content_hash', $fields, $mode);
                 self::assertSame('terminal', $fields['classification'], $mode);
             }
         }

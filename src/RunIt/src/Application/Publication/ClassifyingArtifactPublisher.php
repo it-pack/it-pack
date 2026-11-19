@@ -1200,7 +1200,6 @@ final class ClassifyingArtifactPublisher implements
                 'schema_version',
                 'created_at',
                 'content_type',
-                'content_hash',
                 'predecessor_id',
                 'sequence',
                 'payload',
@@ -1219,14 +1218,14 @@ final class ClassifyingArtifactPublisher implements
         return !is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['type'])
             || !is_string($fields['classification']) || !is_int($fields['schema_version'])
             || !is_int($fields['created_at']) || !is_string($fields['content_type'])
-            || !is_string($fields['content_hash'])
+            || (array_key_exists('content_hash', $fields) && !is_string($fields['content_hash']))
             || !is_int($fields['sequence']) || !is_array($fields['attributes'])
             || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)
             || (!is_string($fields['predecessor_id']) && $fields['predecessor_id'] !== null);
     }
 
     /**
-     * @param array{id: string, execution_id: string, type: string, classification: string, schema_version: int, created_at: int, content_type: string, content_hash: string, sequence: int, attributes: array<mixed>, activity_id: string|null, predecessor_id: string|null, payload: mixed} $fields
+     * @param array{id: string, execution_id: string, type: string, classification: string, schema_version: int, created_at: int, content_type: string, content_hash?: string, sequence: int, attributes: array<mixed>, activity_id: string|null, predecessor_id: string|null, payload: mixed} $fields
      * @param array<string, array<int|string, mixed>|bool|float|int|string|null> $attributes
      */
     private function buildTypedSnapshot(array $fields, array $attributes): ?SnapshotInterface
@@ -1237,14 +1236,9 @@ final class ClassifyingArtifactPublisher implements
                 return null;
             }
 
-            $snapshot = Snapshot::create(
-                SnapshotId::fromString($fields['id']),
-                ExecutionId::fromString($fields['execution_id']),
-                SnapshotType::fromString($fields['type']),
-                $fields['schema_version'],
-                $fields['payload'],
-                // Preserve the supplied hash; the original algorithm is not available here.
-                new readonly class ($fields['content_hash']) implements HashCalculatorInterface {
+            $contentHash = $fields['content_hash'] ?? '';
+            $hashCalculator = $contentHash !== ''
+                ? new readonly class ($contentHash) implements HashCalculatorInterface {
                     public function __construct(private string $hash)
                     {
                     }
@@ -1253,7 +1247,21 @@ final class ClassifyingArtifactPublisher implements
                     {
                         return $this->hash;
                     }
-                },
+                }
+            : new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return hash('sha256', $content);
+                }
+            };
+
+            $snapshot = Snapshot::create(
+                SnapshotId::fromString($fields['id']),
+                ExecutionId::fromString($fields['execution_id']),
+                SnapshotType::fromString($fields['type']),
+                $fields['schema_version'],
+                $fields['payload'],
+                $hashCalculator,
                 $fields['activity_id'] === null ? null : ActivityId::fromString($fields['activity_id']),
                 $fields['predecessor_id'] === null ? null : SnapshotId::fromString($fields['predecessor_id']),
                 $classification,
@@ -1265,6 +1273,9 @@ final class ClassifyingArtifactPublisher implements
             $normalized = $snapshot->normalize();
             ksort($normalized);
             ksort($fields);
+            // content_hash may differ when the payload was redacted; exclude it
+            // from the structural integrity comparison.
+            unset($normalized[ArtifactField::CONTENT_HASH], $fields[ArtifactField::CONTENT_HASH]);
             return $normalized === $fields ? $snapshot : null;
         } catch (Throwable) {
             return null;
@@ -1392,12 +1403,13 @@ final class ClassifyingArtifactPublisher implements
             return 'snapshot';
         }
 
+        if ($artifact instanceof VerifiedArtifactProjection) {
+            return $artifact->artifactType();
+        }
+
         if ($artifact instanceof RedactedArtifactInterface
-            || $artifact instanceof VerifiedArtifactProjection) {
-            $type = $artifact->artifactType();
-            if (array_key_exists($type, self::FIELD_ALLOWLIST)) {
-                return $type;
-            }
+            && array_key_exists($artifact->artifactType(), self::FIELD_ALLOWLIST)) {
+            return $artifact->artifactType();
         }
 
         return 'unknown';

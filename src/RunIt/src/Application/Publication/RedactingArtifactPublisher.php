@@ -164,7 +164,6 @@ final class RedactingArtifactPublisher implements
                 $exportFields,
                 $kind,
                 $redacted instanceof RedactedArtifactInterface,
-                $artifact instanceof SnapshotInterface,
             );
         } catch (Throwable) {
             $authority->reportUnverified(new RuntimeException('Redaction provenance verification failed.'));
@@ -237,7 +236,6 @@ final class RedactingArtifactPublisher implements
         array $exportFields,
         string $kind,
         bool $isRedacted,
-        bool $isDefaultSnapshot,
     ): ExecutionArtifactInterface {
         $nullable = [
             ArtifactField::ACTIVITY_ID, ArtifactField::OBSERVATION_ID,
@@ -257,15 +255,6 @@ final class RedactingArtifactPublisher implements
 
         /** @var array<string, mixed> $projection */
         $projection = array_replace($projection, $exportFields);
-
-        // Only structural fields and authority-issued identities are classified safe.
-        if ($isDefaultSnapshot) {
-            $projection = array_intersect_key($projection, array_flip([
-                ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
-                ArtifactField::PREDECESSOR_ID, ArtifactField::CLASSIFICATION,
-                ArtifactField::CREATED_AT, ArtifactField::SEQUENCE,
-            ]));
-        }
 
         // Freeze the validated projection so a mutable redactor result cannot
         // substitute different identifiers when sampled or classified.

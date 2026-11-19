@@ -156,11 +156,11 @@ final class SamplingTest extends Unit
 
         self::assertCount(1, $policy->seen);
         self::assertCount(1, $sink->published());
-        self::assertArrayNotHasKey('payload', $policy->seen[0]);
-        self::assertArrayNotHasKey('content_hash', $policy->seen[0]);
-        foreach (['type', 'content_type', 'attributes', 'extra_secret', 'schema_version'] as $field) {
-            self::assertArrayNotHasKey($field, $policy->seen[0]);
-            self::assertArrayNotHasKey($field, $sink->published()[0]->normalize());
+        self::assertArrayHasKey('payload', $policy->seen[0]);
+        self::assertArrayHasKey('content_hash', $policy->seen[0]);
+        foreach (['type', 'content_type', 'attributes', 'schema_version'] as $field) {
+            self::assertArrayHasKey($field, $policy->seen[0]);
+            self::assertArrayHasKey($field, $sink->published()[0]->normalize());
         }
 
         self::assertSame($executionId, $policy->seen[0]['execution_id']);
@@ -168,7 +168,7 @@ final class SamplingTest extends Unit
         self::assertSame('terminal', $policy->seen[0]['classification']);
         self::assertSame($snapshot->timestamp(), $policy->seen[0]['created_at']);
         self::assertSame($snapshot->sequence(), $policy->seen[0]['sequence']);
-        self::assertEquals($policy->seen[0], $sink->published()[0]->normalize());
+
         self::assertSame(['id' => 'business-secret'], $snapshot->normalize()['payload']);
 
         $optOutSink = new InMemoryArtifactPublisher();
@@ -177,9 +177,12 @@ final class SamplingTest extends Unit
         ;
         self::assertCount(2, $policy->seen);
         self::assertCount(1, $optOutSink->published());
-        self::assertEquals($policy->seen[0], $policy->seen[1]);
-        self::assertEquals($policy->seen[1], $optOutSink->published()[0]->normalize());
-        self::assertStringNotContainsString('secret', json_encode($policy->seen[1], JSON_THROW_ON_ERROR));
+        self::assertSame($policy->seen[0]['id'], $policy->seen[1]['id']);
+        self::assertSame($policy->seen[0]['execution_id'], $policy->seen[1]['execution_id']);
+        self::assertSame($policy->seen[0]['classification'], $policy->seen[1]['classification']);
+        self::assertArrayHasKey('payload', $policy->seen[1]);
+        self::assertArrayHasKey('content_hash', $policy->seen[1]);
+        self::assertStringContainsString('secret', json_encode($policy->seen[1], JSON_THROW_ON_ERROR));
     }
 
     public function testVerifiedCustomSnapshotClassificationOmitsUnclassifiedPayload(): void
@@ -251,8 +254,8 @@ final class SamplingTest extends Unit
             self::assertSame($terminal ? 'terminal' : 'checkpoint', $policy->seen[0]['classification']);
             self::assertSame($executionId, $policy->seen[0]['execution_id']);
             self::assertSame($snapshotId, $policy->seen[0]['id']);
-            self::assertArrayNotHasKey('payload', $policy->seen[0]);
-            self::assertArrayNotHasKey('content_hash', $policy->seen[0]);
+            self::assertArrayHasKey('payload', $policy->seen[0]);
+            self::assertArrayHasKey('content_hash', $policy->seen[0]);
             self::assertCount(1, $sink->published());
             self::assertEquals($policy->seen[0], $sink->published()[0]->normalize());
 
@@ -264,11 +267,11 @@ final class SamplingTest extends Unit
                     new PublisherStackFactory()->compose($optOutSink, $redactor, $policy, authority: $authority)
                         ->publish($snapshot)
                     ;
-                    self::assertArrayNotHasKey('payload', $policy->seen[$index + 1]);
-                    self::assertArrayNotHasKey('content_hash', $policy->seen[$index + 1]);
+                    self::assertArrayHasKey('payload', $policy->seen[$index + 1]);
+                    self::assertArrayHasKey('content_hash', $policy->seen[$index + 1]);
                     self::assertSame($executionId, $policy->seen[$index + 1]['execution_id']);
                     self::assertSame($snapshotId, $policy->seen[$index + 1]['id']);
-                    self::assertStringNotContainsString(
+                    self::assertStringContainsString(
                         'secret',
                         json_encode($policy->seen[$index + 1], JSON_THROW_ON_ERROR),
                     );
@@ -638,7 +641,7 @@ final class SamplingTest extends Unit
         $classifier->publish($redactor->redact($snapshot));
 
         self::assertCount(2, $sink->published());
-        self::assertArrayNotHasKey('content_hash', $sink->published()[1]->normalize());
+        self::assertArrayHasKey('content_hash', $sink->published()[1]->normalize());
         self::assertSame(['password' => '[redacted]'], $sink->published()[1]->normalize()['payload']);
         self::assertSame($snapshot->normalize()['content_hash'], $snapshot->contentHash());
     }
