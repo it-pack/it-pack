@@ -21,6 +21,10 @@ extension_loaded() {
     php -r 'exit(extension_loaded($argv[1]) ? 0 : 1);' "$ext" 2>/dev/null
 }
 
+echo "*******************"
+echo "Running examples"
+echo "*******************"
+
 for f in examples/*.php; do
     name="$(basename "$f")"
 
@@ -51,6 +55,7 @@ for f in examples/*.php; do
         continue
     fi
 
+    echo ""
     echo "==> php $f"
     php "$f"
 done
