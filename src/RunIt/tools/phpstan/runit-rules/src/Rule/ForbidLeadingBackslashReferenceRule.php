@@ -74,13 +74,14 @@ final class ForbidLeadingBackslashReferenceRule extends AbstractSrcRule implemen
 
         $file = $scope->getFile();
 
-        if ($file === null) {
-            return [];
-        }
-
         $source = @file_get_contents($file);
 
-        if ($source === false || ($source[$start] ?? '') !== '\\') {
+        // Verify that the character at $start is actually a leading backslash
+        // followed by this node's name. This prevents false positives when the
+        // scope's file differs from the node's source file (e.g. traits analyzed
+        // in a class context, where $scope->getFile() returns the using class).
+        $prefix = '\\' . $node->toString();
+        if ($source === false || substr($source, $start, strlen($prefix)) !== $prefix) {
             return [];
         }
 

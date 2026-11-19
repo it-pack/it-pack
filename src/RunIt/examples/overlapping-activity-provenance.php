@@ -93,12 +93,12 @@ $obsA2 = null;
 $obsB2 = null;
 $ids = [];
 
-$runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2, $storage, $activityStorage, &$obsA2, &$obsB2, &$ids): void {
+$runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2, $storage, &$ids): void {
     $fibers = [];
 
     foreach (['A', 'B'] as $name) {
         $activity = $name === 'A' ? $activity1 : $activity2;
-        $fibers[$name] = new Fiber(static function () use ($scope, $activity, $storage, $activityStorage, $name, &$ids): void {
+        $fibers[$name] = new Fiber(static function () use ($scope, $activity, $storage, $name, &$ids): void {
             // Fiber-local storage starts empty; attach this execution scope.
             $token = $storage->attach($scope);
             try {
@@ -124,6 +124,7 @@ echo '  B activity id: ' . ($ids['B'] ?? 'none') . "\n";
 $activityIdsDiffer = $ids['A'] !== null && $ids['B'] !== null && $ids['A'] !== $ids['B'];
 echo '  A and B activity ids differ: ' . ($activityIdsDiffer ? 'yes' : 'no') . "\n";
 if (!$activityIdsDiffer) {
-    throw new \RuntimeException('overlapping activities must have distinct verified activity IDs');
+    throw new RuntimeException('overlapping activities must have distinct verified activity IDs');
 }
+
 echo 'overlapping activity provenance: independent attribution confirmed' . "\n";
