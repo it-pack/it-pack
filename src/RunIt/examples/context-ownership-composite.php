@@ -8,6 +8,8 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
+use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 use ItPack\RunIt\Application\Propagation\CompositeContextStorage;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -41,7 +43,7 @@ final class CompositeDetector implements RuntimeContextDetectorInterface
 {
     public function inCoroutine(): bool
     {
-        return false;
+        return \extension_loaded('swoole') || \extension_loaded('openswoole');
     }
 
     public function inFiber(): bool
@@ -53,7 +55,7 @@ final class CompositeDetector implements RuntimeContextDetectorInterface
 $storage = new CompositeContextStorage(
     new StackContextStorage(),
     new FiberContextStorage(),
-    new StackContextStorage(),
+    new CoroutineContextStorage(new SwooleCoroutineIdProvider()),
     new CompositeDetector(),
 );
 

@@ -77,6 +77,8 @@ storages together. Composite delegates to the active sub-storage based on a
 runtime detector:
 
 ```php
+use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
+use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 use ItPack\RunIt\Application\Propagation\CompositeContextStorage;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
@@ -97,7 +99,7 @@ final class MainStackDetector implements RuntimeContextDetectorInterface
 $storage = new CompositeContextStorage(
     new StackContextStorage(),
     new FiberContextStorage(),
-    new StackContextStorage(),
+    new CoroutineContextStorage(new SwooleCoroutineIdProvider()),
     new MainStackDetector(),
 );
 
