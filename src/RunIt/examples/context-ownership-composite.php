@@ -43,7 +43,7 @@ final class CompositeDetector implements RuntimeContextDetectorInterface
 {
     public function inCoroutine(): bool
     {
-        return \extension_loaded('swoole') || \extension_loaded('openswoole');
+        return new SwooleCoroutineIdProvider()->currentCoroutineId() >= 0;
     }
 
     public function inFiber(): bool

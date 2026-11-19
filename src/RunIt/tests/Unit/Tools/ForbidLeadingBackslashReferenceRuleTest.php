@@ -45,8 +45,7 @@ final class ForbidLeadingBackslashReferenceRuleTest extends RuleTestCase
         $this->analyse([
             __DIR__ . '/../../Support/Fixture/LeadingBackslash/Consumer.inc',
         ], [
-            [$message, 9],
-            [$message, 14],
+            [$message, 16],
         ]);
     }
 }

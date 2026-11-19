@@ -54,7 +54,7 @@ final class DerivationExecutionFunctionalTest extends TestCase
     }
 
     /**
-     * @return list<Occurrence>
+     * @return list<OccurrenceInterface>
      */
     private function occurrences(): array
     {

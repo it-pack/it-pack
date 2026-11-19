@@ -27,8 +27,8 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
  *
  * This example shows:
  *   1. SecurityLimits configured with tight bounds.
- *   2. An oversized attribute is replaced with the redaction marker.
- *   3. An attribute within the limit passes through unchanged.
+ *   2. An oversized attribute value raises InvalidAttributeException on construction.
+ *   3. An attribute within the limit is accepted and recorded.
  *   4. Limits are fail-closed: oversized data never reaches external sinks.
  *
  * Run from the package root: `php examples/security-limits.php`

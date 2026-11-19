@@ -15,8 +15,10 @@ declare(strict_types=1);
  * publication failure handler contains transport faults within the SDK publication
  * boundary handled by runTool() catch blocks. Flush() and close() failures are not
  * contained by this handler. Metrics are recorded as observations (not measurements)
- * so they pass through every classifier in the publication stack without triggering
- * `DefaultMeasurementClassifier`'s delivery-loss report.
+ * so they bypass `DefaultMeasurementClassifier`'s delivery-loss report. Outcome
+ * fields are recorded through the SDK publication stack but are not guaranteed
+ * delivery through any classifier — fields not on a classifier allowlist may be
+ * dropped.
  *
  * Run from the package root: `composer dogfood`
  */

@@ -75,7 +75,7 @@ $runIt->run($definition('redacted.op'), static function (ExecutionScopeInterface
     echo "observation recorded with sensitive attributes\n";
     echo "credit_card and email are masked before publication\n";
     echo "observation message is redacted by default\n";
-    echo 'classified projection contents: ' . json_encode($publisher->published()) . "\n";
+    echo 'published artifacts (redacted): ' . json_encode($publisher->published()) . "\n";
 });
 
 echo "redaction complete\n";

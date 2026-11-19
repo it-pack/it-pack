@@ -17,6 +17,7 @@ use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 /**
@@ -93,17 +94,22 @@ $obsA2 = null;
 $obsB2 = null;
 $ids = [];
 
-$runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2, $storage, &$ids): void {
+$runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2, $storage, &$ids, &$obsA2, &$obsB2): void {
     $fibers = [];
 
     foreach (['A', 'B'] as $name) {
         $activity = $name === 'A' ? $activity1 : $activity2;
-        $fibers[$name] = new Fiber(static function () use ($scope, $activity, $storage, $name, &$ids): void {
+        $fibers[$name] = new Fiber(static function () use ($scope, $activity, $storage, $name, &$ids, &$obsA2, &$obsB2): void {
             // Fiber-local storage starts empty; attach this execution scope.
             $token = $storage->attach($scope);
             try {
-                $scope->activities()->run($activity, static function (ActivityScopeInterface $a) use ($name, &$ids): void {
+                $scope->activities()->run($activity, static function (ActivityScopeInterface $a) use ($name, &$ids, &$obsA2, &$obsB2): void {
                     $ids[$name] = $a->activity()->activityId()?->toString();
+                    if ($name === 'A') {
+                        $obsA2 = $a->observations()->record('observation from A', ObservationSeverity::Info);
+                    } else {
+                        $obsB2 = $a->observations()->record('observation from B', ObservationSeverity::Info);
+                    }
                     Fiber::suspend($name . '.suspended');
                 });
             } finally {
@@ -121,10 +127,15 @@ $runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterf
 echo 'order 2: A and B overlap (both suspended, interleaved)' . "\n";
 echo '  A activity id: ' . ($ids['A'] ?? 'none') . "\n";
 echo '  B activity id: ' . ($ids['B'] ?? 'none') . "\n";
+echo '  A observation activity id: ' . ($obsA2?->activityId()?->toString() ?? 'none') . "\n";
+echo '  B observation activity id: ' . ($obsB2?->activityId()?->toString() ?? 'none') . "\n";
 $activityIdsDiffer = $ids['A'] !== null && $ids['B'] !== null && $ids['A'] !== $ids['B'];
 echo '  A and B activity ids differ: ' . ($activityIdsDiffer ? 'yes' : 'no') . "\n";
-if (!$activityIdsDiffer) {
-    throw new RuntimeException('overlapping activities must have distinct verified activity IDs');
+$observationIdsMatch = $obsA2?->activityId()?->toString() === $ids['A']
+    && $obsB2?->activityId()?->toString() === $ids['B'];
+echo '  observations retain activity ids: ' . ($observationIdsMatch ? 'yes' : 'no') . "\n";
+if (!$activityIdsDiffer || !$observationIdsMatch) {
+    throw new RuntimeException('overlapping activities must have distinct verified activity IDs and observations must retain them');
 }
 
 echo 'overlapping activity provenance: independent attribution confirmed' . "\n";

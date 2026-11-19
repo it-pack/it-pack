@@ -25,6 +25,7 @@ use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
+use ItPack\RunIt\Adapter\Fiber\FiberActivityContextStorage;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -43,7 +44,7 @@ $runtime = RunItBuilder::create()
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
     ->withContextStorage(new FiberContextStorage())
-    ->withActivityContextStorage(new FiberContextStorage())
+    ->withActivityContextStorage(new FiberActivityContextStorage())
     ->build()
 ;
 
@@ -66,17 +67,27 @@ $runtime->run(
         $obsB = null;
 
         $fiberA = new Fiber(static function () use ($scope, $activityA, &$obsA): void {
-            $scope->activities()->run($activityA, static function ($a) use (&$obsA): void {
-                $obsA = $a->observations()->record('from A', ObservationSeverity::Info);
-                Fiber::suspend('a.suspended');
-            });
+            $token = $storage->attach($scope);
+            try {
+                $scope->activities()->run($activityA, static function ($a) use (&$obsA): void {
+                    $obsA = $a->observations()->record('from A', ObservationSeverity::Info);
+                    Fiber::suspend('a.suspended');
+                });
+            } finally {
+                $storage->detach($token);
+            }
         });
 
         $fiberB = new Fiber(static function () use ($scope, $activityB, &$obsB): void {
-            $scope->activities()->run($activityB, static function ($b) use (&$obsB): void {
-                $obsB = $b->observations()->record('from B', ObservationSeverity::Info);
-                Fiber::suspend('b.suspended');
-            });
+            $token = $storage->attach($scope);
+            try {
+                $scope->activities()->run($activityB, static function ($b) use (&$obsB): void {
+                    $obsB = $b->observations()->record('from B', ObservationSeverity::Info);
+                    Fiber::suspend('b.suspended');
+                });
+            } finally {
+                $storage->detach($token);
+            }
         });
 
         $fiberA->start();

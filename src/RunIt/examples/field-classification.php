@@ -31,7 +31,7 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
  *
  * This example shows:
  *   1. An unclassified measurement is dropped before sampling.
- *   2. A classified measurement passes classification and reaches the sink.
+ *   2. Any measurement is dropped by DefaultMeasurementClassifier (no field allowlist configured).
  *   3. Classification is deterministic — only configured fields survive.
  *
  * Run from the package root: `php examples/field-classification.php`
@@ -84,7 +84,7 @@ $runIt->run($definition('measured.classified'), static function (ExecutionScopeI
         MeasurementUnit::Milliseconds,
         AttributeCollection::fromArray(['case' => 'classified']),
     );
-    echo 'classified measurement: reaches the sink' . "\n";
+    echo 'classified measurement: dropped — no field allowlist registered' . "\n";
 });
 
 echo 'field classification complete' . "\n";

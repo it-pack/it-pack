@@ -71,13 +71,12 @@ final readonly class DogfoodRunner
                     $result = $process;
 
                     // Observation fields (exit_code, duration_ms, stdout_bytes,
-                    // stderr_bytes) are delivered through the default SDK publication
-                    // stack via $scope->observations()->record(). They pass through
-                    // DefaultObservationClassifier before reaching the sink; fields
-                    // not on the classifier allowlist are dropped. The default SDK
-                    // stack does not guarantee delivery of arbitrary observation
-                    // attributes — configure DefaultObservationClassifier explicitly
-                    // if these fields must be preserved.
+                    // stderr_bytes) are delivered through the SDK publication
+                    // stack via $scope->observations()->record().
+                    // DefaultObservationClassifier has no field configuration —
+                    // all observation fields pass through unchanged. Classifiers
+                    // that drop unclassified artifacts (e.g. DefaultMeasurementClassifier)
+                    // do not apply to observations.
                     $scope->observations()->record(
                         sprintf(
                             'dogfood tool %s: exit=%d duration_ms=%d stdout_bytes=%d stderr_bytes=%d',
