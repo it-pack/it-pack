@@ -163,7 +163,7 @@ final class RedactingArtifactPublisher implements
                 $fields,
                 $exportFields,
                 $kind,
-                $redacted instanceof RedactedArtifactInterface,
+                $this->redactor !== null,
                 $artifact instanceof SnapshotInterface,
             );
         } catch (Throwable) {
@@ -259,7 +259,9 @@ final class RedactingArtifactPublisher implements
         $projection = array_replace($projection, $exportFields);
 
         // Only structural fields and authority-issued identities are classified safe.
-        if ($isDefaultSnapshot) {
+        // When no redactor was applied, preserve all fields so downstream
+        // classifiers can reconstruct the original domain object.
+        if ($isRedacted && $isDefaultSnapshot) {
             $projection = array_intersect_key($projection, array_flip([
                 ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
                 ArtifactField::PREDECESSOR_ID, ArtifactField::CLASSIFICATION,

@@ -29,7 +29,7 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
-use ItPack\RunIt\Domain\Occurrence\Occurrence as RunItOccurrence;
+use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -85,10 +85,10 @@ final class ConfigureItExecutionsTest extends TestCase
     private function occurrenceTypes(): array
     {
         return array_map(
-            static fn (RunItOccurrence $o): string => $o->type()->toString(),
+            static fn (OccurrenceInterface $o): string => $o->type()->toString(),
             array_values(array_filter(
                 $this->publisher->published(),
-                static fn ($artifact): bool => $artifact instanceof RunItOccurrence,
+                static fn ($artifact): bool => $artifact instanceof OccurrenceInterface,
             )),
         );
     }

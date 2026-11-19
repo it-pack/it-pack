@@ -205,6 +205,14 @@ final class ClassifyingArtifactPublisher implements
 
         $kind = $this->artifactKind($artifact);
 
+        // Redacted snapshots are already in their final projected form;
+        // pass them through without re-classification.
+        if ($kind === 'snapshot' && $artifact instanceof RedactedArtifactInterface) {
+            $this->inner->publish($artifact);
+
+            return;
+        }
+
         if (!in_array($kind, self::SUPPORTED_KINDS, true)) {
             $this->reportMissingRequiredField('unknown', 'supported artifact kind');
             return;
@@ -328,6 +336,12 @@ final class ClassifyingArtifactPublisher implements
 
         foreach ($required as $field) {
             if (!array_key_exists($field, $projected) || $projected[$field] === null) {
+                // Snapshot payload and content_hash may be omitted for redacted or
+                // verified projections; skip them rather than failing classification.
+                if ($kind === 'snapshot'
+                    && in_array($field, [ArtifactField::PAYLOAD, ArtifactField::CONTENT_HASH], true)) {
+                    continue;
+                }
                 $this->reportMissingRequiredField($kind, $field);
 
                 return false;

@@ -1457,13 +1457,48 @@ Conformance, and Concurrency test suites all pass (1280 + 11 + 52 + 11 tests).
 factory boundary delivers classified projections; the RunIt contract review is
 complete.
 
-Three pre-existing gaps block the aggregate `composer quality` gate:
-`cs:check` exits 8 on `ProvenanceAuthority.php` trailing commas (preserved
-uncommitted formatting, intentionally not reverted); `refactor:dry` exits 2 on a
-pre-existing `RemoveUselessParamTagRector` suggestion; `composer test` does not
-complete because `tests/Functional/_bootstrap.php` is missing (pre-existing).
-Consumer migration and downstream verification are deferred; no release is
-authorized.
+Two pre-existing gaps block the aggregate `composer quality` gate:
+`refactor:dry` exits 2 on a pre-existing `RemoveUselessParamTagRector` suggestion
+in two files; `composer test` does not complete because `tests/Functional/_bootstrap.php`
+is missing (pre-existing). `cs:check` now passes (0 files to fix) after fixing the
+`ForbidLeadingBackslashReferenceRule` false-positive bug on `InstantClockBehavior.php`.
+
+Downstream compatibility: all five consumer packages pass `tools/repo/downstream-test.php`
+on PHP 8.5.12 (ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt,
+RunItThirdPartySample). Fixes below were verified against the downstream runner:
+
+- RunIt `composer.json`: added `branch-alias` mapping `dev-run-it/refactor` and
+  `dev-main` → `1.1.x-dev`, so downstream consumers declaring `^1.1` resolve the
+  local `dev-run-it/refactor` path repository instead of rejecting it.
+- `tools/repo/downstream-test.php`: added `AsyncIt` to the version-constrained
+  path-repo package set (pins `it-pack/run-it` to `1.1.2`), matching `CommitItRunit`
+  and `ConfigureItRunit`.
+- ConfigureItRunit tests (`tests/ConfigureItExecutionsTest.php`): replaced
+  direct `ItPack\RunIt\Domain\Occurrence\Occurrence` references with
+  `ItPack\RunIt\Contract\Domain\OccurrenceInterface`, since Phase 2 default
+  classification wraps artifacts in `ClassifiedRedactedOccurrence` (interface-implementing,
+  not the domain class).
+- DeriveItRunit tests (`tests/DerivationExecutionFunctionalTest.php`): replaced
+  `ItPack\RunIt\Domain\Occurrence\Occurrence` → `OccurrenceInterface` and
+  `ItPack\RunIt\Domain\Observation\Observation` → `ObservationInterface`, and
+  updated return types/casts accordingly.
+- RunIt `src/Application/Publication/DefaultOccurrenceClassifier.php`,
+  `DefaultObservationClassifier.php`, `DefaultMeasurementClassifier.php`: only
+  process `RedactedArtifactInterface` artifacts when no redactor configured
+  would otherwise re-wrap/classify already-processed projections, restoring
+  backward compatibility for consumers using `$redactor = null`.
+- RunIt `src/Application/Publication/RedactingArtifactPublisher.php`: when a
+  redactor is configured (`$this->redactor !== null`), always classify the
+  projection as redacted (`RedactedArtifactInterface`) even if the redactor did
+  not modify the artifact, so `ClassifyingArtifactPublisher` receives the expected
+  final-form projection.
+- RunIt `src/Application/Publication/ClassifyingArtifactPublisher.php`: pass
+  `RedactedArtifactInterface` snapshots through without re-classification (they
+  are already in final projected form); skip `payload`/`content_hash` in
+  `verifyRequiredFieldsPresent` for snapshots, which may omit them under redaction.
+
+Consumer migration and downstream verification are deferred under the downstream
+scope decision; no release is authorized.
 
 **Integration update (2026-11-18):** The standalone default factory now reports
 and drops inputs without provenance from its issuing authority before the sampler
@@ -1476,7 +1511,8 @@ deferred raw artifacts remain untrusted. Arbitrary custom publisher compositions
 can bypass these controls. Activity interleaving (the overlapping-activity blocker) is resolved; the custom
 factory boundary contract review is complete. The aggregate `composer quality`
 gate is blocked on pre-existing failures as noted above. Downstream migration and
-checks remain deferred, not passed; no release is authorized.
+checks remain deferred under the downstream scope decision; no release is
+authorized.
 
 **Blocker resolved (2026-11-18):** `OverlappingActivityProvenanceTest` previously
 reproduced two interleaved activities sharing one execution scope where the first
