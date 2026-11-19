@@ -434,9 +434,9 @@ final class RunItBuilderTest extends TestCase
         self::assertNotEmpty($executions);
         foreach ($executions as $execution) {
             self::assertInstanceOf(ExecutionInterface::class, $execution);
-            self::assertNotEmpty($execution->id()->toString());
+            self::assertNotSame($businessId, $execution->id()->toString());
             $executionNormalized = $execution->normalize();
-            unset($executionNormalized['id'], $executionNormalized['payload']);
+            unset($executionNormalized['payload']);
             self::assertStringNotContainsString(
                 'synthetic-secret-identity-',
                 json_encode($executionNormalized, JSON_THROW_ON_ERROR),
@@ -691,8 +691,11 @@ final class RunItBuilderTest extends TestCase
         });
 
         // Valid measurements pass classification and reach the sink.
-        $measurements = array_values(array_filter($sink->published(), static fn (ExecutionArtifactInterface $artifact): bool =>
-            ($artifact->normalize()['name'] ?? null) === 'limit.test'));
+        $measurements = array_values(array_filter(
+            $sink->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool =>
+                ($artifact->normalize()['name'] ?? null) === 'limit.test',
+        ));
         self::assertNotEmpty($measurements);
     }
 

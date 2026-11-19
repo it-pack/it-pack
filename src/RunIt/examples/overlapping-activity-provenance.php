@@ -110,6 +110,7 @@ $runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterf
                     } else {
                         $obsB2 = $a->observations()->record('observation from B', ObservationSeverity::Info);
                     }
+
                     Fiber::suspend($name . '.suspended');
                 });
             } finally {
