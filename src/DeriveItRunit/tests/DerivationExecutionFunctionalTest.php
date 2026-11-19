@@ -132,8 +132,8 @@ final class DerivationExecutionFunctionalTest extends TestCase
 
         self::assertCount(1, $warnings);
         self::assertSame('warning', $warnings[0]->severity()->label());
-        self::assertStringContainsString('reExposeOwnedInterfaces entry', (string) $warnings[0]->message());
-        self::assertStringContainsString('skipped', (string) $warnings[0]->message());
+        self::assertStringContainsString('reExposeOwnedInterfaces entry', $warnings[0]->message());
+        self::assertStringContainsString('skipped', $warnings[0]->message());
         self::assertSame('Missing\\NeverImplemented', $warnings[0]->attributes()['interface'] ?? null);
     }
 
@@ -252,11 +252,14 @@ final class DerivationExecutionFunctionalTest extends TestCase
             self::fail('missing observation ' . $message);
         };
 
-        self::assertSame('v', $occurrenceByDataName('act.start')->data()['k']);
-        self::assertSame('act.start', $occurrenceByDataName('act.start')->data()['name']);
+        $data = (array) $occurrenceByDataName('act.start')->data();
+        self::assertSame('v', $data['k']);
+        self::assertSame('act.start', $data['name']);
 
-        self::assertTrue($occurrenceByDataName('act.finish')->data()['successful']);
-        self::assertFalse($occurrenceByDataName('act.fail')->data()['successful']);
+        $finishData = (array) $occurrenceByDataName('act.finish')->data();
+        self::assertTrue($finishData['successful']);
+        $failData = (array) $occurrenceByDataName('act.fail')->data();
+        self::assertFalse($failData['successful']);
 
         self::assertSame(MeasurementKind::Counter, $measurement('m.count')->kind());
         self::assertSame(MeasurementUnit::Count, $measurement('m.count')->unit());
@@ -294,7 +297,8 @@ final class DerivationExecutionFunctionalTest extends TestCase
         \assert($typed instanceof OccurrenceInterface && $emptied instanceof OccurrenceInterface);
 
         self::assertSame('SubjectX', $typed->subject());
-        self::assertSame('z', $typed->data()['extra']);
+        $typedData = (array) $typed->data();
+        self::assertSame('z', $typedData['extra']);
         self::assertNull($emptied->subject());
         self::assertNull($emptied->data());
     }

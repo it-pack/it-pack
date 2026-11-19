@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\Execution\ObservationInterface;
 use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
@@ -33,12 +34,12 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
  */
 final class RunItResolutionReporter implements ResolutionReporterInterface
 {
-    private const FACT_PREFIX = 'configureit.';
-    private const OCCURRENCE_VERSION = '.v1';
-    private const SOURCE = 'it-pack/configure-it';
+    private const string FACT_PREFIX = 'configureit.';
+    private const string OCCURRENCE_VERSION = '.v1';
+    private const string SOURCE = 'it-pack/configure-it';
 
     /** Documented RunIt activities, opened when resolution begins. */
-    private const ACTIVITIES = [
+    private const array ACTIVITIES = [
         'file_discovery',
         'resource_reading',
         'yaml_loading',
@@ -50,7 +51,7 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
     ];
 
     /** Activities closed when each ConfigureIt stage occurrence is recorded. */
-    private const STAGE_ACTIVITIES = [
+    private const array STAGE_ACTIVITIES = [
         'ConfigurationLoaded' => ['file_discovery', 'resource_reading', 'yaml_loading'],
         'ConfigurationMerged' => ['document_merge'],
         'ConfigurationValidated' => ['schema_validation'],
@@ -77,7 +78,7 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
     private int $graphNodes = 0;
 
     public function __construct(
-        private ExecutionScopeInterface $scope,
+        private readonly ExecutionScopeInterface $scope,
     ) {
         $this->startedAt = microtime(true);
 
@@ -144,6 +145,7 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
 
     /**
      * @param array<string, mixed> $payload
+     * @throws InvalidValueExceptionInterface
      */
     private function occur(string $localType, array $payload): void
     {
@@ -154,6 +156,9 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
         );
     }
 
+    /**
+     * @throws InvalidValueExceptionInterface
+     */
     private function activityStarted(string $name): void
     {
         $this->scope->occurrences()->record(
@@ -165,6 +170,9 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
         );
     }
 
+    /**
+     * @throws InvalidValueExceptionInterface
+     */
     private function activityFinished(string $name): void
     {
         $this->scope->occurrences()->record(
@@ -178,6 +186,7 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
 
     /**
      * Closes the activities associated with a completed ConfigureIt stage.
+     * @throws InvalidValueExceptionInterface
      */
     private function closeStageActivities(string $type): void
     {
@@ -188,6 +197,7 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
 
     /**
      * Derives and records the milestone measurements from a stage occurrence.
+     * @throws InvalidValueExceptionInterface
      */
     private function recordStageMeasurements(OccurrenceInterface $occurrence): void
     {
@@ -206,8 +216,12 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
         }
 
         if ($type === 'ConfigurationValidated') {
-            $this->validationErrors = (int) ($payload['errors'] ?? 0);
-            $this->validationWarnings = (int) ($payload['warnings'] ?? 0);
+            $this->validationErrors = is_int($payload['errors'])
+                ? $payload['errors']
+                : 0;
+            $this->validationWarnings = is_int($payload['warnings'])
+                ? $payload['warnings']
+                : 0;
             $this->scope->measurements()->counter(
                 MeasurementName::fromString(self::FACT_PREFIX . 'validation_errors'),
                 $this->validationErrors,
@@ -223,7 +237,9 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
         }
 
         if ($type === 'ConfigurationResolved') {
-            $this->graphNodes = (int) ($payload['nodes'] ?? 0);
+            $this->graphNodes =  is_int($payload['nodes'])
+                ? $payload['nodes']
+                : 0;
             $this->scope->measurements()->counter(
                 MeasurementName::fromString(self::FACT_PREFIX . 'graph_nodes'),
                 $this->graphNodes,
@@ -267,7 +283,6 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
     private function severity(string $level): ObservationSeverity
     {
         return match ($level) {
-            'info' => ObservationSeverity::Info,
             'warning' => ObservationSeverity::Warning,
             'error' => ObservationSeverity::Error,
             default => ObservationSeverity::Info,
@@ -282,13 +297,10 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
      */
     private function attributes(array $context): ?AttributeCollection
     {
-        $filtered = [];
 
-        foreach ($context as $key => $value) {
-            if (is_scalar($value) || $value === null) {
-                $filtered[$key] = $value;
-            }
-        }
+        $filtered = array_filter($context, function ($value) {
+            return is_scalar($value) || $value === null;
+        });
 
         return $filtered === [] ? null : AttributeCollection::fromArray($filtered);
     }

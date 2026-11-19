@@ -48,7 +48,7 @@ final class DefaultOccurrenceClassifier implements
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        if ((!$artifact instanceof RedactedArtifactInterface && !$artifact instanceof VerifiedArtifactProjection)
+        if (!$artifact instanceof RedactedArtifactInterface
             || $artifact->artifactType() !== ArtifactType::OCCURRENCE) {
             $this->inner->publish($artifact);
             return;

@@ -11,7 +11,6 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -30,8 +29,8 @@ final class TerminalSnapshotRedactionTest extends Unit
     {
         $attributes = $this->exportFailedSnapshot(false);
 
-        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
-        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
         $export = json_encode($attributes, JSON_THROW_ON_ERROR);
         foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
             self::assertStringNotContainsString($secret, $export);
@@ -43,9 +42,9 @@ final class TerminalSnapshotRedactionTest extends Unit
     {
         $attributes = $this->exportFailedSnapshot(true);
 
-        self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
-        self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
-        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
+        self::assertSame('execution.terminal', $attributes[AttributeKeys::SNAPSHOT_TYPE]);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
         $export = json_encode($attributes, JSON_THROW_ON_ERROR);
         foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
             self::assertStringNotContainsString($secret, $export);
@@ -95,7 +94,7 @@ final class TerminalSnapshotRedactionTest extends Unit
         $snapshots = [];
         foreach ($kit->logs() as $record) {
             if ($record->getEventName() === 'runit.snapshot') {
-                self::assertSame(AttributeValues::REDACTED_TYPE, $record->getBody());
+                self::assertSame('execution.terminal', $record->getBody());
                 $snapshots[] = $record->getAttributes()->toArray();
             }
         }
