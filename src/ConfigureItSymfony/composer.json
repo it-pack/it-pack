@@ -1,52 +1,53 @@
 {
     "name": "it-pack/configure-it-symfony",
     "description": "Symfony integration for ConfigureIt \u2014 a bundle + DI extension that wires the ConfigurationBuilder and exposes the resolved snapshot as a service.",
-    "type": "library",
     "license": "MIT",
+    "type": "library",
     "require": {
         "php": "^8.5",
-        "symfony/dependency-injection": "^7.0",
+        "it-pack/configure-it": "*@dev",
         "symfony/config": "^7.0",
-        "symfony/http-kernel": "^7.0",
-        "it-pack/configure-it": "*@dev"
+        "symfony/dependency-injection": "^7.0",
+        "symfony/http-kernel": "^7.0"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",
         "codeception/module-asserts": "^3.3",
         "codeception/module-phpbrowser": "^4.1",
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
         "infection/codeception-adapter": "^0.4",
-        "symfony/yaml": "^7.0",
-        "phparkitect/phparkitect": "^1.2"
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
+        "phparkitect/phparkitect": "^1.2",
+        "symfony/yaml": "^7.0"
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../ConfigureIt"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "ItPack\\ConfigureItSymfony\\": "src/"
         }
     },
-    "autoload-dev": {
-        "psr-4": {}
-    },
     "config": {
         "allow-plugins": {
+            "dantleech/what-changed": true,
+            "ergebnis/composer-normalize": true,
             "infection/extension-installer": true,
             "php-http/discovery": true,
             "phpstan/extension-installer": true,
-            "dantleech/what-changed": true,
-            "tbachert/spi": false,
-            "ergebnis/composer-normalize": true
+            "tbachert/spi": false
         }
     },
     "scripts": {
-        "test": "vendor/bin/codecept run",
-        "test:unit": "vendor/bin/codecept run Unit",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=80 --no-interaction",
-        "security:audit": "@composer audit",
         "quality": [
             "@cs:check",
             "@analyse",
@@ -55,12 +56,8 @@
             "@mutation",
             "@security:audit"
         ],
-        "architecture": "vendor/bin/phparkitect check"
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../ConfigureIt"
-        }
-    ]
+        "security:audit": "@composer audit",
+        "test": "vendor/bin/codecept run",
+        "test:unit": "vendor/bin/codecept run Unit"
+    }
 }

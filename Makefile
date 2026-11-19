@@ -44,3 +44,6 @@ architecture:
 
 mutation:
 	$(call run_in_each,composer mutation)
+
+normalize:
+	$(call run_in_each,composer normalize)
