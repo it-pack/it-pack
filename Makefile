@@ -21,6 +21,9 @@ define run_in_each
 	done
 endef
 
+update:
+	$(call run_in_each,composer update)
+
 quality:
 	$(call run_in_each,composer quality)
 
