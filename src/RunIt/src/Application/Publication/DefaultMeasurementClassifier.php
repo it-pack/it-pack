@@ -10,7 +10,7 @@ use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterfac
 use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
-use ItPack\RunIt\Contract\Domain\TypedExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
@@ -33,7 +33,7 @@ final class DefaultMeasurementClassifier implements
     public static function isMeasurement(ExecutionArtifactInterface $artifact): bool
     {
         return $artifact instanceof MeasurementInterface
-            || ($artifact instanceof TypedExecutionArtifactInterface
+            || ($artifact instanceof RedactedArtifactInterface
                 && $artifact->artifactType() === ArtifactType::MEASUREMENT);
     }
 

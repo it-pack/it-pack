@@ -7,12 +7,13 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\DefaultOccurrenceClassifier;
 use ItPack\RunIt\Application\Publication\DefaultSdkRedactor;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
-use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -35,7 +36,7 @@ use Throwable;
 #[UsesClass(PublisherStackFactory::class)]
 #[UsesClass(ProvenanceAuthority::class)]
 #[UsesClass(DefaultSdkRedactor::class)]
-#[UsesClass(VerifiedArtifactProjection::class)]
+#[UsesClass(RedactedArtifact::class)]
 final class DefaultOccurrenceClassifierTest extends Unit
 {
     public function testOtherArtifactKindsPassThroughUnchanged(): void
@@ -44,7 +45,7 @@ final class DefaultOccurrenceClassifierTest extends Unit
         $classifier = new DefaultOccurrenceClassifier($sink, null, new SecurityLimits());
         $artifacts = [];
         foreach (['unknown', 'custom', 'Occurrence'] as $kind) {
-            $artifacts[] = new VerifiedArtifactProjection(['data' => 'unchanged'], $kind);
+            $artifacts[] = new RedactedArtifact(['data' => 'unchanged'], $kind);
             $classifier->publish($artifacts[array_key_last($artifacts)]);
         }
 
@@ -65,13 +66,13 @@ final class DefaultOccurrenceClassifierTest extends Unit
         $occurrence = Occurrence::create(
             OccurrenceId::fromString('business-event'),
             ExecutionId::fromString('business-exec'),
-            OccurrenceType::fromString('secret.event.v2'),
-            'secret-source',
+            OccurrenceType::fromString('custom.event.v1'),
+            'custom-source',
             Instant::of(123),
             ['nested-secret-key' => ['deep' => 'secret-value']],
-            subject: 'secret-subject',
-            dataSchema: 'secret-schema',
-            contentType: 'secret-content',
+            subject: 'custom-subject',
+            dataSchema: 'custom-schema',
+            contentType: 'custom-content',
             extensionAttributes: AttributeCollection::fromArray(['secret-extension' => 'secret-value']),
         );
         self::assertTrue($authority->attest($occurrence, $occurrenceId));
@@ -85,7 +86,13 @@ final class DefaultOccurrenceClassifierTest extends Unit
             }
         };
         $sink = new InMemoryArtifactPublisher();
-        $stack = new PublisherStackFactory()->compose($sink, new DefaultSdkRedactor(), $policy, authority: $authority);
+        $redactor = new DefaultSdkRedactor(new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['secret-extension'],
+                sensitiveDataKeys: ['nested-secret-key'],
+            ),
+        ));
+        $stack = new PublisherStackFactory()->compose($sink, $redactor, $policy, authority: $authority);
         $stack->publish($occurrence);
 
         self::assertInstanceOf(OccurrenceInterface::class, $policy->seen);
@@ -100,7 +107,7 @@ final class DefaultOccurrenceClassifierTest extends Unit
             self::assertStringNotContainsString('business', json_encode($fields, JSON_THROW_ON_ERROR));
         }
 
-        self::assertSame('secret-source', $occurrence->source());
+        self::assertSame('custom-source', $occurrence->source());
     }
 
     public function testInvalidRequiredFieldsAreReportedWithoutPayload(): void
@@ -114,7 +121,7 @@ final class DefaultOccurrenceClassifierTest extends Unit
         });
         $sink = new InMemoryArtifactPublisher();
         $classifier = new DefaultOccurrenceClassifier($sink, $health, new SecurityLimits());
-        $classifier->publish(new VerifiedArtifactProjection([
+        $classifier->publish(new RedactedArtifact([
             'id' => 'id', 'execution_id' => 'exec', 'time' => 'secret', 'sequence' => 1,
         ], 'occurrence'));
         self::assertCount(0, $sink->published());
@@ -140,7 +147,7 @@ final class DefaultOccurrenceClassifierTest extends Unit
                 'sequence' => 0, 'data' => 'secret-data',
             ];
             $fields[$field] = -1;
-            $classifier->publish(new VerifiedArtifactProjection($fields, 'occurrence'));
+            $classifier->publish(new RedactedArtifact($fields, 'occurrence'));
         }
 
         self::assertCount(0, $sink->published());
@@ -150,47 +157,50 @@ final class DefaultOccurrenceClassifierTest extends Unit
 
     public function testExplicitRedactorChoicesStillApplyOccurrencePolicy(): void
     {
-        foreach ([null, new DefaultArtifactRedactor()] as $redactor) {
-            $authority = new ProvenanceAuthority();
-            $executionId = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
-            $id = $authority->bindArtifact('occurrence', 'occurrence', 'exec', 'event', 'execution-occurrence');
-            $occurrence = Occurrence::create(
-                OccurrenceId::fromString('event'),
-                ExecutionId::fromString('exec'),
-                OccurrenceType::fromString('custom.event.v1'),
-                'custom-source',
-                Instant::of(123),
-                ['nested' => ['value' => 'custom-value']],
-            );
-            self::assertTrue($authority->attest($occurrence, $id));
-            $policy = new class () implements SamplingPolicyInterface {
-                public ?ExecutionArtifactInterface $seen = null;
+        $redactor = new DefaultSdkRedactor(new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(
+                sensitiveDataKeys: ['nested'],
+            ),
+        ));
+        $authority = new ProvenanceAuthority();
+        $executionId = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $id = $authority->bindArtifact('occurrence', 'occurrence', 'exec', 'event', 'execution-occurrence');
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('event'),
+            ExecutionId::fromString('exec'),
+            OccurrenceType::fromString('custom.event.v1'),
+            'custom-source',
+            Instant::of(123),
+            ['nested' => ['value' => 'custom-value']],
+        );
+        self::assertTrue($authority->attest($occurrence, $id));
+        $policy = new class () implements SamplingPolicyInterface {
+            public ?ExecutionArtifactInterface $seen = null;
 
-                public function sample(ExecutionArtifactInterface $artifact): bool
-                {
-                    $this->seen = $artifact;
-                    return true;
-                }
-            };
-            $sink = new InMemoryArtifactPublisher();
-            $stack = new PublisherStackFactory()->compose(
-                $sink,
-                $redactor,
-                $policy,
-                authority: $authority,
-            );
-            $stack->publish($occurrence);
-            self::assertInstanceOf(OccurrenceInterface::class, $policy->seen);
-            self::assertCount(1, $sink->published());
-            foreach ([$policy->seen, $sink->published()[0]] as $artifact) {
-                $fields = $artifact->normalize();
-                self::assertSame($id, $fields['id']);
-                self::assertSame($executionId, $fields['execution_id']);
-                self::assertSame('runit.redacted.v1', $fields['type']);
-                self::assertSame('runit:redacted', $fields['source']);
-                self::assertNull($fields['data']);
-                self::assertStringNotContainsString('custom', json_encode($fields, JSON_THROW_ON_ERROR));
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen = $artifact;
+                return true;
             }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $stack = new PublisherStackFactory()->compose(
+            $sink,
+            $redactor,
+            $policy,
+            authority: $authority,
+        );
+        $stack->publish($occurrence);
+        self::assertInstanceOf(OccurrenceInterface::class, $policy->seen);
+        self::assertCount(1, $sink->published());
+        foreach ([$policy->seen, $sink->published()[0]] as $artifact) {
+            $fields = $artifact->normalize();
+            self::assertSame($id, $fields['id']);
+            self::assertSame($executionId, $fields['execution_id']);
+            self::assertSame('runit.redacted.v1', $fields['type']);
+            self::assertSame('runit:redacted', $fields['source']);
+            self::assertNull($fields['data']);
+            self::assertStringNotContainsString('custom', json_encode($fields, JSON_THROW_ON_ERROR));
         }
     }
 
@@ -211,7 +221,7 @@ final class DefaultOccurrenceClassifierTest extends Unit
                 $health,
                 new SecurityLimits(),
             );
-            $classifier->publish(new VerifiedArtifactProjection([
+            $classifier->publish(new RedactedArtifact([
                 'id' => 'id', 'execution_id' => 'exec', 'time' => 'secret-time', 'sequence' => 1,
             ], 'occurrence'));
             $log = file_get_contents($path);

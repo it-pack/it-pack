@@ -8,7 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
-use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,7 +19,7 @@ use Throwable;
 #[CoversClass(DefaultMeasurementClassifier::class)]
 #[UsesClass(InMemoryArtifactPublisher::class)]
 #[UsesClass(CallbackHealthReporter::class)]
-#[UsesClass(VerifiedArtifactProjection::class)]
+#[UsesClass(RedactedArtifact::class)]
 final class DefaultMeasurementClassifierTest extends Unit
 {
     public function testMeasurementsAreDroppedAndReportedWithoutTheirFields(): void
@@ -40,7 +40,7 @@ final class DefaultMeasurementClassifierTest extends Unit
             'timestamp' => 1, 'sequence' => 1, 'attributes' => [],
             'secret' => 'secret-value',
         ];
-        $measurement = new VerifiedArtifactProjection($fields, 'measurement');
+        $measurement = new RedactedArtifact($fields, 'measurement');
         $classifier->publish($measurement);
 
         self::assertCount(0, $sampler->published());
@@ -57,7 +57,7 @@ final class DefaultMeasurementClassifierTest extends Unit
     {
         $sink = new InMemoryArtifactPublisher();
         $classifier = new DefaultMeasurementClassifier($sink, null);
-        $artifact = new VerifiedArtifactProjection(['execution_id' => 'export-execution'], 'observation');
+        $artifact = new RedactedArtifact(['execution_id' => 'export-execution'], 'observation');
         $classifier->publish($artifact);
 
         self::assertSame([$artifact], $sink->published());
@@ -66,11 +66,11 @@ final class DefaultMeasurementClassifierTest extends Unit
     public function testOnlyExactMeasurementKindIsClassified(): void
     {
         foreach (['unknown', 'custom', 'Measurement'] as $kind) {
-            self::assertFalse(DefaultMeasurementClassifier::isMeasurement(new VerifiedArtifactProjection([], $kind)));
+            self::assertFalse(DefaultMeasurementClassifier::isMeasurement(new RedactedArtifact([], $kind)));
         }
 
         self::assertTrue(DefaultMeasurementClassifier::isMeasurement(
-            new VerifiedArtifactProjection([], 'measurement'),
+            new RedactedArtifact([], 'measurement'),
         ));
     }
 
@@ -88,7 +88,7 @@ final class DefaultMeasurementClassifierTest extends Unit
             };
             $sink = new InMemoryArtifactPublisher();
             new DefaultMeasurementClassifier($sink, $health)->publish(
-                new VerifiedArtifactProjection([], 'measurement'),
+                new RedactedArtifact([], 'measurement'),
             );
             $log = (string) file_get_contents($path);
             self::assertStringContainsString('health reporter failed', $log);

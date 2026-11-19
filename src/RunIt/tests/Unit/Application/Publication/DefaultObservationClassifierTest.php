@@ -14,7 +14,6 @@ use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
-use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -33,7 +32,7 @@ use Throwable;
 #[CoversClass(DefaultObservationClassifier::class)]
 #[UsesClass(InMemoryArtifactPublisher::class)]
 #[UsesClass(CallbackHealthReporter::class)]
-#[UsesClass(VerifiedArtifactProjection::class)]
+#[UsesClass(RedactedArtifact::class)]
 final class DefaultObservationClassifierTest extends Unit
 {
     public function testOtherArtifactKindsPassThroughUnchanged(): void
@@ -42,7 +41,7 @@ final class DefaultObservationClassifierTest extends Unit
         $classifier = new DefaultObservationClassifier($sink, null, new SecurityLimits());
         $artifacts = [];
         foreach (['unknown', 'custom', 'Observation'] as $kind) {
-            $artifacts[] = new VerifiedArtifactProjection(['message' => 'unchanged'], $kind);
+            $artifacts[] = new RedactedArtifact(['message' => 'unchanged'], $kind);
             $classifier->publish($artifacts[array_key_last($artifacts)]);
         }
 
@@ -88,7 +87,7 @@ final class DefaultObservationClassifierTest extends Unit
         });
         $sink = new InMemoryArtifactPublisher();
         $classifier = new DefaultObservationClassifier($sink, $health, new SecurityLimits());
-        $classifier->publish(new VerifiedArtifactProjection([
+        $classifier->publish(new RedactedArtifact([
             'id' => 'export-observation', 'execution_id' => 'export-execution',
             'severity' => 'secret-severity', 'timestamp' => 1, 'sequence' => 1,
             'message' => 'secret-message',
@@ -114,7 +113,7 @@ final class DefaultObservationClassifierTest extends Unit
             };
             $sink = new InMemoryArtifactPublisher();
             $classifier = new DefaultObservationClassifier($sink, $health, new SecurityLimits());
-            $classifier->publish(new VerifiedArtifactProjection([
+            $classifier->publish(new RedactedArtifact([
                 'id' => 'export-observation', 'execution_id' => 'export-execution',
                 'severity' => 'invalid', 'timestamp' => 1, 'sequence' => 1,
             ], 'observation'));
@@ -132,7 +131,7 @@ final class DefaultObservationClassifierTest extends Unit
     {
         $sink = new InMemoryArtifactPublisher();
         $classifier = new DefaultObservationClassifier($sink, null, new SecurityLimits());
-        $classifier->publish(new VerifiedArtifactProjection([
+        $classifier->publish(new RedactedArtifact([
             'id' => 'export-observation', 'execution_id' => 'export-execution',
             'severity' => 'trace', 'timestamp' => 1, 'sequence' => 1,
             'message' => 'secret-message', 'attributes' => ['secret' => 'value'],
@@ -165,7 +164,7 @@ final class DefaultObservationClassifierTest extends Unit
                 'timestamp' => 0, 'sequence' => 0, 'message' => 'secret-message',
             ];
             $fields[$field] = -1;
-            $classifier->publish(new VerifiedArtifactProjection($fields, 'observation'));
+            $classifier->publish(new RedactedArtifact($fields, 'observation'));
         }
 
         self::assertCount(0, $sink->published());
@@ -246,7 +245,7 @@ final class DefaultObservationClassifierTest extends Unit
                 $health,
                 new SecurityLimits(maxAttributeCount: $limit),
             );
-            $classifier->publish(new VerifiedArtifactProjection([
+            $classifier->publish(new RedactedArtifact([
                 'id' => 'export-observation', 'execution_id' => 'export-execution',
                 'severity' => 'error', 'timestamp' => 1, 'sequence' => 1,
                 'message' => 'secret', 'throwable' => [

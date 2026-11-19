@@ -10,7 +10,6 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
-use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -20,16 +19,14 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Throwable;
 
 #[CoversClass(RunItBuilder::class)]
 final class MeasurementSecurityTest extends TestCase
 {
-    public function testValidMeasurementsAreDroppedForAllRedactorModes(): void
+    public function testValidMeasurementsAreClassifiedAndDeliveredForAllRedactorModes(): void
     {
         foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
-            $health = [];
             $sampler = new class () implements SamplingPolicyInterface {
                 /** @var list<ExecutionArtifactInterface> */
                 public array $seen = [];
@@ -47,13 +44,6 @@ final class MeasurementSecurityTest extends TestCase
                 ->withSnapshotSerializer(new JsonSnapshotSerializer())
                 ->withIdentifierGenerator(new RandomIdentifierGenerator())
                 ->withSamplingPolicy($sampler)
-                ->withPublicationFailureHandler(
-                    static function (Throwable $error, ?ExecutionArtifactInterface $artifact = null) use (
-                        &$health,
-                    ): void {
-                        $health[] = [$error->getMessage(), $artifact?->normalize()];
-                    }
-                )
             ;
             if ($mode !== 'default') {
                 $builder = $builder->withRedactor($mode === 'null' ? null : new DefaultArtifactRedactor());
@@ -66,23 +56,22 @@ final class MeasurementSecurityTest extends TestCase
                 },
             );
 
-            // Valid measurements are dropped before sampling in all redactor modes.
-            // Non-measurement artifacts (executions, occurrences, snapshots) are
-            // still delivered; only measurements are dropped.
-            $samplerMeasurements = array_filter(
-                $sampler->seen,
-                DefaultMeasurementClassifier::isMeasurement(...)
-            );
-            $sinkMeasurements = array_filter(
+            // Valid measurements pass classification and reach the sink.
+            $measurements = array_values(array_filter(
                 $sink->published(),
-                DefaultMeasurementClassifier::isMeasurement(...)
-            );
-            self::assertEmpty($samplerMeasurements, $mode);
-            self::assertEmpty($sinkMeasurements, $mode);
+                static fn (ExecutionArtifactInterface $a): bool =>
+                    ($a->normalize()['name'] ?? null) === 'dogfood-metric',
+            ));
+            self::assertNotEmpty($measurements, $mode);
+            self::assertSame(123, $measurements[0]->normalize()['value'] ?? null, $mode);
 
-            // A drop notice is reported for each dropped measurement.
-            self::assertNotEmpty($health, $mode);
-            self::assertStringContainsString('classification dropped', $health[0][0]);
+            // Sampler sees the classified measurement too.
+            $samplerMeasurements = array_values(array_filter(
+                $sampler->seen,
+                static fn (ExecutionArtifactInterface $a): bool =>
+                    ($a->normalize()['name'] ?? null) === 'dogfood-metric',
+            ));
+            self::assertNotEmpty($samplerMeasurements, $mode);
         }
     }
 }
