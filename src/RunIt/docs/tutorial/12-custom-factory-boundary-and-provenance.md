@@ -91,10 +91,34 @@ $runtime = RunItBuilder::create()
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
     ->withPublicationFailureHandler(static function (\Throwable $failure): void {
-        // Fallback reporting — payload-free, no identifiers
+        // The handler throws — the CallbackHealthReporter wrapping it throws too,
+        // triggering the payload-free fallback diagnostic via error_log.
+        throw $failure;
     })
     ->build()
 ;
+```
+
+A failing publisher triggers the handler:
+
+```php
+use ItPack\RunIt\Application\Publication\FailClosedPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+
+final class FailingPublisher implements ArtifactPublisherInterface
+{
+    public function publish(ExecutionArtifactInterface $artifact): void
+    {
+        throw new \RuntimeException('transport unavailable');
+    }
+}
+
+$publisher = new FailSafeArtifactPublisher(
+    new FailingPublisher(),
+    new FailClosedPolicy(),
+);
 ```
 
 > **Run this:** `examples/health-reporter-fallback.php`

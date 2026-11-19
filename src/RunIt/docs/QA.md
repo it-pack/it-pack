@@ -14,7 +14,8 @@ issuer's authority reports and drops unverifiable artifacts; custom composition
 must be assessed separately. Focused publication and OpenTelemetry tests cover
 these paths; all quality checks pass on the current worktree. Consumer migration,
 downstream verification, representative delivery-loss and retention measurements,
-and real-exporter I/O remain deferred. Phase 2 is complete; no release is implied.
+and real-exporter I/O remain deferred. Phase 2 is complete subject to completion
+of those deferred measurements; no release is implied.
 
 ### Downstream compatibility
 

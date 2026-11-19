@@ -11,6 +11,8 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
@@ -24,8 +26,9 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
  *
  * This example shows:
  *   1. SecurityLimits configured with tight bounds.
- *   2. Oversized attributes are replaced with the redaction marker.
- *   3. Limits are fail-closed: oversized data never reaches external sinks.
+ *   2. An oversized attribute is replaced with the redaction marker.
+ *   3. An attribute within the limit passes through unchanged.
+ *   4. Limits are fail-closed: oversized data never reaches external sinks.
  *
  * Run from the package root: `php examples/security-limits.php`
  */
@@ -58,13 +61,27 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 );
 
 $runIt->run($definition('bounded.op'), static function (ExecutionScopeInterface $scope) use ($limits): void {
-    echo "security limits active:\n";
+    // Attribute within limit — passes through unchanged.
+    $scope->observations()->record(
+        'within limit',
+        ObservationSeverity::Info,
+        AttributeCollection::fromArray(['ok' => 'short']),
+    );
+
+    // Attribute exceeding 16-byte value limit — replaced with marker.
+    $scope->observations()->record(
+        'oversized value',
+        ObservationSeverity::Info,
+        AttributeCollection::fromArray(['too_long' => 'this-value-is-way-too-long']),
+    );
+
+    echo 'security limits active:' . "\n";
     echo '  max attribute count:   ' . $limits->maxAttributeCount . "\n";
-    echo '  max attribute value:   ' . $limits->maxAttributeValueBytes . " bytes\n";
-    echo '  max snapshot payload:  ' . $limits->maxSnapshotPayloadBytes . " bytes\n";
-    echo '  max occurrence payload:' . $limits->maxOccurrencePayloadBytes . " bytes\n";
-    echo "oversized artifacts are dropped/replaced with payload-free marker\n";
-    echo "limits are fail-closed — nothing oversized reaches external sinks\n";
+    echo '  max attribute value:   ' . $limits->maxAttributeValueBytes . ' bytes' . "\n";
+    echo '  max snapshot payload:  ' . $limits->maxSnapshotPayloadBytes . ' bytes' . "\n";
+    echo '  max occurrence payload:' . $limits->maxOccurrencePayloadBytes . ' bytes' . "\n";
+    echo 'oversized artifacts are dropped/replaced with payload-free marker' . "\n";
+    echo 'limits are fail-closed — nothing oversized reaches external sinks' . "\n";
 });
 
-echo "security limits complete\n";
+echo 'security limits complete' . "\n";

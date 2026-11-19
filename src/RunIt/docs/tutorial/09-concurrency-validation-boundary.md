@@ -13,6 +13,7 @@ concurrent executions.
 
 ```php
 use ItPack\RunIt\Contract\Application\EngineCapability;
+use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException;

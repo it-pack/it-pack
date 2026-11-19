@@ -7,9 +7,11 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Publication\FailClosedPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -23,47 +25,45 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
  * identifiers leak through the fallback path.
  *
  * This example shows:
- *   1. A throwing health reporter is contained by FailSafeArtifactPublisher.
- *   2. Fallback error_log reporter receives payload-free fallback diagnostics.
- *   3. The original business result is never replaced by publication failures.
+ *   1. A throwing publication failure handler — the health reporter (a
+ *      CallbackHealthReporter wrapping it) throws when reporting.
+ *   2. FailSafeArtifactPublisher contains the transport fault; the original
+ *      business result is preserved.
+ *   3. Fallback diagnostics are payload-free — no exception messages or identifiers.
  *
  * Run from the package root: `php examples/health-reporter-fallback.php`
  */
 
 require __DIR__ . '/../vendor/autoload.php';
 
-final class ThrowingHealthReporter implements InternalHealthReporterInterface
+final class FailingPublisher implements ArtifactPublisherInterface
 {
-    public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+    public function publish(ExecutionArtifactInterface $artifact): void
     {
-        throw new RuntimeException('health reporter down');
+        throw new \RuntimeException('transport unavailable');
     }
 }
 
-$healthCalls = [];
-$health = new class ($healthCalls) implements InternalHealthReporterInterface {
-    public function __construct(private array &$calls)
-    {
-    }
+$publisher = new FailSafeArtifactPublisher(
+    new FailingPublisher(),
+    new FailClosedPolicy(),
+);
 
-    public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
-    {
-        $this->calls[] = ['message' => $error->getMessage(), 'artifactId' => null];
-    }
+$publicationFailures = [];
+$failureHandler = static function (\Throwable $failure) use (&$publicationFailures): void {
+    $publicationFailures[] = $failure->getMessage();
+    // The handler throws — the CallbackHealthReporter wrapping it will throw too,
+    // triggering the fallback path.
+    throw $failure;
 };
 
-$publisher = new InMemoryArtifactPublisher();
-
-// --- Throwing health reporter → fallback to error_log ---
 $runIt = RunItBuilder::create()
     ->withPublisher($publisher)
     ->withClock(new SystemMonotonicClock())
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->withPublicationFailureHandler(static function (Throwable $failure) use ($healthCalls): void {
-        $healthCalls[] = ['message' => $failure->getMessage(), 'artifactId' => null];
-    })
+    ->withPublicationFailureHandler($failureHandler)
     ->build()
 ;
 
@@ -73,8 +73,9 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 );
 
 $runIt->run($definition('health.op'), static function (ExecutionScopeInterface $scope): void {
-    echo "execution ran despite throwing health reporter\n";
-    echo "fallback contains publication failure — no identifiers leaked\n";
+    echo 'execution ran despite publication failure' . "\n";
+    echo 'fallback contains publication failure — no identifiers leaked' . "\n";
 });
 
-echo "health reporter fallback complete\n";
+echo 'health reporter fallback complete' . "\n";
+echo 'publication failures contained: ' . count($publicationFailures) . "\n";

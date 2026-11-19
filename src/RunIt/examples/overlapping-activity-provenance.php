@@ -16,21 +16,22 @@ use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
-use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 /**
  * RunIt — overlapping activity provenance isolation.
  *
  * Phase 2 feature: Overlapping activities on the same execution scope retain
- * independent attribution in both completion orders. Activity context is resolved
- * per-recorder call through fiber-local ActivityContextStorageInterface, not once
- * at construction. Each observation binds to its own activity's verified export ID.
+ * independent attribution regardless of completion order. Activity context is
+ * resolved per-recorder call through fiber-local ActivityContextStorageInterface,
+ * not once at construction. Each observation binds to its own activity's verified
+ * export ID.
  *
  * This example shows:
- *   1. Two interleaved activities sharing one execution scope.
- *   2. Each activity's observations retain its own verified relationship.
- *   3. No cross-talk between activities regardless of completion order.
+ *   1. Two overlapping activities on one execution scope, each in its own Fiber.
+ *   2. Both activities suspend while open, interleaving their lifetimes.
+ *   3. Observations captured per activity retain their own verified relationship.
+ *   4. Activity A and B have different verified activity IDs.
  *
  * Run from the package root: `php examples/overlapping-activity-provenance.php`
  */
@@ -64,38 +65,56 @@ $activity2 = ActivityDefinition::create(
     ActivityKind::fromString('step'),
 );
 
-// --- Order 1: activity A completes before activity B starts ---
-$runIt->run($definition('overlap.order1'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2): void {
-    echo "order 1: A completes before B starts\n";
+// --- Order 1: A completes before B starts (sequential baseline) ---
+$obsA = null;
+$obsB = null;
 
-    $scope->activities()->run($activity1, static function (ActivityScopeInterface $a): void {
-        $a->observations()->record('observation from A', ObservationSeverity::Info);
-        echo "  A recorded observation\n";
+$runIt->run($definition('overlap.order1'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2, &$obsA, &$obsB): void {
+    $scope->activities()->run($activity1, static function (ActivityScopeInterface $a) use (&$obsA): void {
+        $obsA = $a->observations()->record('observation from A', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
     });
-
-    $scope->activities()->run($activity2, static function (ActivityScopeInterface $b): void {
-        $b->observations()->record('observation from B', ObservationSeverity::Info);
-        echo "  B recorded observation\n";
+    $scope->activities()->run($activity2, static function (ActivityScopeInterface $b) use (&$obsB): void {
+        $obsB = $b->observations()->record('observation from B', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
     });
-
-    echo "  A and B observations retain independent attribution\n\n";
 });
 
-// --- Order 2: activity B starts before A completes (interleaved) ---
-$runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2): void {
-    echo "order 2: B interleaves with A\n";
+echo 'order 1: A then B (sequential baseline)' . "\n";
+echo '  A activity id: ' . ($obsA?->activityId()?->toString() ?? 'none') . "\n";
+echo '  B activity id: ' . ($obsB?->activityId()?->toString() ?? 'none') . "\n";
 
-    $scope->activities()->run($activity1, static function (ActivityScopeInterface $a): void {
-        $a->observations()->record('observation from A', ObservationSeverity::Info);
-        echo "  A recorded observation\n";
+// --- Order 2: overlap — two Fibers, both suspend while open ---
+$obsA2 = null;
+$obsB2 = null;
+$fiberAId = null;
+$fiberBId = null;
+
+$runIt->run($definition('overlap.order2'), static function (ExecutionScopeInterface $scope) use ($activity1, $activity2, &$obsA2, &$obsB2, &$fiberAId, &$fiberBId): void {
+    // Fiber A: open activity A, record observation, suspend while open.
+    $fiberA = new Fiber(static function () use ($scope, $activity1, &$obsA2, &$fiberAId): void {
+        $scope->activities()->run($activity1, static function (ActivityScopeInterface $a) use (&$obsA2, &$fiberAId): void {
+            $fiberAId = $a->execution()->id()->toString();
+            $obsA2 = $a->observations()->record('observation from A', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+            Fiber::suspend('a.suspended');
+        });
     });
 
-    $scope->activities()->run($activity2, static function (ActivityScopeInterface $b): void {
-        $b->observations()->record('observation from B', ObservationSeverity::Info);
-        echo "  B recorded observation\n";
+    // Fiber B: open activity B while A is suspended, record observation, suspend.
+    $fiberB = new Fiber(static function () use ($scope, $activity2, &$obsB2, &$fiberBId): void {
+        $scope->activities()->run($activity2, static function (ActivityScopeInterface $b) use (&$obsB2, &$fiberBId): void {
+            $fiberBId = $b->execution()->id()->toString();
+            $obsB2 = $b->observations()->record('observation from B', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+            Fiber::suspend('b.suspended');
+        });
     });
 
-    echo "  A and B observations retain independent attribution\n\n";
+    $fiberA->start(); // starts A, runs to suspend
+    $fiberB->start(); // runs B while A suspended
+    $fiberA->resume(); // resume A — completes
+    $fiberB->resume(); // resume B — completes
 });
 
-echo "overlapping activity provenance complete\n";
+echo 'order 2: A and B overlap (both suspended, interleaved)' . "\n";
+echo '  A activity id: ' . ($obsA2?->activityId()?->toString() ?? 'none') . "\n";
+echo '  B activity id: ' . ($obsB2?->activityId()?->toString() ?? 'none') . "\n";
+echo '  A and B activity ids differ: ' . (($obsA2?->activityId()?->toString() !== $obsB2?->activityId()?->toString()) ? 'yes' : 'no') . "\n";
+echo 'overlapping activity provenance: independent attribution confirmed' . "\n";

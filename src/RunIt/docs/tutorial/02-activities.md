@@ -83,6 +83,11 @@ yourself.
 > resolved per-recorder call through fiber-local `ActivityContextStorageInterface`,
 > not once at construction — so activity A's observations never acquire activity B's
 > verified relationship.
+>
+> This guarantee requires compatible runtime-local execution and activity storage.
+> The default synchronous `StackContextStorage` does not isolate interleaved Fibers.
+> Configure runtime-aware storage explicitly for concurrent use — see
+> [Tutorial 8 — Context ownership & storage](08-context-ownership-and-storage.md).
 
 ## Next
 

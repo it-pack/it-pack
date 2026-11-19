@@ -17,11 +17,19 @@ Each recorder re-resolves the owning activity on every call.
 ## Overlapping activities
 
 ```php
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
+use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
+use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 $runtime = RunItBuilder::create()
@@ -44,16 +52,16 @@ $activityB = ActivityDefinition::create(
 );
 
 $runtime->run(
-    \ItPack\RunIt\Domain\Execution\ExecutionDefinition::create(
-        \ItPack\RunIt\Domain\Execution\ExecutionName::fromString('overlap'),
-        \ItPack\RunIt\Domain\Execution\ExecutionKind::fromString('operation'),
+    ExecutionDefinition::create(
+        ExecutionName::fromString('overlap'),
+        ExecutionKind::fromString('operation'),
     ),
     static function ($scope) use ($activityA, $activityB): void {
         $scope->activities()->run($activityA, static function ($a): void {
-            $a->observations()->record('from A', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+            $a->observations()->record('from A', ObservationSeverity::Info);
         });
         $scope->activities()->run($activityB, static function ($b): void {
-            $b->observations()->record('from B', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+            $b->observations()->record('from B', ObservationSeverity::Info);
         });
     },
 );

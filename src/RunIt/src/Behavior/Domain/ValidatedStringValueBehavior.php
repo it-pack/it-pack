@@ -50,7 +50,7 @@ trait ValidatedStringValueBehavior
     /**
      * Creates a value from an already known string.
      *
-     * @throws InvalidStringValueException when the value is empty, too long, or
+     * @throws InvalidStringValueException|InvalidValueExceptionInterface when the value is empty, too long, or
      *                                    contains unsupported characters
      */
     public static function fromString(string $value): static

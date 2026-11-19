@@ -24,7 +24,7 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
  * This example shows:
  *   1. The business execution ID is separate from the verified export ID.
  *   2. Artifacts recorded through a scope are bound to that scope's export ID.
- *   3. Duplicate execution identity is rejected (payload-free unverified report).
+ *   3. Duplicate execution identity triggers an unverified report (payload-free).
  *
  * Run from the package root: `php examples/provenance-verification.php`
  */
@@ -42,35 +42,41 @@ $runIt = RunItBuilder::create()
     ->build()
 ;
 
-$definition = static fn (string $name): ExecutionDefinition => ExecutionDefinition::create(
-    ExecutionName::fromString($name),
-    ExecutionKind::fromString('operation'),
-);
-
 // --- Business ID vs verified provenance ---
 
-$runIt->run($definition('order.place'), static function (ExecutionScopeInterface $scope): void {
-    $execution = $scope->execution();
-    echo 'business execution ID: ' . $execution->id()->toString() . "\n";
-    echo 'business name:          ' . $execution->definition()->name()->toString() . "\n";
-    echo 'business kind:          ' . $execution->definition()->kind()->toString() . "\n";
-    echo "\n";
-    echo "The business ID alone is an untrusted claim.\n";
-    echo "Only the SDK-issued export ID (verified by ProvenanceAuthority)\n";
-    echo "establishes trust for this execution's artifacts.\n";
-});
+// Create a live execution record (provenance record established).
+$runIt->run(
+    ExecutionDefinition::create(
+        ExecutionName::fromString('order.place'),
+        ExecutionKind::fromString('operation'),
+    ),
+    static function (ExecutionScopeInterface $scope): void {
+        $execution = $scope->execution();
+        echo 'business execution ID: ' . $execution->id()->toString() . "\n";
+        echo 'business name:          ' . $execution->definition()->name()->toString() . "\n";
+        echo 'business kind:          ' . $execution->definition()->kind()->toString() . "\n";
+        echo "\n";
+        echo 'The business ID alone is an untrusted claim.' . "\n";
+        echo 'Only the SDK-issued export ID (verified by ProvenanceAuthority)' . "\n";
+        echo 'establishes trust for this execution\'s artifacts.' . "\n";
+    },
+);
 
 // --- Duplicate identity triggers unverified report ---
-
+// Reusing the same business name with a live provenance record triggers
+// a duplicate-execution rejection (payload-free health notice).
 try {
-    $runIt->run($definition('duplicate.id'), static function (ExecutionScopeInterface $scope): void {
-        echo "first run of duplicate.id recorded\n";
-    });
-    $runIt->run($definition('duplicate.id'), static function (ExecutionScopeInterface $scope): void {
-        echo "second run of duplicate.id — unverified\n";
-    });
-} catch (Throwable $throwable) {
-    echo 'duplicate identity rejected: ' . $throwable->getMessage() . "\n";
+    $runIt->run(
+        ExecutionDefinition::create(
+            ExecutionName::fromString('order.place'),
+            ExecutionKind::fromString('operation'),
+        ),
+        static function (ExecutionScopeInterface $scope): void {
+            echo 'second run of order.place — unverified duplicate' . "\n";
+        },
+    );
+} catch (\Throwable $e) {
+    echo 'duplicate identity rejected: ' . $e->getMessage() . "\n";
 }
 
-echo "provenance verification complete\n";
+echo 'provenance verification complete' . "\n";

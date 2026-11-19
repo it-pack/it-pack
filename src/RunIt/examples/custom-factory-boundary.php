@@ -44,7 +44,7 @@ final class ClassifyingStackFactory implements PublisherStackFactoryInterface
         echo 'custom factory: received redactor=' . ($redactor instanceof RedactorInterface ? 'present' : 'null') . "\n";
         echo "custom factory: classified projection will be published through base\n";
 
-        return new InMemoryArtifactPublisher();
+        return $base;
     }
 }
 
