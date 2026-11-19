@@ -8,8 +8,6 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Application\Publication\FailClosedPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
-use ItPack\RunIt\Application\Publication\FailClosedPolicy;
-use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -41,7 +39,7 @@ final class FailingPublisher implements ArtifactPublisherInterface
 {
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        throw new \RuntimeException('transport unavailable');
+        throw new RuntimeException('transport unavailable');
     }
 }
 
@@ -51,7 +49,7 @@ $publisher = new FailSafeArtifactPublisher(
 );
 
 $publicationFailures = [];
-$failureHandler = static function (\Throwable $failure) use (&$publicationFailures): void {
+$failureHandler = static function (Throwable $failure) use (&$publicationFailures): void {
     $publicationFailures[] = $failure->getMessage();
     // The handler throws — the CallbackHealthReporter wrapping it will throw too,
     // triggering the fallback path.
