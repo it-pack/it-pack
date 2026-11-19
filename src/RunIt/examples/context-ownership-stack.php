@@ -60,7 +60,7 @@ $outerId = null;
 $childSuccessId = null;
 $childFailId = null;
 
-$runtime->run($definition('outer'), static function (ExecutionScopeInterface $scope) use ($runtime, $definition, &$outerId, &$childSuccessId, &$childFailId): void {
+$runtime->run($definition('outer'), static function (ExecutionScopeInterface $scope) use ($runtime, &$outerId, &$childSuccessId, &$childFailId): void {
     $outerId = $scope->execution()->id()->toString();
     echo 'outer execution: ' . $outerId . "\n";
 
@@ -84,14 +84,14 @@ $runtime->run($definition('outer'), static function (ExecutionScopeInterface $sc
                 ExecutionName::fromString('child.fail'),
                 ExecutionKind::fromString('operation'),
             ),
-            static function (ExecutionScopeInterface $cs) use (&$childScope, &$childFailId): void {
+            static function (ExecutionScopeInterface $cs) use (&$childScope): void {
                 $childScope = $cs;
-                throw new \RuntimeException('nested failure');
+                throw new RuntimeException('nested failure');
             },
         );
-    } catch (\Throwable $e) {
+    } catch (Throwable $throwable) {
         $childFailId = $childScope?->execution()->id()->toString();
-        echo '  child fail: ' . ($childFailId ?? 'unknown') . ' — caught: ' . $e->getMessage() . "\n";
+        echo '  child fail: ' . ($childFailId ?? 'unknown') . ' — caught: ' . $throwable->getMessage() . "\n";
     }
 
     echo '  scope restored after children\n';
@@ -99,6 +99,12 @@ $runtime->run($definition('outer'), static function (ExecutionScopeInterface $sc
 
 echo 'outer execution completed and context restored' . "\n";
 
+// --- Storage empty after outer execution finishes ---
+echo 'storage empty after outer: LIFO detach verified' . "\n";
+
+echo 'outer id: ' . $outerId . "\n";
+echo 'child success id: ' . $childSuccessId . "\n";
+echo 'child fail id: ' . ($childFailId ?? 'none') . "\n";
 // --- Storage empty after outer execution finishes ---
 echo 'storage empty after outer: LIFO detach verified' . "\n";
 

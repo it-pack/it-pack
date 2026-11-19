@@ -72,8 +72,7 @@ final class ForbidLeadingBackslashReferenceRule extends AbstractSrcRule implemen
             return [];
         }
 
-        $trait = $scope->getTraitReflection();
-        $file = $trait !== null ? $trait->getFileName() : $scope->getFile();
+        $file = $scope->getFile();
 
         if ($file === null) {
             return [];

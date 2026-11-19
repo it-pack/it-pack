@@ -58,7 +58,7 @@ $runIt->run(
         echo "\n";
         echo 'The business ID alone is an untrusted claim.' . "\n";
         echo 'Only the SDK-issued export ID (verified by ProvenanceAuthority)' . "\n";
-        echo 'establishes trust for this execution\'s artifacts.' . "\n";
+        echo "establishes trust for this execution's artifacts." . "\n";
     },
 );
 
@@ -75,8 +75,8 @@ try {
             echo 'second run of order.place — unverified duplicate' . "\n";
         },
     );
-} catch (\Throwable $e) {
-    echo 'duplicate identity rejected: ' . $e->getMessage() . "\n";
+} catch (Throwable $throwable) {
+    echo 'duplicate identity rejected: ' . $throwable->getMessage() . "\n";
 }
 
 echo 'provenance verification complete' . "\n";

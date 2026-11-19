@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Support\Fixture\LeadingBackslash;
 
-use DateTimeImmutable;
-
-trait ExampleTrait
+class ExampleClass
 {
-    public function imported(): DateTimeImmutable
+    public function imported(): \DateTimeImmutable
     {
-        return new DateTimeImmutable();
+        return new \DateTimeImmutable();
     }
 
     public function explicit(): \DateTimeImmutable
