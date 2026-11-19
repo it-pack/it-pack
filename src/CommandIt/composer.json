@@ -1,8 +1,8 @@
 {
     "name": "it-pack/command-it",
     "description": "A multi purpose command creation and execution library for PHP",
-    "type": "library",
     "license": "MIT",
+    "type": "library",
     "keywords": [
         "command",
         "cqrs",
@@ -11,17 +11,6 @@
         "it-pack",
         "itpack"
     ],
-    "autoload": {
-        "psr-4": {
-            "ItPack\\CommandIt\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/",
-            "Benchmarks\\": "benchmarks/"
-        }
-    },
     "authors": [
         {
             "name": "tidal",
@@ -32,45 +21,60 @@
         "issues": "https://github.com/it-pack/it-pack/issues",
         "source": "https://github.com/it-pack/it-pack/tree/main/src/CommandIt"
     },
-    "minimum-stability": "stable",
-    "prefer-stable": true,
     "require": {
         "php": "^8.4"
     },
     "require-dev": {
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
-        "phparkitect/phparkitect": "^1.2",
-        "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3",
-        "infection/codeception-adapter": "^0.4.7"
+        "codeception/module-phpbrowser": "^4.1",
+        "infection/codeception-adapter": "^0.4.7",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
+        "phparkitect/phparkitect": "^1.2"
     },
     "suggest": {
         "it-pack/command-it-run-it": "Future RunIt pipeline adapter for persisting/transporting executions",
-        "symfony/console": "Bring-your-own CLI projection adapter; see Adapter/CLI for the bridge shape",
-        "psr/log": "Bring-your-own PSR-3 observation adapter (see ExecutionReporterInterface)",
+        "psr/clock": "Bring-your-own PSR-20 clock adapter (see ClockInterface)",
         "psr/event-dispatcher": "Bring-your-own PSR-14 occurrence adapter (see ExecutionReporterInterface)",
-        "psr/clock": "Bring-your-own PSR-20 clock adapter (see ClockInterface)"
+        "psr/log": "Bring-your-own PSR-3 observation adapter (see ExecutionReporterInterface)",
+        "symfony/console": "Bring-your-own CLI projection adapter; see Adapter/CLI for the bridge shape"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "ItPack\\CommandIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Benchmarks\\": "benchmarks/",
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dantleech/what-changed": true,
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true,
+            "tbachert/spi": false
+        },
+        "audit": {
+            "abandoned": "ignore"
+        }
     },
     "scripts": {
-        "test": [
-            "@test:unit",
-            "@test:functional",
-            "@test:integration"
-        ],
-        "test:unit": "vendor/bin/codecept run Unit",
-        "test:functional": "vendor/bin/codecept run Functional",
-        "test:integration": "vendor/bin/codecept run Integration",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
+        "bc-check": "@composer what-changed",
+        "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse",
-        "architecture": "vendor/bin/phparkitect check",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=55 --min-covered-msi=65",
-        "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
-        "security:audit": "@composer audit",
-        "bc-check": "@composer what-changed",
         "quality": [
             "@composer validate --strict",
             "@cs:check",
@@ -78,19 +82,15 @@
             "@architecture",
             "@test",
             "@security:audit"
-        ]
-    },
-    "config": {
-        "audit": {
-            "abandoned": "ignore"
-        },
-        "allow-plugins": {
-            "infection/extension-installer": true,
-            "dantleech/what-changed": true,
-            "php-http/discovery": true,
-            "tbachert/spi": false,
-            "phpstan/extension-installer": true,
-            "ergebnis/composer-normalize": true
-        }
+        ],
+        "security:audit": "@composer audit",
+        "test": [
+            "@test:unit",
+            "@test:functional",
+            "@test:integration"
+        ],
+        "test:functional": "vendor/bin/codecept run Functional",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:unit": "vendor/bin/codecept run Unit"
     }
 }

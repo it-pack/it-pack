@@ -2,10 +2,23 @@
     "name": "it-pack/derive-it",
     "description": "Derives clean, self-contained interfaces from third-party PHP classes via class graph flattening (ports & adapters).",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
     "require": {
         "php": "^8.5",
         "nette/php-generator": "^4.2",
         "psr/cache": "^1.0 || ^2.0 || ^3.0"
+    },
+    "require-dev": {
+        "codeception/module-asserts": "^3.3",
+        "infection/codeception-adapter": "^0.4.7",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -14,57 +27,23 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Foreign\\": "tests/Support/Fixture/foreign/",
             "Tests\\": "tests/",
             "_Fixture\\": "fixtures/",
-            "_Vendor\\": "fixtures/",
-            "Foreign\\": "tests/Support/Fixture/foreign/"
+            "_Vendor\\": "fixtures/"
         }
     },
     "bin": [
         "bin/derive"
     ],
-    "authors": [
-        {
-            "name": "tidal",
-            "email": "timomichna@yahoo.de"
-        }
-    ],
-    "require-dev": {
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "phparkitect/phparkitect": "^1.2",
-        "codeception/module-asserts": "^3.3",
-        "infection/codeception-adapter": "^0.4.7"
-    },
     "config": {
-        "process-timeout": 0,
         "allow-plugins": {
-            "infection/extension-installer": true,
             "dantleech/what-changed": true,
-            "phpstan/extension-installer": true,
-            "ergebnis/composer-normalize": true
-        }
-    },
-    "scripts": {
-        "test": "vendor/bin/codecept run Unit",
-        "test:unit": "vendor/bin/codecept run Unit",
-        "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
-        "coverage:check": "vendor/bin/codecept run Unit --coverage-xml --coverage-html && php scripts/coverage_report.php --min=96",
-        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
-        "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "cs:lines": "vendor/bin/phpcs --standard=phpcs.xml.dist src tests",
-        "analyse": "vendor/bin/phpstan analyse",
-        "architecture": "vendor/bin/phparkitect check",
-        "mutation": "vendor/bin/infection --min-msi=80",
-        "security:audit": "@composer audit",
-        "quality": [
-            "@cs:check",
-            "@analyse",
-            "@architecture",
-            "@test:unit",
-            "@mutation",
-            "@security:audit"
-        ]
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "phpstan/extension-installer": true
+        },
+        "process-timeout": 0
     },
     "extra": {
         "phpstan": {
@@ -72,5 +51,26 @@
                 "extension.neon"
             ]
         }
+    },
+    "scripts": {
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
+        "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
+        "coverage:check": "vendor/bin/codecept run Unit --coverage-xml --coverage-html && php scripts/coverage_report.php --min=96",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "cs:lines": "vendor/bin/phpcs --standard=phpcs.xml.dist src tests",
+        "mutation": "vendor/bin/infection --min-msi=80",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test:unit",
+            "@mutation",
+            "@security:audit"
+        ],
+        "security:audit": "@composer audit",
+        "test": "vendor/bin/codecept run Unit",
+        "test:unit": "vendor/bin/codecept run Unit"
     }
 }

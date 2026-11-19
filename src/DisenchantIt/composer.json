@@ -44,9 +44,6 @@
         }
     },
     "config": {
-        "sort-packages": true,
-        "optimize-autoloader": false,
-        "preferred-install": "dist",
         "allow-plugins": {
             "dantleech/what-changed": true,
             "ergebnis/composer-normalize": true,
@@ -54,24 +51,18 @@
             "php-http/discovery": true,
             "phpstan/extension-installer": true,
             "tbachert/spi": false
-        }
+        },
+        "optimize-autoloader": false,
+        "preferred-install": "dist",
+        "sort-packages": true
     },
     "scripts": {
-        "test": "vendor/bin/codecept run",
-        "test:unit": "vendor/bin/codecept run Unit",
-        "test:integration": "vendor/bin/codecept run Integration",
-        "test:acceptance": "vendor/bin/codecept run Acceptance",
-        "test:coverage": "vendor/bin/codecept run --coverage --coverage-html",
         "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "architecture": "vendor/bin/phparkitect check",
         "mutation": "vendor/bin/infection --min-msi=80",
         "mutation:ci": "vendor/bin/infection --min-msi=0 --no-interaction",
-        "rector": "vendor/bin/rector",
-        "refactor": "@rector process",
-        "refactor:dry": "@rector process --dry-run",
-        "security:audit": "@composer audit",
         "quality": [
             "@cs:check",
             "@analyse",
@@ -79,6 +70,15 @@
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "rector": "vendor/bin/rector",
+        "refactor": "@rector process",
+        "refactor:dry": "@rector process --dry-run",
+        "security:audit": "@composer audit",
+        "test": "vendor/bin/codecept run",
+        "test:acceptance": "vendor/bin/codecept run Acceptance",
+        "test:coverage": "vendor/bin/codecept run --coverage --coverage-html",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:unit": "vendor/bin/codecept run Unit"
     }
 }

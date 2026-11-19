@@ -1,8 +1,8 @@
 {
     "name": "it-pack/configure-it-runit",
     "description": "RunIt execution-model integration for ConfigureIt \u2014 bridges configuration resolution onto a RunIt execution so resolution appears as a first-class execution with activities, measurements, observations, occurrences, and a terminal snapshot.",
-    "type": "library",
     "license": "MIT",
+    "type": "library",
     "keywords": [
         "configure-it",
         "run-it",
@@ -12,6 +12,12 @@
         "it-pack",
         "itpack"
     ],
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
     "require": {
         "php": "^8.5",
         "it-pack/configure-it": "^1.1",
@@ -20,14 +26,16 @@
     "require-dev": {
         "codeception/codeception": "^5.0",
         "codeception/module-asserts": "^3.3",
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
         "infection/codeception-adapter": "^0.4",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
+        "nyholm/psr7": "^1.8",
         "phparkitect/phparkitect": "^1.2",
-        "symfony/http-client": "^8.1",
-        "nyholm/psr7": "^1.8"
+        "symfony/http-client": "^8.1"
     },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "ItPack\\ConfigureItRunit\\": "src/"
@@ -38,32 +46,22 @@
             "ItPack\\ConfigureItRunit\\Tests\\": "tests/"
         }
     },
-    "authors": [
-        {
-            "name": "tidal",
-            "email": "timomichna@yahoo.de"
-        }
-    ],
-    "minimum-stability": "stable",
-    "prefer-stable": true,
     "config": {
         "allow-plugins": {
-            "infection/extension-installer": true,
-            "phpstan/extension-installer": true,
             "dantleech/what-changed": true,
-            "tbachert/spi": false,
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
             "php-http/discovery": true,
-            "ergebnis/composer-normalize": true
+            "phpstan/extension-installer": true,
+            "tbachert/spi": false
         }
     },
     "scripts": {
-        "test": "vendor/bin/codecept run",
-        "test:unit": "vendor/bin/codecept run Unit",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=80 --no-interaction",
-        "security:audit": "@composer audit",
         "quality": [
             "@cs:check",
             "@analyse",
@@ -72,6 +70,8 @@
             "@mutation",
             "@security:audit"
         ],
-        "architecture": "vendor/bin/phparkitect check"
+        "security:audit": "@composer audit",
+        "test": "vendor/bin/codecept run",
+        "test:unit": "vendor/bin/codecept run Unit"
     }
 }

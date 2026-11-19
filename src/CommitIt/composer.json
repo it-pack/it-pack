@@ -1,9 +1,9 @@
 {
     "name": "it-pack/commit-it",
-    "version": "1.1.1",
     "description": "A multipurpose VCS API and SDK for different VCS systems (starting with git)",
-    "type": "library",
     "license": "MIT",
+    "type": "library",
+    "version": "1.1.1",
     "keywords": [
         "vcs",
         "git",
@@ -11,16 +11,6 @@
         "it-pack",
         "itpack"
     ],
-    "autoload": {
-        "psr-4": {
-            "ItPack\\CommitIt\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
-    },
     "authors": [
         {
             "name": "tidal",
@@ -31,37 +21,50 @@
         "issues": "https://github.com/it-pack/it-pack/issues",
         "source": "https://github.com/it-pack/it-pack/tree/main/src/CommitIt"
     },
-    "minimum-stability": "stable",
-    "prefer-stable": true,
     "require": {
         "php": "^8.4",
         "czproject/git-php": "^4.6"
     },
     "require-dev": {
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
-        "phparkitect/phparkitect": "^1.2",
-        "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3",
-        "infection/codeception-adapter": "^0.4.7"
+        "codeception/module-phpbrowser": "^4.1",
+        "infection/codeception-adapter": "^0.4.7",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
+        "phparkitect/phparkitect": "^1.2"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "ItPack\\CommitIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dantleech/what-changed": true,
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true,
+            "tbachert/spi": false
+        },
+        "process-timeout": 1800
     },
     "scripts": {
-        "validate": "@composer validate --strict",
-        "test": [
-            "@test:unit",
-            "@test:functional"
-        ],
-        "test:unit": "vendor/bin/codecept run Unit",
-        "test:functional": "vendor/bin/codecept run Functional",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "coverage:all": "vendor/bin/codecept run Unit,Functional --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse",
-        "architecture": "vendor/bin/phparkitect check",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --test-framework=codeception --test-framework-extra-args=Unit --threads=2",
-        "security:audit": "@composer audit",
         "quality": [
             "@validate",
             "@cs:check",
@@ -77,17 +80,14 @@
             "@architecture",
             "@coverage:all",
             "@mutation"
-        ]
-    },
-    "config": {
-        "process-timeout": 1800,
-        "allow-plugins": {
-            "infection/extension-installer": true,
-            "php-http/discovery": true,
-            "dantleech/what-changed": true,
-            "tbachert/spi": false,
-            "phpstan/extension-installer": true,
-            "ergebnis/composer-normalize": true
-        }
+        ],
+        "security:audit": "@composer audit",
+        "test": [
+            "@test:unit",
+            "@test:functional"
+        ],
+        "test:functional": "vendor/bin/codecept run Functional",
+        "test:unit": "vendor/bin/codecept run Unit",
+        "validate": "@composer validate --strict"
     }
 }
