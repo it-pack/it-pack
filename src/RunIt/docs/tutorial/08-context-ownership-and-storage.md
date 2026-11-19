@@ -83,8 +83,15 @@ use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
 
 final class MainStackDetector implements RuntimeContextDetectorInterface
 {
-    public function inCoroutine(): bool { return false; }
-    public function inFiber(): bool    { return false; }
+    public function inCoroutine(): bool
+    {
+        return \extension_loaded('swoole') || \extension_loaded('openswoole');
+    }
+
+    public function inFiber(): bool
+    {
+        return \Fiber::getCurrent() !== null;
+    }
 }
 
 $storage = new CompositeContextStorage(

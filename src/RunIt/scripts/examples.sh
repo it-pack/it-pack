@@ -39,12 +39,6 @@ for f in examples/*.php; do
                 skip=1
             fi
             ;;
-        swoole.php)
-            if ! extension_loaded "swoole"; then
-                echo "==> SKIP $f (ext-swoole not installed)"
-                skip=1
-            fi
-            ;;
         cloudevents.php)
             if ! class_exists "Nyholm\\Psr7\\Factory\\Psr17Factory"; then
                 echo "==> SKIP $f (nyholm/psr7 not installed)"

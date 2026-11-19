@@ -52,7 +52,7 @@ $runIt->run($definition('main.stack'), static function (ExecutionScopeInterface 
     echo 'main stack execution: ' . $scope->execution()->id()->toString() . "\n";
 });
 
-// --- Fiber A: open an execution, suspend, then resume ---
+// --- Fiber A: open an execution, suspend while it is open ---
 $fiberScopeIdA = null;
 $fiberA = new Fiber(static function () use ($runIt, $definition, &$fiberScopeIdA): void {
     $runIt->run($definition('fiber.a'), static function (ExecutionScopeInterface $scope) use (&$fiberScopeIdA): void {

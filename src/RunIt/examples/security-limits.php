@@ -8,6 +8,7 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -61,26 +62,38 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 );
 
 $runIt->run($definition('bounded.op'), static function (ExecutionScopeInterface $scope) use ($limits): void {
-    // Attribute within limit — passes through unchanged.
-    $scope->observations()->record(
-        'within limit',
-        ObservationSeverity::Info,
-        AttributeCollection::fromArray(['ok' => 'short']),
-    );
+    // Attribute within limit — successful construction control.
+    try {
+        $attrs = AttributeCollection::fromArray(['ok' => 'short'], limits: $limits);
+        $scope->observations()->record(
+            'within limit',
+            ObservationSeverity::Info,
+            $attrs,
+        );
+        echo 'within-limit attribute accepted' . "\n";
+    } catch (InvalidAttributeException $invalidAttributeException) {
+        echo 'within-limit attribute unexpectedly rejected: ' . $invalidAttributeException->getMessage() . "\n";
+    }
 
-    // Attribute exceeding 16-byte value limit — replaced with marker.
-    $scope->observations()->record(
-        'oversized value',
-        ObservationSeverity::Info,
-        AttributeCollection::fromArray(['too_long' => 'this-value-is-way-too-long']),
-    );
+    // Attribute exceeding 16-byte value limit — rejected.
+    try {
+        $attrs = AttributeCollection::fromArray(['too_long' => 'this-value-is-way-too-long'], limits: $limits);
+        $scope->observations()->record(
+            'oversized value',
+            ObservationSeverity::Info,
+            $attrs,
+        );
+        echo 'oversized attribute unexpectedly accepted' . "\n";
+    } catch (InvalidAttributeException $invalidAttributeException) {
+        echo 'oversized attribute rejected: ' . $invalidAttributeException->getMessage() . "\n";
+    }
 
     echo 'security limits active:' . "\n";
     echo '  max attribute count:   ' . $limits->maxAttributeCount . "\n";
     echo '  max attribute value:   ' . $limits->maxAttributeValueBytes . ' bytes' . "\n";
     echo '  max snapshot payload:  ' . $limits->maxSnapshotPayloadBytes . ' bytes' . "\n";
     echo '  max occurrence payload:' . $limits->maxOccurrencePayloadBytes . ' bytes' . "\n";
-    echo 'oversized artifacts are dropped/replaced with payload-free marker' . "\n";
+    echo 'oversized attributes are rejected with InvalidAttributeException' . "\n";
     echo 'limits are fail-closed — nothing oversized reaches external sinks' . "\n";
 });
 

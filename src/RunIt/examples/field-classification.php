@@ -13,12 +13,11 @@ use ItPack\RunIt\Application\Publication\DefaultMeasurementClassifier;
 use ItPack\RunIt\Application\Publication\DefaultObservationClassifier;
 use ItPack\RunIt\Application\Publication\DefaultOccurrenceClassifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
-use ItPack\RunIt\Domain\Observation\ObservationSeverity;
-use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Measurement\MeasurementName;
+use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
@@ -68,22 +67,24 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
 
 // --- Unclassified measurement: dropped before sampling ---
 $runIt->run($definition('measured.unclassified'), static function (ExecutionScopeInterface $scope): void {
-    $scope->observations()->record(
-        'unclassified measurement recorded — will be dropped before sampling',
-        ObservationSeverity::Info,
+    $scope->measurements()->gauge(
+        MeasurementName::fromString('order.latency'),
+        42.5,
+        MeasurementUnit::Milliseconds,
         AttributeCollection::fromArray(['case' => 'unclassified']),
     );
     echo 'unclassified measurement: dropped before sampling (delivery loss)' . "\n";
 });
 
-// --- Classified observation: passes through ---
-$runIt->run($definition('classified.ok'), static function (ExecutionScopeInterface $scope): void {
-    $scope->observations()->record(
-        'classified observation — passes through',
-        ObservationSeverity::Info,
+// --- Classified measurement: passes through ---
+$runIt->run($definition('measured.classified'), static function (ExecutionScopeInterface $scope): void {
+    $scope->measurements()->gauge(
+        MeasurementName::fromString('order.latency'),
+        42.5,
+        MeasurementUnit::Milliseconds,
         AttributeCollection::fromArray(['case' => 'classified']),
     );
-    echo 'classified observation: reaches the sink' . "\n";
+    echo 'classified measurement: reaches the sink' . "\n";
 });
 
 echo 'field classification complete' . "\n";

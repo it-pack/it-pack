@@ -84,19 +84,13 @@ $capturedMainScopeId = null;
 $capturedFiberScopeId = null;
 
 // --- Fiber with overlapping lifetimes: suspend, run another, resume ---
-$fiber = new Fiber(static function () use ($runIt, $definition, &$capturedFiberScopeId): void {
-    $fiberScopeId = null;
-    $runIt->run($definition('fiber.work'), static function (ExecutionScopeInterface $scope) use (&$fiberScopeId): void {
-        $fiberScopeId = $scope->execution()->id()->toString();
-        echo 'fiber execution started: ' . $fiberScopeId . "\n";
+$fiber = new Fiber(static function () use ($runIt, $definition, $storage): void {
+    $runIt->run($definition('fiber.work'), static function (ExecutionScopeInterface $scope) use ($storage): void {
+        echo 'fiber execution started: ' . $scope->execution()->id()->toString() . "\n";
+        echo 'ambient context before suspend: ' . ($storage->current()?->execution()->id()->toString() ?? 'none') . "\n";
+        Fiber::suspend('fiber.suspended');
+        echo 'ambient context after resume: ' . ($storage->current()?->execution()->id()->toString() ?? 'none') . "\n";
     });
-
-    // Suspend: yield control back to main stack while fiber execution is open.
-    Fiber::suspend('fiber.suspended');
-
-    // Resume: the fiber execution scope is still the active scope.
-    echo 'fiber execution resumed: ' . $fiberScopeId . "\n";
-    $capturedFiberScopeId = $fiberScopeId;
 });
 
 $result = $fiber->start();

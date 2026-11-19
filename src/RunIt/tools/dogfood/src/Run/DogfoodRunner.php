@@ -70,6 +70,14 @@ final readonly class DogfoodRunner
                     $durationMs = max(0, (int) ((hrtime(true) - $startedAt) / 1_000_000));
                     $result = $process;
 
+                    // Observation fields (exit_code, duration_ms, stdout_bytes,
+                    // stderr_bytes) are delivered through the default SDK publication
+                    // stack via $scope->observations()->record(). They pass through
+                    // DefaultObservationClassifier before reaching the sink; fields
+                    // not on the classifier allowlist are dropped. The default SDK
+                    // stack does not guarantee delivery of arbitrary observation
+                    // attributes — configure DefaultObservationClassifier explicitly
+                    // if these fields must be preserved.
                     $scope->observations()->record(
                         sprintf(
                             'dogfood tool %s: exit=%d duration_ms=%d stdout_bytes=%d stderr_bytes=%d',

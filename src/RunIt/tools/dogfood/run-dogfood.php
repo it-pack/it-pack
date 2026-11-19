@@ -12,9 +12,10 @@ declare(strict_types=1);
  *
  * Phase 2 showcase: dogfood configures publication security end-to-end — a custom
  * redactor masks sensitive keys, security limits bound artifact data, and a
- * publication failure handler contains any transport fault without replacing the
- * tool outcome. Metrics are recorded as observations (not measurements) so they
- * pass through every classifier in the publication stack without triggering
+ * publication failure handler contains transport faults within the SDK publication
+ * boundary handled by runTool() catch blocks. Flush() and close() failures are not
+ * contained by this handler. Metrics are recorded as observations (not measurements)
+ * so they pass through every classifier in the publication stack without triggering
  * `DefaultMeasurementClassifier`'s delivery-loss report.
  *
  * Run from the package root: `composer dogfood`
@@ -49,7 +50,7 @@ $limits = SecurityLimits::default()
     ->withMaxAttributeCount(8)
     ->withMaxAttributeValueBytes(256)
     ->withMaxSnapshotPayloadBytes(4096)
-    ->withMaxOccurrencePayloadBytes(2048)
+    ->withMaxOccurrencePayloadBytes(8192)
 ;
 
 // Phase 2: custom redactor masks sensitive attribute/data keys before publication.

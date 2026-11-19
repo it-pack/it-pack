@@ -65,7 +65,7 @@ $definition = static fn (string $name): ExecutionDefinition => ExecutionDefiniti
     ExecutionKind::fromString('operation'),
 );
 
-$runIt->run($definition('redacted.op'), static function (ExecutionScopeInterface $scope): void {
+$runIt->run($definition('redacted.op'), static function (ExecutionScopeInterface $scope) use ($publisher): void {
     $scope->observations()->record(
         'Processing payment for user alice@example.com',
         ObservationSeverity::Info,
@@ -75,7 +75,7 @@ $runIt->run($definition('redacted.op'), static function (ExecutionScopeInterface
     echo "observation recorded with sensitive attributes\n";
     echo "credit_card and email are masked before publication\n";
     echo "observation message is redacted by default\n";
-    echo "order_id passes through unredacted\n";
+    echo 'classified projection contents: ' . json_encode($publisher->published()) . "\n";
 });
 
 echo "redaction complete\n";

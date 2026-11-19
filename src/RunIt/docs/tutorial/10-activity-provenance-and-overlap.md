@@ -14,6 +14,10 @@ RunIt solves this by resolving activity context **per-recorder call** through
 fiber-local `ActivityContextStorageInterface`, not once at scope construction.
 Each recorder re-resolves the owning activity on every call.
 
+The default builder configures synchronous stack activity storage — it is not
+fiber-local. Concurrent Fiber or coroutine use requires explicitly configured
+runtime-aware execution and activity storage (see Tutorial 8).
+
 ## Overlapping activities
 
 ```php
@@ -39,6 +43,7 @@ $runtime = RunItBuilder::create()
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
     ->withContextStorage(new FiberContextStorage())
+    ->withActivityContextStorage(new FiberContextStorage())
     ->build()
 ;
 
@@ -57,12 +62,32 @@ $runtime->run(
         ExecutionKind::fromString('operation'),
     ),
     static function ($scope) use ($activityA, $activityB): void {
-        $scope->activities()->run($activityA, static function ($a): void {
-            $a->observations()->record('from A', ObservationSeverity::Info);
+        $obsA = null;
+        $obsB = null;
+
+        $fiberA = new Fiber(static function () use ($scope, $activityA, &$obsA): void {
+            $scope->activities()->run($activityA, static function ($a) use (&$obsA): void {
+                $obsA = $a->observations()->record('from A', ObservationSeverity::Info);
+                Fiber::suspend('a.suspended');
+            });
         });
-        $scope->activities()->run($activityB, static function ($b): void {
-            $b->observations()->record('from B', ObservationSeverity::Info);
+
+        $fiberB = new Fiber(static function () use ($scope, $activityB, &$obsB): void {
+            $scope->activities()->run($activityB, static function ($b) use (&$obsB): void {
+                $obsB = $b->observations()->record('from B', ObservationSeverity::Info);
+                Fiber::suspend('b.suspended');
+            });
         });
+
+        $fiberA->start();
+        $fiberB->start();
+        $fiberA->resume();
+        $fiberB->resume();
+
+        echo 'A and B activity ids differ: ' . (
+            $obsA?->activityId()?->toString() !== $obsB?->activityId()?->toString()
+                ? 'yes' : 'no'
+        ) . "\n";
     },
 );
 ```

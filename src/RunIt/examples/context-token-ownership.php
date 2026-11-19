@@ -56,6 +56,8 @@ $tokenA = null;
 $runtimeA->run($definition('scope-a'), static function (ExecutionScopeInterface $scope) use (&$tokenA, $storageA): void {
     $tokenA = $storageA->attach($scope);
     echo 'attached scope-a, token id: ' . $tokenA->id() . "\n";
+    $storageA->detach($tokenA);
+    echo 'detached scope-a within its run() callback\n';
 });
 
 // --- Attach in storage B (different instance) ---
@@ -63,20 +65,18 @@ $tokenB = null;
 $runtimeB->run($definition('scope-b'), static function (ExecutionScopeInterface $scope) use (&$tokenB, $storageB): void {
     $tokenB = $storageB->attach($scope);
     echo 'attached scope-b, token id: ' . $tokenB->id() . "\n";
+    $storageB->detach($tokenB);
+    echo 'detached scope-b within its run() callback\n';
 });
 
 // --- id() may collide across storages; exact reference is what matters ---
 echo 'tokenA id: ' . $tokenA->id() . ', tokenB id: ' . $tokenB->id() . "\n";
 echo 'ids match: ' . (($tokenA->id() === $tokenB->id()) ? 'yes (coincidental)' : 'no') . "\n";
 
-// --- Detaching storage A's scope with storage B's token is rejected ---
+// --- Cross-storage check while both tokens are detached ---
 try {
     $storageA->detach($tokenB);
     echo "ERROR: foreign token was accepted (should not happen)\n";
 } catch (Throwable $throwable) {
     echo 'foreign token correctly rejected: ' . $throwable->getMessage() . "\n";
 }
-
-// --- Detach with the correct token restores the scope ---
-$storageA->detach($tokenA);
-echo "correct token detached scope-a cleanly\n";

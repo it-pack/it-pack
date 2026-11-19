@@ -59,7 +59,7 @@ $runIt->run($definition('snapshot.op'), static function (ExecutionScopeInterface
     );
 
     echo "snapshot recorded; payload omitted before sampling\n";
-    echo "structural fields retained: ID, type, relationships\n";
+    echo "structural fields retained: IDs, relationships, classification, created_at, sequence\n";
     echo "content hash omitted (payload no longer present)\n";
 });
 

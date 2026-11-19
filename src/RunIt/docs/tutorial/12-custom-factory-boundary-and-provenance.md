@@ -85,7 +85,10 @@ diagnostics via `error_log`. No exception messages or artifact identifiers leak:
 
 ```php
 $runtime = RunItBuilder::create()
-    ->withPublisher(new InMemoryArtifactPublisher())
+    ->withPublisher(new FailSafeArtifactPublisher(
+        new FailingPublisher(),
+        new FailClosedPolicy(),
+    ))
     ->withClock(new SystemMonotonicClock())
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
@@ -97,6 +100,16 @@ $runtime = RunItBuilder::create()
     })
     ->build()
 ;
+
+$runtime->run(
+    ExecutionDefinition::create(
+        ExecutionName::fromString('failure.test'),
+        ExecutionKind::fromString('operation'),
+    ),
+    static function ($scope): void {
+        $scope->observations()->record('before failure', ObservationSeverity::Info);
+    },
+);
 ```
 
 A failing publisher triggers the handler:

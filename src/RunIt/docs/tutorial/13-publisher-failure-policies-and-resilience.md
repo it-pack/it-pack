@@ -6,7 +6,10 @@ business exception, and how nested execution policies resolve.
 ## Publisher failure policies
 
 `FailSafeArtifactPublisher` wraps the inner publisher and applies a failure policy
-when it throws. The original business exception and result are always preserved:
+when it throws. The original business exception and result are always preserved on
+SDK paths that enforce it; standalone publisher use may propagate a transport error
+unless an enclosing boundary contains it. `FailClosedPolicy::handle()` itself does
+not preserve the business result — it decides whether the transport error rethrows.
 
 | Policy | Behavior |
 |---|---|

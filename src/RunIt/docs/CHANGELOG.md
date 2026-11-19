@@ -37,7 +37,11 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   Reentrant-storage hardening is complete; the overlapping-activity provenance
   blocker is resolved and all Phase 2 checks pass. The execution-wide
   open-activity limit is unchanged.
-- Phase 2 (publication security and artifact routing) is complete. The SDK builder
+- Phase 2 (publication security and artifact routing) is complete subject to
+  clearing the aggregate `composer quality` gate, which is blocked on pre-existing
+  failures (`cs:check` on `ProvenanceAuthority.php`, `refactor:dry` on
+  `RemoveUselessParamTagRector`, and `composer test` due to missing
+  `tests/Functional/_bootstrap.php`). Individual suites pass. The SDK builder
   checks provenance, invokes a configured custom redactor on the original artifact,
   then verifies and projects its output and applies strict classifiers before the
   configured stack, regardless of whether the redactor is custom or null. Ordinary
