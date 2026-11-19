@@ -48,11 +48,12 @@
         "optimize-autoloader": false,
         "preferred-install": "dist",
         "allow-plugins": {
-            "php-http/discovery": true,
-            "tbachert/spi": false,
-            "infection/extension-installer": true,
             "dantleech/what-changed": true,
-            "phpstan/extension-installer": true
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true,
+            "tbachert/spi": false
         }
     },
     "scripts": {

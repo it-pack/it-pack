@@ -24,7 +24,9 @@
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "infection/codeception-adapter": "^0.4",
-        "phparkitect/phparkitect": "^1.2"
+        "phparkitect/phparkitect": "^1.2",
+        "symfony/http-client": "^8.1",
+        "nyholm/psr7": "^1.8"
     },
     "autoload": {
         "psr-4": {
@@ -49,7 +51,9 @@
             "infection/extension-installer": true,
             "phpstan/extension-installer": true,
             "dantleech/what-changed": true,
-            "tbachert/spi": false
+            "tbachert/spi": false,
+            "php-http/discovery": true,
+            "ergebnis/composer-normalize": true
         }
     },
     "scripts": {

@@ -89,7 +89,8 @@
             "dantleech/what-changed": true,
             "php-http/discovery": true,
             "tbachert/spi": false,
-            "phpstan/extension-installer": true
+            "phpstan/extension-installer": true,
+            "ergebnis/composer-normalize": true
         }
     }
 }
