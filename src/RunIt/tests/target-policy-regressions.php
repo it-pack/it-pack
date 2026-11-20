@@ -245,6 +245,7 @@ $check($reports === $previousReports + 1, 'health reporting resumes for a subseq
 
 foreach (OverflowStrategy::cases() as $strategy) {
     foreach (['oversized', 'projected'] as $scenario) {
+        $clock = new DeterministicMonotonicClock(1000, 0);
         $buffer = new BufferedArtifactPublisher(
             new BufferConfiguration(
                 maxItems: 10,
@@ -256,8 +257,11 @@ foreach (OverflowStrategy::cases() as $strategy) {
                 overflow: $strategy,
             ),
             new InMemoryArtifactPublisher(),
-            new DeterministicMonotonicClock(1000, 0),
+            $clock,
             new DeterministicArtifactByteEstimator(60, ['oversized' => 101]),
+            sleep: static function (int $microseconds) use ($clock): void {
+                $clock->advanceNanoseconds($microseconds * 1000);
+            },
         );
         $ids = $scenario === 'oversized' ? ['oversized'] : ['first', 'second'];
         foreach ($ids as $itemId) {
@@ -335,6 +339,7 @@ $check($buffer->estimatedBytes() === 0, 'DropLowPriority high-priority accountin
 
 foreach (OverflowStrategy::cases() as $strategy) {
     $sink = new InMemoryArtifactPublisher();
+    $clock = new DeterministicMonotonicClock(1000, 0);
     $buffer = new BufferedArtifactPublisher(
         new BufferConfiguration(
             maxItems: 10,
@@ -346,8 +351,11 @@ foreach (OverflowStrategy::cases() as $strategy) {
             overflow: $strategy,
         ),
         $sink,
-        new DeterministicMonotonicClock(1000, 0),
+        $clock,
         new DeterministicArtifactByteEstimator(10, ['near-integer-limit' => PHP_INT_MAX - 5]),
+        sleep: static function (int $microseconds) use ($clock): void {
+            $clock->advanceNanoseconds($microseconds * 1000);
+        },
     );
     $buffer->publish(Observation::info(ObservationId::fromString('near-integer-limit'), $id, 'synthetic'));
     $check($buffer->estimatedBytes() === PHP_INT_MAX - 5, "{$strategy->name} integer boundary initial accounting");

@@ -28,6 +28,23 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Buffer admission now enforces projected item and estimated-byte limits, including
+  repeated eviction and blocking paths. Oversized items are reported and rejected
+  without eviction or waiting; `Fail` throws. Negative numeric buffer configuration
+  or buffer-estimator results now throw `InvalidArgumentException`; callers using
+  those values must migrate. Zero item capacity admits nothing and zero byte capacity
+  accepts zero estimates within the item limit. The default estimator still returns
+  zero on JSON encoding failure, so estimates are not actual memory guarantees.
+
+  Migration: validate or clamp numeric values before constructing `BufferConfiguration`,
+  or fall back to `BufferConfiguration::default()` for unaffected defaults. Zero is
+  accepted for `maxAgeSeconds`, `batchSize`, `flushIntervalSeconds`, and
+  `shutdownFlushBudget`; negative values for those fields and for `maxItems` or
+  `maxEstimatedBytes` now reject. Custom `ArtifactByteEstimator` implementations
+  should clamp negative results to zero or return zero on failure; the default
+  estimator already returns zero on JSON encoding failure. Drop counts, admitted
+  ordering, and exception timing at integer boundaries differ from RunIt 1.2.1, so
+  operator alerting keyed on `droppedCount` or `estimatedBytes` should be recalibrated.
 - Added a separate runtime-local activity context, with paired storage adapters,
   execution-level fallback, and opt-in strict rejection. This adds SDK
   configuration methods and changes recorder and direct-composition behavior;

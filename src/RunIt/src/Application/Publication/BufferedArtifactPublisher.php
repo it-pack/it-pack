@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
+use InvalidArgumentException;
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -95,7 +96,17 @@ final class BufferedArtifactPublisher implements
     {
         $item = $this->toItem($artifact);
 
-        if ($this->isFull()) {
+        if ($item[self::KEY_BYTES] > $this->config->maxEstimatedBytes || $this->config->maxItems === 0) {
+            if ($this->config->overflow === OverflowStrategy::Fail) {
+                $this->failOverflow($item);
+            }
+
+            $this->reportDrop($artifact);
+
+            return;
+        }
+
+        if (!$this->fits($item[self::KEY_BYTES])) {
             $this->applyOverflow($item);
 
             return;
@@ -163,6 +174,9 @@ final class BufferedArtifactPublisher implements
     {
         $enqueued = $this->clock->nowSeconds();
         $bytes = $this->byteEstimator->estimate($artifact);
+        if ($bytes < 0) {
+            throw new InvalidArgumentException('Artifact byte estimate must not be negative.');
+        }
 
         return [
             self::KEY_ATTRIBUTE => $artifact,
@@ -185,10 +199,10 @@ final class BufferedArtifactPublisher implements
         return self::PRIORITY_LOW;
     }
 
-    private function isFull(): bool
+    private function fits(int $bytes): bool
     {
-        return count($this->buffer) >= $this->config->maxItems
-            || $this->estimatedBytes >= $this->config->maxEstimatedBytes;
+        return count($this->buffer) < $this->config->maxItems
+            && $bytes <= $this->config->maxEstimatedBytes - $this->estimatedBytes;
     }
 
     /**
@@ -229,7 +243,10 @@ final class BufferedArtifactPublisher implements
      */
     private function dropOldestThenAppend(array $incoming): void
     {
-        $this->dropOldest();
+        while (!$this->fits($incoming[self::KEY_BYTES])) {
+            $this->dropOldest();
+        }
+
         $this->appendIncoming($incoming);
     }
 
@@ -244,16 +261,16 @@ final class BufferedArtifactPublisher implements
             return;
         }
 
-        $index = $this->oldestLowPriorityIndex();
+        while (!$this->fits($incoming[self::KEY_BYTES])) {
+            $index = $this->oldestLowPriorityIndex();
+            if ($index !== null) {
+                $this->removeAt($index);
+                continue;
+            }
 
-        if ($index !== null) {
-            $this->removeAt($index);
-            $this->appendIncoming($incoming);
-
-            return;
+            $this->dropOldest();
         }
 
-        $this->dropOldest();
         $this->appendIncoming($incoming);
     }
 
@@ -265,11 +282,11 @@ final class BufferedArtifactPublisher implements
         $deadline = $this->clock->monotonicNanoseconds()
             + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
 
-        while ($this->isFull() && $this->clock->monotonicNanoseconds() < $deadline) {
+        while (!$this->fits($incoming[self::KEY_BYTES]) && $this->clock->monotonicNanoseconds() < $deadline) {
             ($this->sleep)(self::SLEEP_QUANTUM_MICROSECONDS);
         }
 
-        if ($this->isFull()) {
+        if (!$this->fits($incoming[self::KEY_BYTES])) {
             $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
 
             return;

@@ -148,16 +148,20 @@ expires. Supporting that behavior requires an ownership and completion/expiry
 protocol, including concurrency and overflow semantics; the current publisher
 port provides no such acknowledgement.
 
-`BufferedArtifactPublisher` checks the current item count and estimated bytes before
-admission. The estimated-byte limit is not currently a hard bound: an incoming item can
-exceed it, including after a blocking wait or a single eviction. Estimates are not actual
-process-memory measurements. When the existing buffer is full, the configured
+`BufferedArtifactPublisher` checks both the projected item count and estimated byte
+total before admission, including after waiting or eviction. An item larger than the
+entire byte limit is reported and rejected immediately without evicting other items;
+`Fail` throws, while the other strategies drop it. Zero item capacity admits nothing;
+zero byte capacity permits zero-estimated items subject to the item limit. Negative
+configuration values and negative buffer estimates throw `InvalidArgumentException`.
+The default estimator still returns zero if JSON encoding fails, and estimates are not
+actual process-memory measurements. When an item does not fit, the configured
 `OverflowStrategy` decides what to drop:
 
 - **DropNewest** — discard the incoming artifact.
-- **DropOldest** — discard the oldest buffered artifact to make room.
+- **DropOldest** — discard oldest buffered artifacts until the incoming item fits.
 - **DropLowPriority** — discard a low-priority artifact (high-priority = error observations
-  and terminal snapshots win).
+  and terminal snapshots win); a high-priority incoming item may require multiple evictions.
 - **BlockWithTimeout** — wait briefly for space, then drop newest.
 - **Fail** — throw `BufferOverflowException` so the surrounding failure policy decides.
 
@@ -166,10 +170,9 @@ process-memory measurements. When the existing buffer is full, the configured
 reported to the internal health reporter so loss stays observable without re-entering the
 guarded pipeline.
 
-Current failure-path characterization also shows that integer overflow in byte accounting
-can leave an appended item unaccounted, and a throwing health reporter can interrupt an
-eviction before the replacement is appended. These observations describe current behavior,
-not a recommended configuration or a guarantee of future behavior.
+A throwing health reporter can interrupt an eviction before the replacement is
+appended; standalone exceptions propagate. Buffered item accounting is updated before
+the report. The configured pipeline failure policy governs exceptions raised within it.
 
 ## Recursion prevention
 
