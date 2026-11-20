@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Publication;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\DefaultArtifactByteEstimator;
@@ -103,68 +104,100 @@ final class BufferingTest extends Unit
         self::assertSame(100, $estimator->estimate($this->artifact(id: '99999999-1234-1234-1234-123456789012')));
     }
 
-    public function testNegativeConfigurationValuesAreRejectedIndividually(): void
+    /** @return iterable<string, array{int}> */
+    public static function negativeConfigurationFields(): iterable
+    {
+        yield 'maxItems' => [0];
+        yield 'maxEstimatedBytes' => [1];
+        yield 'maxAgeSeconds' => [2];
+        yield 'batchSize' => [3];
+        yield 'flushIntervalSeconds' => [4];
+        yield 'shutdownFlushBudget' => [5];
+    }
+
+    /** @return iterable<string, array{OverflowStrategy}> */
+    public static function overflowStrategies(): iterable
+    {
+        foreach (OverflowStrategy::cases() as $strategy) {
+            yield $strategy->name => [$strategy];
+        }
+    }
+
+    /** @return iterable<string, array{OverflowStrategy}> */
+    public static function replacementStrategies(): iterable
+    {
+        yield 'DropOldest' => [OverflowStrategy::DropOldest];
+        yield 'DropLowPriority' => [OverflowStrategy::DropLowPriority];
+    }
+
+    #[DataProvider('negativeConfigurationFields')]
+    public function testNegativeConfigurationValuesAreRejectedIndividually(int $index): void
     {
         $values = [10, 100, 60, 10, 5, 10];
-        foreach (array_keys($values) as $index) {
-            $invalid = $values;
-            $invalid[$index] = -1;
-            try {
-                new BufferConfiguration(...[...$invalid, OverflowStrategy::DropNewest]);
-                self::fail('Negative configuration field ' . $index . ' must be rejected.');
-            } catch (InvalidArgumentException $exception) {
-                self::assertSame('Buffer configuration values must not be negative.', $exception->getMessage());
-            }
+        $invalid = $values;
+        $invalid[$index] = -1;
+        try {
+            new BufferConfiguration(
+                $invalid[0],
+                $invalid[1],
+                $invalid[2],
+                $invalid[3],
+                $invalid[4],
+                $invalid[5],
+                OverflowStrategy::DropNewest,
+            );
+            self::fail('Negative configuration field ' . $index . ' must be rejected.');
+        } catch (InvalidArgumentException $exception) {
+            self::assertSame('Buffer configuration values must not be negative.', $exception->getMessage());
         }
     }
 
-    public function testNegativeEstimateDoesNotMutateBuffer(): void
+    #[DataProvider('overflowStrategies')]
+    public function testNegativeEstimateDoesNotMutateBuffer(OverflowStrategy $strategy): void
     {
-        foreach (OverflowStrategy::cases() as $strategy) {
-            $sink = new InMemoryArtifactPublisher();
-            $buffer = new BufferedArtifactPublisher(
-                $this->config(1, $strategy),
-                $sink,
-                new DeterministicMonotonicClock(),
-                new DeterministicArtifactByteEstimator(10, ['invalid' => -1]),
-            );
-            $first = $this->artifact(id: 'first');
-            $buffer->publish($first);
-            try {
-                $buffer->publish($this->artifact(id: 'invalid'));
-                self::fail('A negative estimate must be rejected.');
-            } catch (InvalidArgumentException) {
-                self::assertSame(1, $buffer->bufferedCount(), $strategy->name);
-                self::assertSame(10, $buffer->estimatedBytes());
-                self::assertSame(0, $buffer->droppedCount());
-            }
-
-            $buffer->flush();
-            self::assertSame([$first], $sink->published());
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, $strategy),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(10, ['invalid' => -1]),
+        );
+        $first = $this->artifact(id: 'first');
+        $buffer->publish($first);
+        try {
+            $buffer->publish($this->artifact(id: 'invalid'));
+            self::fail('A negative estimate must be rejected.');
+        } catch (InvalidArgumentException) {
+            self::assertSame(1, $buffer->bufferedCount(), $strategy->name);
+            self::assertSame(10, $buffer->estimatedBytes());
+            self::assertSame(0, $buffer->droppedCount());
         }
+
+        $buffer->flush();
+        self::assertSame([$first], $sink->published());
     }
 
-    public function testZeroItemCapacityNeverAdmitsAnArtifact(): void
+    #[DataProvider('overflowStrategies')]
+    public function testZeroItemCapacityNeverAdmitsAnArtifact(OverflowStrategy $strategy): void
     {
-        foreach (OverflowStrategy::cases() as $strategy) {
-            $buffer = new BufferedArtifactPublisher(
-                $this->config(0, $strategy),
-                new InMemoryArtifactPublisher(),
-                new DeterministicMonotonicClock(0, 1_000_000),
-                new DeterministicArtifactByteEstimator(0),
-                sleep: static function (int $microseconds): void {},
-            );
-            try {
-                $buffer->publish($this->artifact());
-                self::assertNotSame(OverflowStrategy::Fail, $strategy);
-            } catch (BufferOverflowException) {
-                self::assertSame(OverflowStrategy::Fail, $strategy);
-            }
-
-            self::assertSame(0, $buffer->bufferedCount(), $strategy->name);
-            self::assertSame(0, $buffer->estimatedBytes());
-            self::assertSame(1, $buffer->droppedCount());
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(0, $strategy),
+            new InMemoryArtifactPublisher(),
+            new DeterministicMonotonicClock(0, 1_000_000),
+            new DeterministicArtifactByteEstimator(0),
+            sleep: static function (int $microseconds): void {
+            },
+        );
+        try {
+            $buffer->publish($this->artifact());
+            self::assertNotSame(OverflowStrategy::Fail, $strategy);
+        } catch (BufferOverflowException) {
+            self::assertSame(OverflowStrategy::Fail, $strategy);
         }
+
+        self::assertSame(0, $buffer->bufferedCount(), $strategy->name);
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
     }
 
     public function testZeroByteCapacityAdmitsZeroEstimatesUpToCountLimit(): void
@@ -234,79 +267,77 @@ final class BufferingTest extends Unit
         self::assertSame(1, $buffer->droppedCount());
     }
 
-    public function testOversizedItemsAreReportedAndNeverEvictOrWait(): void
+    #[DataProvider('overflowStrategies')]
+    public function testOversizedItemsAreReportedAndNeverEvictOrWait(OverflowStrategy $strategy): void
     {
-        foreach (OverflowStrategy::cases() as $strategy) {
-            $sink = new InMemoryArtifactPublisher();
-            $health = new class () implements InternalHealthReporterInterface {
-                /** @var list<array{Throwable, ?ExecutionArtifactInterface}> */
-                public array $reported = [];
+        $sink = new InMemoryArtifactPublisher();
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<array{Throwable, ?ExecutionArtifactInterface}> */
+            public array $reported = [];
 
-                public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
-                {
-                    $this->reported[] = [$error, $artifact];
-                }
-            };
-            $waits = 0;
-            $buffer = new BufferedArtifactPublisher(
-                $this->config(10, $strategy, maxBytes: 100),
-                $sink,
-                new DeterministicMonotonicClock(1_000, 0),
-                new DeterministicArtifactByteEstimator(60, ['oversized' => 101]),
-                $health,
-                sleep: static function (int $microseconds) use (&$waits): void {
-                    ++$waits;
-                },
-            );
-            $first = $this->artifact(id: 'first');
-            $oversized = $this->artifact(id: 'oversized');
-            $buffer->publish($first);
-            try {
-                $buffer->publish($oversized);
-                self::assertNotSame(OverflowStrategy::Fail, $strategy, 'Fail must throw');
-            } catch (BufferOverflowException) {
-                self::assertSame(OverflowStrategy::Fail, $strategy);
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = [$error, $artifact];
             }
-
-            self::assertSame(60, $buffer->estimatedBytes(), $strategy->name);
-            self::assertSame(1, $buffer->bufferedCount());
-            self::assertSame(1, $buffer->droppedCount());
-            self::assertCount(1, $health->reported);
-            self::assertInstanceOf(BufferOverflowException::class, $health->reported[0][0]);
-            self::assertSame($oversized, $health->reported[0][1]);
-            self::assertSame(0, $waits);
-            $buffer->flush();
-            self::assertSame([$first], $sink->published());
-            self::assertSame(0, $buffer->estimatedBytes());
+        };
+        $waits = 0;
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, $strategy, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(1_000, 0),
+            new DeterministicArtifactByteEstimator(60, ['oversized' => 101]),
+            $health,
+            sleep: static function (int $microseconds) use (&$waits): void {
+                ++$waits;
+            },
+        );
+        $first = $this->artifact(id: 'first');
+        $oversized = $this->artifact(id: 'oversized');
+        $buffer->publish($first);
+        try {
+            $buffer->publish($oversized);
+            self::assertNotSame(OverflowStrategy::Fail, $strategy, 'Fail must throw');
+        } catch (BufferOverflowException) {
+            self::assertSame(OverflowStrategy::Fail, $strategy);
         }
+
+        self::assertSame(60, $buffer->estimatedBytes(), $strategy->name);
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(1, $buffer->droppedCount());
+        self::assertCount(1, $health->reported);
+        self::assertInstanceOf(BufferOverflowException::class, $health->reported[0][0]);
+        self::assertSame($oversized, $health->reported[0][1]);
+        self::assertSame(0, $waits);
+        $buffer->flush();
+        self::assertSame([$first], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
     }
 
-    public function testByteOverflowReplacementEvictsUntilIncomingFits(): void
+    #[DataProvider('replacementStrategies')]
+    public function testByteOverflowReplacementEvictsUntilIncomingFits(OverflowStrategy $strategy): void
     {
-        foreach ([OverflowStrategy::DropOldest, OverflowStrategy::DropLowPriority] as $strategy) {
-            $sink = new InMemoryArtifactPublisher();
-            $buffer = new BufferedArtifactPublisher(
-                $this->config(10, $strategy, maxBytes: 100),
-                $sink,
-                new DeterministicMonotonicClock(1_000, 0),
-                new DeterministicArtifactByteEstimator(50, ['incoming' => 80]),
-            );
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, $strategy, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(1_000, 0),
+            new DeterministicArtifactByteEstimator(50, ['incoming' => 80]),
+        );
 
-            $first = $this->artifact(id: 'first');
-            $second = $this->artifact(id: 'second');
-            $incoming = $this->artifact('error', 'incoming');
-            $buffer->publish($first);
-            $buffer->publish($second);
-            self::assertSame(100, $buffer->estimatedBytes());
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $incoming = $this->artifact('error', 'incoming');
+        $buffer->publish($first);
+        $buffer->publish($second);
+        self::assertSame(100, $buffer->estimatedBytes());
 
-            $buffer->publish($incoming);
-            self::assertSame(80, $buffer->estimatedBytes(), $strategy->name);
-            self::assertSame(1, $buffer->bufferedCount());
-            self::assertSame(2, $buffer->droppedCount());
-            $buffer->flush();
-            self::assertSame([$incoming], $sink->published());
-            self::assertSame(0, $buffer->estimatedBytes());
-        }
+        $buffer->publish($incoming);
+        self::assertSame(80, $buffer->estimatedBytes(), $strategy->name);
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(2, $buffer->droppedCount());
+        $buffer->flush();
+        self::assertSame([$incoming], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
     }
 
     public function testIntegerOverflowDuringAdmissionDropsIncomingWithoutCorruptingAccounting(): void

@@ -83,9 +83,9 @@ final class StringValueValidatorTest extends Unit
             $caught = $throwable;
         }
 
-        self::assertInstanceOf(InvalidStringValueException::class, $caught);
-        self::assertInstanceOf(InvalidValueExceptionInterface::class, $caught);
         self::assertInstanceOf(RunItExceptionInterface::class, $caught);
+        self::assertInstanceOf(InvalidValueExceptionInterface::class, $caught);
+        self::assertInstanceOf(InvalidStringValueException::class, $caught);
     }
 
     #[DataProvider('rejectedProvider')]
