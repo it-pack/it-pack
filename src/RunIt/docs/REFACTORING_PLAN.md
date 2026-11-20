@@ -1754,6 +1754,74 @@ after flushing. A throwing drop reporter can interrupt `DropOldest` after an
 eviction, while `BlockWithTimeout` can append an oversized item after space is
 freed. These are current behaviors, not approved policies or fixes.
 
+### Phase 3 execution plan
+
+This is an implementation plan, not evidence that Phase 3 is complete. Deliver
+the following as small, reviewable changes; retain the checklist and exit criteria
+below as the completion gate.
+
+1. **Re-establish the baseline.** Record the starting revision, worktree state,
+   PHP and Composer versions, extensions and installed dependencies. Run the
+   focused `BufferingTest`, flush-observer and pipeline tests, and identify which
+   assertions intentionally characterize existing defects. Run the buffer cases
+   in `tests/target-policy-regressions.php`, recording unrelated failures
+   separately. Capture comparable pre-change admission, mixed-size overflow,
+   priority eviction and drain/close measurements using the existing
+   `BufferedAdmissionBench`, `BufferedOverflowBench` and `BufferedFlushBench`;
+   extend the workloads where necessary. Record sizes, strategies, runtime,
+   variance and memory-measurement limitations in `docs/benchmarks.md`.
+2. **Resolve input semantics before changing behavior.** The Phase 2 exit records
+   a candidate for planning: reject negative estimates and negative configuration
+   values with `InvalidArgumentException`, allow zero, and reject before buffer
+   state changes. It is not an implementation or an approval of a compatibility
+   change. Review each `BufferConfiguration` field and custom estimator contract,
+   including the default estimator's zero result on JSON encoding failure. Specify
+   the consequences of zero item capacity, zero byte capacity and zero-sized
+   estimates, and obtain maintainer approval for observable validation and
+   exception changes before implementing them. Review released consumers and
+   document migration impact; downstream migration and checks remain deferred
+   under the scope decision. Do not alter API or schema baselines without the
+   separately required approval.
+3. **Write target regressions and implement admission.** Use deterministic byte
+   estimates and a controllable monotonic clock. Test count and byte limits
+   independently and together, exact fit, nearly full, empty and full buffers,
+   approved zero cases, invalid values, and arithmetic near `PHP_INT_MAX`. Check
+   projected capacity without overflowing, validate before mutation, and apply
+   the same fit rule on every append. For an estimate above the full byte limit,
+   implement the approved immediate report-and-drop or report-and-throw behavior
+   without evicting existing entries or waiting. Keep the byte total equal to the
+   sum of retained estimates and both limits intact after each operation and
+   exceptional path.
+4. **Complete overflow and lifecycle behavior.** Cover every strategy with
+   mixed-size entries and repeated evictions. Preserve survivor FIFO order and
+   the existing low-priority selection, high-priority fallback, drop counts and
+   reporting behavior unless a separate decision changes them. Ensure eviction
+   terminates even with zero-sized entries or zero capacity. For blocking, test
+   timeout when projected space is insufficient, admission after sufficient
+   space is freed, and immediate oversized rejection; advance the fake clock via
+   the sleep seam. Test flush, expiration, auto-flush, close budgets, repeated
+   close, observer callbacks, throwing sinks and throwing health reporters, with
+   state and accounting checked after each removal or interruption. Preserve
+   standalone exception propagation and test default pipeline failure handling;
+   do not silently settle Phase 4's broader reporting policy.
+5. **Evaluate representation only after correctness.** Repeat the same
+   workloads against the corrected implementation, including multiple evictions
+   and low-priority searches. Compare an internal head-index or queue only if
+   measurements justify investigating it; verify identical ordering, priority,
+   reporting, lifecycle and accounting behavior before adoption. Record both
+   improvements and regressions, host variance, memory limitations and any
+   unresolved tradeoffs; estimated-byte bounds are not process-memory bounds.
+6. **Verify and document completion.** Run focused tests and target controls,
+   then `composer test`, `composer quality`, and `composer api:check`; inspect
+   `composer.json` for the current scripts and report separate results even if a
+   composite command stops early. Run supported PHP versions where available,
+   including the PHP 8.4 floor, and record skips and unavailable extensions.
+   Run benchmarks separately because quality does not cover them. Update
+   `docs/architecture/publication.md`, `docs/benchmarks.md`, configuration or
+   estimator documentation, `docs/CHANGELOG.md`, and this phase's status with
+   actual behavior, compatibility effects, commands and results. Do not describe
+   the new invariant as current until implemented and verified.
+
 - [ ] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
 - [ ] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
 - [ ] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
