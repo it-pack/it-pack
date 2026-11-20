@@ -1686,7 +1686,7 @@ with those keys configured. The default key list is empty; this test does not
 establish default protection, trace omission, exporter behavior, or safety of the
 retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
 assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
-No production behavior or contract changed, and Phase 2 is complete (exit criteria demonstrated 2026-11-20 on current checkout).
+Public signatures and contracts are unchanged, but the default SDK publisher stack now drops typed measurement artifacts (`MeasurementInterface` and artifacts whose `artifactType()` is `ArtifactType::MEASUREMENT`) instead of forwarding them; each drop is reported through the configured health reporter. This changes default sink delivery for measurements without changing any public interface signature. Phase 2 is complete (exit criteria demonstrated 2026-11-20 on current checkout).
 
 At starting revision `9015b4d8`, the same snapshot test also characterizes the
 default redactor: it returns the original snapshot and its payload retains every
@@ -1735,7 +1735,7 @@ The representation and delivery decisions remain open.
 - [x] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary. Focused tests cover known cases; full third-party-publisher matrix not established.
 - [x] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision. `docs/SECURITY.md`, `docs/architecture/publication.md`, `docs/CHANGELOG.md`, `README.md`, and `docs/QA.md` updated; no API baseline or schema changed.
 
-**Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths. **Phase 2 closed (2026-11-20):** exit criteria demonstrated on current checkout with fresh evidence; no production or public API changes were made. Phase 3 input policy (reject negative estimates and negative buffer configuration values with `InvalidArgumentException`, allow zero, reject before buffer state changes) is recorded for Phase 3 planning only and is not applied here.
+**Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths. **Phase 2 closed (2026-11-20):** exit criteria demonstrated on current checkout with fresh evidence; no public interface or signature changed, but default production behavior tightened — the SDK publisher stack now drops typed measurement artifacts instead of forwarding them, reporting each drop through the configured health reporter. Phase 3 input policy (reject negative estimates and negative buffer configuration values with `InvalidArgumentException`, allow zero, reject before buffer state changes) is recorded for Phase 3 planning only and is not applied here.
 
 ## Phase 3: Bounded buffering and performance
 
