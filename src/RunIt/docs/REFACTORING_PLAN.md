@@ -1824,6 +1824,18 @@ flush-observer and pipeline suites passed; PHP 8.6 and OpenSwoole were unavailab
 Phase 3 remains open pending the remaining lifecycle, timeout and performance
 evaluation and full verification; no queue representation change has been made.
 
+**Additional lifecycle regressions (2026-11-20):** Deterministic blocking tests
+now cover projected-byte timeout and admission only after two batch drains free
+enough capacity. A throwing inner publisher test verifies that the attempted item
+is removed and its estimate deducted before the original exception propagates,
+while the next item and its accounting remain intact. On PHP 8.5.13 the focused
+`BufferingTest` passed with 50 tests and 203 assertions. This is partial coverage,
+not completion of the lifecycle or performance checklist. Oversized and zero-item
+capacity rejections still return before the interval-flush check; the ordinary
+overflow rejection regression does not cover those early-return paths. On the same
+runtime, `composer test --quiet`, `composer analyse`, `composer cs:check` and
+`composer api:check` also passed; the quiet test run does not report skip counts.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which

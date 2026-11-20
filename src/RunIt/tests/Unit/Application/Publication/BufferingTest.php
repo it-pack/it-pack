@@ -17,6 +17,7 @@ use ItPack\RunIt\Application\Publication\OverflowStrategy;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
@@ -555,6 +556,99 @@ final class BufferingTest extends Unit
         self::assertNotEmpty($sleeps, 'the blocking strategy must wait through the sleep seam');
         self::assertSame(100, $sleeps[0], 'the wait quantum is the documented 100 microseconds');
         self::assertSame(1, $buffer->droppedCount(), 'after the deadline the incoming artifact is dropped');
+    }
+
+    public function testBlockingAdmissionWaitsUntilEnoughBytesAreFreed(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = null;
+        $waits = 0;
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(3, OverflowStrategy::BlockWithTimeout, batchSize: 1, maxBytes: 100),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(40, ['incoming' => 80]),
+            sleep: static function (int $microseconds) use (&$buffer, &$waits, $clock): void {
+                ++$waits;
+                $clock->advanceNanoseconds($microseconds * 1_000);
+                $buffer?->flush();
+            },
+        );
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $incoming = $this->artifact(id: 'incoming');
+        $buffer->publish($first);
+        $buffer->publish($second);
+        $buffer->publish($incoming);
+
+        self::assertSame(2, $waits);
+        self::assertSame([$first, $second], $sink->published());
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(80, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+        $buffer->flush();
+        self::assertSame([$first, $second, $incoming], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testBlockingTimeoutRetainsItemsWhenProjectedBytesDoNotFit(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(3, OverflowStrategy::BlockWithTimeout, maxBytes: 100),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(60, ['incoming' => 50]),
+            sleep: static function (int $microseconds) use ($clock): void {
+                $clock->advanceNanoseconds($microseconds * 1_000);
+            },
+        );
+        $first = $this->artifact(id: 'first');
+        $buffer->publish($first);
+        $buffer->publish($this->artifact(id: 'incoming'));
+
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(60, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+        $buffer->flush();
+        self::assertSame([$first], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testFailedInnerPublicationRemovesOnlyAttemptedItem(): void
+    {
+        $failure = new RuntimeException('sink failure');
+        $sink = new readonly class ($failure) implements ArtifactPublisherInterface {
+            public function __construct(private RuntimeException $failure)
+            {
+            }
+
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                throw $this->failure;
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(3, OverflowStrategy::DropNewest, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(30, ['second' => 50]),
+        );
+        $buffer->publish($this->artifact(id: 'first'));
+        $buffer->publish($this->artifact(id: 'second'));
+
+        try {
+            $buffer->flush();
+            self::fail('The sink failure must propagate.');
+        } catch (RuntimeException $exception) {
+            self::assertSame($failure, $exception);
+        }
+
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(50, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
     }
 
     public function testFlushRespectsBatchSize(): void
