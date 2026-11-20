@@ -81,6 +81,12 @@ identifiable; preserve setup and cases when converting to `DataProvider`. The
 installed Codeception Unit loader recognizes `Codeception\Attribute\DataProvider`;
 verify dataset discovery when using another runner or changing runner versions.
 
+Do not put assertions inside loops in tests. Express independently checked
+inputs as named data sets with a data provider so each case is reported and
+executed independently. Loops used only to prepare a batch or exercise repeated
+operations are permitted; assert the resulting behavior outside the loop.
+Preserve shared setup and all existing cases when converting older tests.
+
 Coverage attributes express intent and affect attribution, but they do not by
 themselves prove isolation. The installed Codeception strict-coverage negative
 control did not fail for an undeclared class. See `REFACTORING_PLAN.md` for the
