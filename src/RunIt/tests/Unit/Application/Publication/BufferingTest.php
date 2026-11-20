@@ -59,7 +59,6 @@ final class BufferingTest extends Unit
 
         return match ($severity) {
             'debug' => Observation::debug($observationId, $executionId, 'msg'),
-            'info' => Observation::info($observationId, $executionId, 'msg'),
             'notice' => Observation::notice($observationId, $executionId, 'msg'),
             'warning' => Observation::warning($observationId, $executionId, 'msg'),
             'error' => Observation::error($observationId, $executionId, 'msg'),
@@ -153,8 +152,7 @@ final class BufferingTest extends Unit
                 new InMemoryArtifactPublisher(),
                 new DeterministicMonotonicClock(0, 1_000_000),
                 new DeterministicArtifactByteEstimator(0),
-                sleep: static function (int $microseconds): void {
-                },
+                sleep: static function (int $microseconds): void {},
             );
             try {
                 $buffer->publish($this->artifact());
