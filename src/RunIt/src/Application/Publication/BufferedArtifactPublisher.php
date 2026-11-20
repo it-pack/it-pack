@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
+use InvalidArgumentException;
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -95,8 +96,20 @@ final class BufferedArtifactPublisher implements
     {
         $item = $this->toItem($artifact);
 
-        if ($this->isFull()) {
+        if ($item[self::KEY_BYTES] > $this->config->maxEstimatedBytes || $this->config->maxItems === 0) {
+            if ($this->config->overflow === OverflowStrategy::Fail) {
+                $this->failOverflow($item);
+            }
+
+            $this->reportDrop($artifact);
+
+            return;
+        }
+
+        if (!$this->fits($item[self::KEY_BYTES])) {
             $this->applyOverflow($item);
+
+            $this->checkIntervalFlush();
 
             return;
         }
@@ -104,12 +117,7 @@ final class BufferedArtifactPublisher implements
         $this->buffer[] = $item;
         $this->estimatedBytes += $item[self::KEY_BYTES];
 
-        $now = $this->clock->nowSeconds();
-        if ($this->config->flushIntervalSeconds > 0
-            && $now - $this->lastFlushEpoch >= $this->config->flushIntervalSeconds
-        ) {
-            $this->flush();
-        }
+        $this->checkIntervalFlush();
     }
 
     /**
@@ -163,6 +171,9 @@ final class BufferedArtifactPublisher implements
     {
         $enqueued = $this->clock->nowSeconds();
         $bytes = $this->byteEstimator->estimate($artifact);
+        if ($bytes < 0) {
+            throw new InvalidArgumentException('Artifact byte estimate must not be negative.');
+        }
 
         return [
             self::KEY_ATTRIBUTE => $artifact,
@@ -185,20 +196,21 @@ final class BufferedArtifactPublisher implements
         return self::PRIORITY_LOW;
     }
 
-    private function isFull(): bool
+    private function fits(int $bytes): bool
     {
-        return count($this->buffer) >= $this->config->maxItems
-            || $this->estimatedBytes >= $this->config->maxEstimatedBytes;
+        return count($this->buffer) < $this->config->maxItems
+            && $bytes <= $this->config->maxEstimatedBytes - $this->estimatedBytes;
     }
 
     /**
      * @param array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $incoming
      */
-    private function applyOverflow(array $incoming): void
+    private function applyOverflow(array $incoming): bool
     {
-        match ($this->config->overflow) {
+        /** @noinspection PhpVoidFunctionResultUsedInspection */
+        return match ($this->config->overflow) {
             OverflowStrategy::Fail => $this->failOverflow($incoming),
-            OverflowStrategy::DropNewest => $this->reportDrop($incoming[self::KEY_ATTRIBUTE]),
+            OverflowStrategy::DropNewest => $this->dropNewest($incoming),
             OverflowStrategy::DropOldest => $this->dropOldestThenAppend($incoming),
             OverflowStrategy::DropLowPriority => $this->dropLowPriorityThenAppend($incoming),
             OverflowStrategy::BlockWithTimeout => $this->blockWithTimeoutThenAppend($incoming),
@@ -227,55 +239,74 @@ final class BufferedArtifactPublisher implements
     /**
      * @param array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $incoming
      */
-    private function dropOldestThenAppend(array $incoming): void
+    private function dropNewest(array $incoming): bool
     {
-        $this->dropOldest();
-        $this->appendIncoming($incoming);
+        $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
+
+        return false;
     }
 
     /**
      * @param array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $incoming
      */
-    private function dropLowPriorityThenAppend(array $incoming): void
+    private function dropOldestThenAppend(array $incoming): bool
+    {
+        while (!$this->fits($incoming[self::KEY_BYTES])) {
+            $this->dropOldest();
+        }
+
+        $this->appendIncoming($incoming);
+
+        return true;
+    }
+
+    /**
+     * @param array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $incoming
+     */
+    private function dropLowPriorityThenAppend(array $incoming): bool
     {
         if ($incoming[self::KEY_PRIORITY] === self::PRIORITY_LOW) {
             $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
 
-            return;
+            return false;
         }
 
-        $index = $this->oldestLowPriorityIndex();
+        while (!$this->fits($incoming[self::KEY_BYTES])) {
+            $index = $this->oldestLowPriorityIndex();
+            if ($index !== null) {
+                $this->removeAt($index);
+                continue;
+            }
 
-        if ($index !== null) {
-            $this->removeAt($index);
-            $this->appendIncoming($incoming);
-
-            return;
+            $this->dropOldest();
         }
 
-        $this->dropOldest();
         $this->appendIncoming($incoming);
+
+        return true;
     }
 
     /**
      * @param array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $incoming
      */
-    private function blockWithTimeoutThenAppend(array $incoming): void
+    private function blockWithTimeoutThenAppend(array $incoming): bool
     {
         $deadline = $this->clock->monotonicNanoseconds()
             + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
 
-        while ($this->isFull() && $this->clock->monotonicNanoseconds() < $deadline) {
+        while (!$this->fits($incoming[self::KEY_BYTES]) && $this->clock->monotonicNanoseconds() < $deadline) {
             ($this->sleep)(self::SLEEP_QUANTUM_MICROSECONDS);
         }
 
-        if ($this->isFull()) {
+        if (!$this->fits($incoming[self::KEY_BYTES])) {
             $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
 
-            return;
+            return false;
         }
 
         $this->appendIncoming($incoming);
+
+        return true;
     }
 
     private function dropOldest(): void
@@ -358,5 +389,15 @@ final class BufferedArtifactPublisher implements
     {
         $this->droppedCount++;
         $this->health?->report(new BufferOverflowException('Artifact dropped by buffer overflow.'), $artifact);
+    }
+
+    private function checkIntervalFlush(): void
+    {
+        $now = $this->clock->nowSeconds();
+        if ($this->config->flushIntervalSeconds > 0
+            && $now - $this->lastFlushEpoch >= $this->config->flushIntervalSeconds
+        ) {
+            $this->flush();
+        }
     }
 }

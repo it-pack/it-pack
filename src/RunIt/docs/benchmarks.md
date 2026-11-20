@@ -34,6 +34,114 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## PHP 8.6 Buffer Samples (2026-11-20)
+
+The current Phase 3 worktree was measured with PHPBench 1.7.0 on PHP 8.6.0
+and PHP 8.5.13 CLI NTS. Both versions ran twice, sequentially, in the order
+8.5, 8.6, 8.6, 8.5. The unpinned WSL2 host was not isolated; this is not a
+controlled production benchmark. All ten subjects and verification hooks passed
+in each run. The same dependencies and worktree were used for both runtimes.
+
+```bash
+php8.6 vendor/bin/phpbench run benchmarks/BufferedAdmissionBench.php benchmarks/BufferedOverflowBench.php benchmarks/BufferedFlushBench.php benchmarks/BufferedMixedOverflowBench.php --config=phpbench.json --php-binary=/usr/bin/php8.6 --php-config='{"opcache.enable_cli":"0","opcache.jit":"disable","pcov.enabled":"0"}' --report=aggregate
+```
+
+For PHP 8.5, replace both `php8.6` occurrences with `php8.5`. These settings
+disable CLI OPcache, JIT and PCOV in benchmark subprocesses. PCOV and the
+Swoole-family extensions were not loaded in the default PHP 8.6 environment;
+no SIMD JSON extension was loaded and these benchmarks use the existing default
+JSON estimator. Admission measures one publish; overflow and priority rows measure
+128 publishes, while drain rows measure the specified batch or close operation.
+
+| Workload | PHP 8.5 run 1 / run 2 | PHP 8.6 run 1 / run 2 |
+|---|---:|---:|
+| Small admission | 3.918 / 3.518 µs | 3.277 / 3.432 µs |
+| Large admission | 21.354 / 20.977 µs | 21.565 / 21.886 µs |
+| Count overflow | 706.789 / 726.415 µs | 684.076 / 706.916 µs |
+| Byte overflow | 738.391 / 752.260 µs | 674.125 / 681.626 µs |
+| Flush 256 | 595.438 / 601.922 µs | 594.875 / 626.452 µs |
+| Full close 1,024 | 1,469.677 / 1,467.411 µs | 1,475.123 / 1,504.358 µs |
+| Four flushes, 1,024 | 1,470.720 / 1,493.630 µs | 1,493.885 / 1,561.816 µs |
+| Limited close | 1,403.493 / 1,425.562 µs | 1,381.035 / 1,349.877 µs |
+| Mixed-size byte overflow | 1,383.706 / 1,456.865 µs | 1,321.297 / 1,371.845 µs |
+| Priority eviction | 6,370.885 / 6,598.205 µs | 6,192.759 / 6,181.599 µs |
+
+Values are PHPBench aggregate modes, not averages or confidence intervals.
+Relative standard deviations ranged from 2.82% to 15.26% in the PHP 8.5 runs
+and from 2.94% to 101.01% in the PHP 8.6 runs; the 101.01% outlier was the
+first large-admission sample. The modes are broadly comparable for these
+synthetic workloads, but the sample size, variance, different extension sets and
+uncontrolled host prevent a general speed or regression claim. PHPBench process
+peaks, including fixtures and harness, ranged from 6.977 to 8.707 MB on 8.6 and
+8.307 to 10.206 MB on 8.5; they are not isolated buffer-memory measurements.
+
+## Phase 3 Buffer Baseline (2026-11-20)
+
+At revision `c74780b15c075a6c1923e9fbea01b8457cc28c7d`, each command below ran
+twice, sequentially, on PHP 8.5.12 CLI NTS and PHPBench 1.7.0. The unisolated
+x86-64 WSL2 host had four virtual CPUs on an Intel i7-9700; other baseline work
+was running concurrently. All benchmark verification hooks passed.
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedAdmissionBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedOverflowBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedFlushBench.php --config=phpbench.json --report=aggregate
+```
+
+| Workload                                     |      Run 1 mode / RSD |      Run 2 mode / RSD |
+|----------------------------------------------|----------------------:|----------------------:|
+| Admission, 2 nested entries, one publish     |      5.671 µs / 5.25% |     6.223 µs / 13.65% |
+| Admission, 64 nested entries, one publish    |    23.094 µs / 17.25% |     27.480 µs / 9.86% |
+| Count overflow, 128 publishes                | 1,176.755 µs / 75.19% | 1,169.767 µs / 12.78% |
+| Byte overflow, 128 publishes                 | 1,108.726 µs / 18.80% | 1,275.000 µs / 22.13% |
+| Flush, 256 items                             |   654.225 µs / 69.44% |   775.808 µs / 10.70% |
+| Full close, 1,024 items                      | 1,797.726 µs / 19.03% | 2,043.558 µs / 11.97% |
+| Four flushes, 1,024 items                    | 1,995.990 µs / 33.61% | 2,770.370 µs / 16.04% |
+| Limited close, 256 delivered and 768 dropped | 1,939.125 µs / 12.62% | 2,415.513 µs / 18.14% |
+
+Admission uses the real JSON estimator and `Fail`, with two warmups and 100
+revolutions per iteration over five iterations. Overflow uses equally sized
+snapshots, a 1,024-item prefill and `DropOldest`. Flush/close uses a 1,024-item
+prefill, 256-item batches and `Fail`. Overflow and flush/close use ten iterations,
+one revolution and no warmup. Modes and relative standard deviations are not
+confidence intervals; the observed variance precludes fine-grained comparisons.
+These cases do not cover mixed sizes, multiple evictions, priority selection,
+concurrency or exporter I/O, which remain baseline gaps. PHPBench process peaks
+were 8.407–8.465 MB for admission, 8.780 MB for overflow and 10.306 MB for
+flush/close; they include harness and fixture overhead and are not isolated buffer
+memory measurements. Estimated bytes are not actual process-memory bounds.
+
+One corrected-checkout run of the same three files used the same PHP flags and
+`--report=aggregate`, while `composer quality` was running concurrently. Modes
+and RSDs were: small admission 12.984 µs / 5.29%; large admission 67.171 µs /
+35.05%; count overflow 3,264.877 µs / 52.22%; byte overflow 3,609.730 µs /
+72.01%; flush 1,588.613 µs / 22.01%; full close 5,220.695 µs / 6.15%; four
+flushes 5,104.939 µs / 58.94%; limited close 4,446.955 µs / 39.51%. All
+verification hooks passed. These slower measurements include substantial
+concurrent load and do not isolate the cost of the code change; a controlled
+repeat is required to assess potential regressions.
+
+The added `BufferedMixedOverflowBench` exercises 128 mixed-size byte-overflow
+publishes and 128 high-priority admissions against a 1,024-item priority mix.
+For a pre-change run, the publisher was extracted from the starting revision;
+its blob hash matched `7398057f41d0bc6a96593787e2ba3350c76a8147`, and a temporary
+bootstrap loaded it while other collaborators came from the checkout. The command
+used PHPBench's `--bootstrap=/tmp/kilo/runit-benchmark-bootstrap.php` and
+`--iterations=10`; this temporary bootstrap is not a reproducible repository file.
+The corrected checkout used the normal bootstrap and disabled CLI OPcache, JIT
+and PCOV with the same ten iterations. Each iteration measured one batch.
+
+| Workload                 | Pre-change mode / RSD |   Corrected mode / RSD |
+|--------------------------|----------------------:|-----------------------:|
+| Mixed-size byte overflow |     4,909 µs / 26.77% |  4,325.656 µs / 35.22% |
+| Priority eviction        |    28,677 µs / 13.08% | 32,128.239 µs / 66.26% |
+
+The runs were not isolated and have substantial variance; the bootstrap and runtime
+flags were not identical, and the corrected algorithm may evict more entries.
+These results do not establish a speedup or regression, nor justify changing the
+internal queue representation. Corrected process peaks were 8.789 and 8.803 MB,
+including the harness and fixtures.
+
 ## Interim Phase 2 Sample (2026-11-18)
 
 On PHP 8.5.12 CLI NTS and PHPBench 1.7.0, while the worktree was being edited

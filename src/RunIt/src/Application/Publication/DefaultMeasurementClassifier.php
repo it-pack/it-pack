@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\TypedExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
@@ -34,6 +35,8 @@ final class DefaultMeasurementClassifier implements
     {
         return $artifact instanceof MeasurementInterface
             || ($artifact instanceof RedactedArtifactInterface
+                && $artifact->artifactType() === ArtifactType::MEASUREMENT)
+            || ($artifact instanceof TypedExecutionArtifactInterface
                 && $artifact->artifactType() === ArtifactType::MEASUREMENT);
     }
 

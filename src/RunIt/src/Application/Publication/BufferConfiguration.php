@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use InvalidArgumentException;
+
 /**
  * Bounds for the artifact buffer and its flush behavior.
  *
- * Every bound is a hard limit: the buffer never grows past `maxItems` items or
- * `maxEstimatedBytes` estimated bytes, so memory stays bounded under sustained load.
+ * Admission does not exceed `maxItems` items or `maxEstimatedBytes` estimated bytes.
+ * Estimates are not a bound on actual process memory.
  * `maxAgeSeconds` drops stale artifacts on flush; `batchSize` caps how many artifacts a
  * single flush emits; `flushIntervalSeconds` is advisory for a caller-driven periodic
  * flush loop; `shutdownFlushBudget` caps how many artifacts `close()` will attempt to
@@ -27,6 +29,13 @@ final readonly class BufferConfiguration
         public int $shutdownFlushBudget,
         public OverflowStrategy $overflow,
     ) {
+        foreach ([
+            $maxItems, $maxEstimatedBytes, $maxAgeSeconds, $batchSize, $flushIntervalSeconds, $shutdownFlushBudget,
+        ] as $value) {
+            if ($value < 0) {
+                throw new InvalidArgumentException('Buffer configuration values must not be negative.');
+            }
+        }
     }
 
     /**

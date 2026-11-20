@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 remains open).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 complete, exit criteria demonstrated 2026-11-20).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -1275,7 +1275,7 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 - [#40: Context ownership and runtime validation](issues/phase-1-runtime-validation.md) — Phase 0 evidence, supported runtime coverage, remaining isolation cases and configuration validation.
 - [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — resolve RunIt quality and API-check results; AsyncIt-specific follow-up is deferred.
 
-**Next work:** Proceed with Phase 2 mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 is complete; the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done. Keep the tracked follow-ups open until their acceptance criteria are met.
+**Next work:** Phase 2 is complete; proceed to Phase 3 planning (bounded buffering and input validation). Phase 0 is complete; Phase 1 tracked follow-ups remain open until their acceptance criteria are met.
 
 ## Phase 2: Publication security and artifact routing
 
@@ -1289,7 +1289,7 @@ unknown; synthetic results are preliminary and cannot establish those outcomes.
 This does not defer the other Phase 2 exit criteria, downstream migration or
 verification into passed status, or authorize a release.
 
-**Current investigation (2026-11-13):** Phase 2 remains open for implementation, but all documented Phase 0–2 decisions are explicitly approved. The field-policy proposal at lines 1202-1220 is now authorized for implementation under the approved identifier provenance and unsafe-mapping drops decisions. Prior characterizations are current-behavior documentation, not security guarantees.
+**Current status (2026-11-20):** Phase 2 is complete. Fresh evidence from the current checkout (PHP 8.5.12) demonstrates all non-deferred exit criteria: all four `composer test` suites pass (Unit 1281 tests / 8270 assertions, Integration 11, Conformance 52, Concurrency 11), all static quality gates pass (`cs:check`, `analyse`, `architecture`, `lint:length`, `api:check`, `refactor:dry`, `security:audit`), and sensitive markers do not reach samplers or sinks except under approved policy. Remaining items are explicitly deferred (delivery-loss/provenance-retention/real-exporter I/O measurements per 2026-11-18; downstream migration and checks) and do not block exit. `composer test` now runs Unit, Integration, Conformance, and Concurrency and completes without a missing Functional bootstrap.
 
 Historically, the factory-level `RedactionSecurityCharacterizationTest` spy demonstrated that
 an unclassified nested occurrence key, value and source reach both sampler and
@@ -1420,9 +1420,9 @@ On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
 
-**Phase 2 implementation status (2026-11-18):**
+**Phase 2 implementation status (2026-11-20):**
 
-Implemented within already-approved decisions:
+Verified against the current checkout (PHP 8.5.12; fresh evidence, not historical):
 
 - Default SDK field classification runs before sampling for observations, occurrences, measurements, lifecycle artifacts, and snapshots. Each classifier retains verified export IDs and relationships, removes or replaces unclassified fields, and reports drops with payload-free health notices.
 - Terminal snapshot payloads and content hashes omitted before sampling on the default SDK path; explicit null or custom redactor opt-outs still pass through SDK verification and classification before reaching the configured publisher stack.
@@ -1430,75 +1430,14 @@ Implemented within already-approved decisions:
 - Custom health reporters produce payload-free fallback diagnostics; throwing reporters are contained.
 - Low `maxAttributeCount` limits cause fail-closed drops (not truncated metadata) for observation/activity throwable and execution result structures.
 - Explicit redactor opt-outs (`withRedactor(null)`) and custom redactors still pass through SDK verification and classification before the configured publisher stack; custom factories receive classified projections.
-- Overlapping activity provenance blocker resolved: `ExecutionScope::__construct()` resolves activity context per-record through fiber-local `ActivityContextStorageInterface` (PHP 8.1 first-class callable closures on `$verifiedActivityExportId`, `$shouldDrop`, and `$activityId`), not once at construction. `OverlappingActivityProvenanceTest` passes for both completion orders; shared `$currentActivityId` is only the legacy non-context-storage path.
+- Overlapping activity provenance blocker resolved: `ExecutionScope::__construct()` resolves activity context per-record through fiber-local `ActivityContextStorageInterface` (PHP 8.1 first-class callable closures on `$verifiedActivityExportId`, `$shouldDrop`, and `$activityId`), not once at construction. `OverlappingActivityProvenanceTest` passes for both completion orders; shared `$currentActivityId` is only the legacy non-context-storage path. `OverlappingSwooleActivityProvenanceTest` passes where Swoole is available.
+- Standalone factory reports and drops inputs without provenance from its issuing authority before the sampler or sink.
+- OpenTelemetry dispatches typed redacted artifacts through redacted mappers first; execution to artifact provenance edges reject different execution owners.
+- Negative/failure tests cover secrets in outer message, execution `result.throwable`, multiple previous causes, trace, malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Redaction precedes every externally observable boundary.
 
-Historical open gaps (2026-11-13; see the current update below):
+Phase 2 aggregate quality gate passes on the current checkout. All static checks pass: `composer validate --strict` (composer.json valid; `composer.lock` is not committed and not up to date is expected), `cs:check` (0 files to fix), `analyse` (0 errors), `architecture` (0 violations), `lint:length` (0 violations), `api:check` (no breaks), `refactor:dry` (Rector clean), `security:audit` (no advisories). All test suites pass: Unit 1281 tests / 8270 assertions, Integration 11 tests / 107 assertions, Conformance 52 tests / 111 assertions, Concurrency 11 tests / 381 assertions.
 
-- Standalone factory characterization shows unclassified occurrence data reaching both sampler and sink. Bounded traversal is not deny-by-default field classification; full enforcement before both boundaries remains open for standalone/custom compositions.
-- Custom factories receive artifacts only after the SDK boundary: the builder
-  composes `ClassifyingArtifactPublisher`, `DefaultMeasurementClassifier`, and
-  `DefaultLifecycleClassifier` before the custom publisher stack, and wraps with
-  `RedactingArtifactPublisher` outermost, so artifacts reach a custom factory only
-  after SDK classification and redaction. RunIt implementation and contract review
-  remain; downstream migration is deferred.
-- Representative workload delivery-loss, provenance retention and real exporter
-  I/O measurements are deferred; synthetic benchmarks are not representative.
-- Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. The approved asynchronous path queues safe projections, not raw work; its full verification remains open.
-
-The `ProvenanceBoundaryTest` regression now retains a runner-issued raw execution
-past cleanup and verifies that subsequent provenance checking drops it and
-reports only a fixed redacted placeholder. This characterizes fail-closed late
-verification; it does not implement ownership for deferred raw work.
-
-Phase 2 aggregate quality gate is blocked. Individual static checks pass
-(validate, api:check, analyse, architecture, lint:length), and Unit, Integration,
-Conformance, and Concurrency test suites all pass (1280 + 11 + 52 + 11 tests).
-`composer api:check` passes without baseline regeneration. The approved custom
-factory boundary delivers classified projections; the RunIt contract review is
-complete.
-
-Two pre-existing gaps block the aggregate `composer quality` gate:
-`refactor:dry` exits 2 on a pre-existing `RemoveUselessParamTagRector` suggestion
-in two files; `composer test` does not complete because `tests/Functional/_bootstrap.php`
-is missing (pre-existing). `cs:check` now passes (0 files to fix) after fixing the
-`ForbidLeadingBackslashReferenceRule` false-positive bug on `InstantClockBehavior.php`.
-
-Downstream compatibility: all five consumer packages pass `tools/repo/downstream-test.php`
-on PHP 8.5.12 (ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt,
-RunItThirdPartySample). Fixes below were verified against the downstream runner:
-
-- RunIt `composer.json`: added `branch-alias` mapping `dev-run-it/refactor` and
-  `dev-main` → `1.1.x-dev`, so downstream consumers declaring `^1.1` resolve the
-  local `dev-run-it/refactor` path repository instead of rejecting it.
-- `tools/repo/downstream-test.php`: added `AsyncIt` to the version-constrained
-  path-repo package set (pins `it-pack/run-it` to `1.1.2`), matching `CommitItRunit`
-  and `ConfigureItRunit`.
-- ConfigureItRunit tests (`tests/ConfigureItExecutionsTest.php`): replaced
-  direct `ItPack\RunIt\Domain\Occurrence\Occurrence` references with
-  `ItPack\RunIt\Contract\Domain\OccurrenceInterface`, since Phase 2 default
-  classification wraps artifacts in `ClassifiedRedactedOccurrence` (interface-implementing,
-  not the domain class).
-- DeriveItRunit tests (`tests/DerivationExecutionFunctionalTest.php`): replaced
-  `ItPack\RunIt\Domain\Occurrence\Occurrence` → `OccurrenceInterface` and
-  `ItPack\RunIt\Domain\Observation\Observation` → `ObservationInterface`, and
-  updated return types/casts accordingly.
-- RunIt `src/Application/Publication/DefaultOccurrenceClassifier.php`,
-  `DefaultObservationClassifier.php`, `DefaultMeasurementClassifier.php`: only
-  process `RedactedArtifactInterface` artifacts when no redactor configured
-  would otherwise re-wrap/classify already-processed projections, restoring
-  backward compatibility for consumers using `$redactor = null`.
-- RunIt `src/Application/Publication/RedactingArtifactPublisher.php`: when a
-  redactor is configured (`$this->redactor !== null`), always classify the
-  projection as redacted (`RedactedArtifactInterface`) even if the redactor did
-  not modify the artifact, so `ClassifyingArtifactPublisher` receives the expected
-  final-form projection.
-- RunIt `src/Application/Publication/ClassifyingArtifactPublisher.php`: pass
-  `RedactedArtifactInterface` snapshots through without re-classification (they
-  are already in final projected form); skip `payload`/`content_hash` in
-  `verifyRequiredFieldsPresent` for snapshots, which may omit them under redaction.
-
-Consumer migration and downstream verification are deferred under the downstream
-scope decision; no release is authorized.
+Downstream compatibility: all five consumer packages pass `tools/repo/downstream-test.php` on PHP 8.5.12 (ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt, RunItThirdPartySample). Downstream migration and checks remain deferred under the downstream scope decision; no release is authorized.
 
 **Integration update (2026-11-18):** The standalone default factory now reports
 and drops inputs without provenance from its issuing authority before the sampler
@@ -1747,7 +1686,7 @@ with those keys configured. The default key list is empty; this test does not
 establish default protection, trace omission, exporter behavior, or safety of the
 retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
 assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
-No production behavior or contract changed, and Phase 2 remains open.
+Public signatures and contracts are unchanged, but the default SDK publisher stack now drops typed measurement artifacts (`MeasurementInterface` and artifacts whose `artifactType()` is `ArtifactType::MEASUREMENT`) instead of forwarding them; each drop is reported through the configured health reporter. This changes default sink delivery for measurements without changing any public interface signature. Phase 2 is complete (exit criteria demonstrated 2026-11-20 on current checkout).
 
 At starting revision `9015b4d8`, the same snapshot test also characterizes the
 default redactor: it returns the original snapshot and its payload retains every
@@ -1796,7 +1735,7 @@ The representation and delivery decisions remain open.
 - [x] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary. Focused tests cover known cases; full third-party-publisher matrix not established.
 - [x] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision. `docs/SECURITY.md`, `docs/architecture/publication.md`, `docs/CHANGELOG.md`, `README.md`, and `docs/QA.md` updated; no API baseline or schema changed.
 
-**Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths.
+**Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths. **Phase 2 closed (2026-11-20):** exit criteria demonstrated on current checkout with fresh evidence; no public interface or signature changed, but default production behavior tightened — the SDK publisher stack now drops typed measurement artifacts instead of forwarding them, reporting each drop through the configured health reporter. Phase 3 input policy (reject negative estimates and negative buffer configuration values with `InvalidArgumentException`, allow zero, reject before buffer state changes) is recorded for Phase 3 planning only and is not applied here.
 
 ## Phase 3: Bounded buffering and performance
 
@@ -1809,15 +1748,145 @@ drop the incoming item, including `BlockWithTimeout`. This is an approved
 future behavior, not an implementation or a decision about invalid estimates
 and configuration values.
 
-Additional characterization shows that integer overflow in byte accounting
-can throw after appending, leaving the item unaccounted and a negative estimate
-after flushing. A throwing drop reporter can interrupt `DropOldest` after an
-eviction, while `BlockWithTimeout` can append an oversized item after space is
-freed. These are current behaviors, not approved policies or fixes.
+Baseline characterization showed integer overflow could leave an appended item
+unaccounted and blocking could append an oversized item after space was freed.
+The admission change below corrects those paths. A throwing drop reporter can
+still interrupt `DropOldest` after an eviction, before replacement is appended.
 
-- [ ] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
+### Phase 3 execution plan
+
+This is an implementation plan, not evidence that Phase 3 is complete. Deliver
+the following as small, reviewable changes; retain the checklist and exit criteria
+below as the completion gate.
+
+**Baseline and input review (2026-11-20):** Starting revision
+`c74780b15c075a6c1923e9fbea01b8457cc28c7d` had a clean worktree. PHP CLI was
+8.5.12 NTS, Composer 2.9.7 and PHPBench 1.7.0; PCOV, Swoole and OpenTelemetry
+extensions were available, but OpenSwoole was not. Installed direct dependencies
+matched the local lock; notably Codeception's assert module was 3.3.0 and the
+OpenTelemetry API and SDK were 1.12.0 and 1.17.0. No dependency update was run.
+Benchmark results and their measurement limitations are recorded in
+`docs/benchmarks.md`, including mixed-size and priority-eviction workloads.
+
+- `vendor/bin/codecept run Unit Application/Publication/BufferingTest.php --no-rebuild`:
+  21 tests, 117 assertions passed, including existing-defect characterization.
+- `vendor/bin/codecept run Unit Application/Publication/BufferedArtifactPublisherFlushObserverTest.php --no-rebuild`:
+  3 tests, 11 assertions passed.
+- `vendor/bin/codecept run Unit Application/Publication/PublicationPipelineTest.php --no-rebuild`:
+  5 tests, 8 assertions passed.
+- `php tests/target-policy-regressions.php`: exit 1, 49 failed checks, including
+  28 buffer checks (10 oversized/projected-byte, 3 multiple-eviction and 15
+  integer-boundary checks); the other 21 concern sampling, redaction and recursive
+  health reporting. This target harness has no buffer-only selector and is not a
+  claim that all unrelated target policies apply to the current default stack.
+
+The configuration constructor currently accepts negative integers. Zero interval
+disables automatic flushing; zero batch size drains nothing, zero shutdown budget
+drops remaining entries on close, and zero maximum age expires entries only once
+their age exceeds zero. Zero item or byte capacity currently appears full even
+when empty, but replacement paths can still append. Custom negative estimates
+are accepted and corrupt the meaning of accounting. The default JSON estimator
+returns zero if encoding returns `false`; zero can therefore mean encoding failure,
+not necessarily an empty artifact. Other estimator consumers must be considered
+separately before changing the public estimator contract.
+
+**Input decision (approved 2026-11-20):** Reject negative values in all six numeric
+configuration fields and negative buffer estimates with `InvalidArgumentException`
+before buffer mutation. Retain the current zero age, batch, interval and shutdown
+budget semantics. Zero item capacity admits nothing; zero byte capacity admits
+zero-estimated items subject to the item limit. Preserve the default estimator's
+zero on JSON encoding failure and validate negative estimates only at the buffer
+boundary, not across all consumers of the public estimator interface. These changes
+affect standalone exceptions, drop notifications and custom-estimator callers.
+The released 1.2.1 split revision `36be7bc0a79f98a29f748735f1ee9557b9a70ed3`
+accepts negative inputs and uses the prior current-occupancy check, so this is a
+behavioral compatibility change even without signature changes. Searches of PHP
+files in the latest stable archives of the five Packagist-listed dependents found
+no direct references to the buffer, estimator or publication-pipeline symbols;
+this does not cover private applications, dynamic wiring or all historical releases.
+Consumers using `^1.1` can resolve subsequent 1.x releases and may observe different
+exceptions, drop counts, notifications or ordering. Downstream migration and checks
+remain deferred under the existing scope decision. Approval does not authorize an
+API or schema baseline update.
+
+**Implementation in progress (2026-11-20):** Projected admission and repeated
+eviction are implemented with subtraction-based byte checks; approved validation,
+zero and oversized behavior are covered by `BufferingTest`. The standalone target
+harness now advances its deterministic clock while blocking: all 28 previously
+failing buffer checks pass, while 21 unrelated target-policy checks still fail.
+On PHP 8.5.12, `composer quality` passed validation, Rector, style, PHPStan,
+architecture, API and line-length checks, all four test suites, both security
+audits and examples, but failed when Composer's 300-second process timeout stopped
+the dogfood stage during its full benchmark. A subsequent
+`COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet` completed successfully.
+On PHP 8.4.27, the focused buffer,
+flush-observer and pipeline suites passed; PHP 8.6 and OpenSwoole were unavailable.
+Phase 3 remains open pending the remaining lifecycle, timeout and performance
+evaluation and full verification; no queue representation change has been made.
+
+1. **Re-establish the baseline.** Record the starting revision, worktree state,
+   PHP and Composer versions, extensions and installed dependencies. Run the
+   focused `BufferingTest`, flush-observer and pipeline tests, and identify which
+   assertions intentionally characterize existing defects. Run the buffer cases
+   in `tests/target-policy-regressions.php`, recording unrelated failures
+   separately. Capture comparable pre-change admission, mixed-size overflow,
+   priority eviction and drain/close measurements using the existing
+   `BufferedAdmissionBench`, `BufferedOverflowBench` and `BufferedFlushBench`;
+   extend the workloads where necessary. Record sizes, strategies, runtime,
+   variance and memory-measurement limitations in `docs/benchmarks.md`.
+2. **Resolve input semantics before changing behavior.** The Phase 2 exit records
+   the original planning candidate; the decision above now authorizes the specified
+   compatibility changes, but is not evidence of implementation. Review each
+   `BufferConfiguration` field and custom estimator contract,
+   including the default estimator's zero result on JSON encoding failure. Specify
+   the consequences of zero item capacity, zero byte capacity and zero-sized
+   estimates against the decision above. Review released consumers and
+   document migration impact; downstream migration and checks remain deferred
+   under the scope decision. Do not alter API or schema baselines without the
+   separately required approval.
+3. **Write target regressions and implement admission.** Use deterministic byte
+   estimates and a controllable monotonic clock. Test count and byte limits
+   independently and together, exact fit, nearly full, empty and full buffers,
+   approved zero cases, invalid values, and arithmetic near `PHP_INT_MAX`. Check
+   projected capacity without overflowing, validate before mutation, and apply
+   the same fit rule on every append. For an estimate above the full byte limit,
+   implement the approved immediate report-and-drop or report-and-throw behavior
+   without evicting existing entries or waiting. Keep the byte total equal to the
+   sum of retained estimates and both limits intact after each operation and
+   exceptional path.
+4. **Complete overflow and lifecycle behavior.** Cover every strategy with
+   mixed-size entries and repeated evictions. Preserve survivor FIFO order and
+   the existing low-priority selection, high-priority fallback, drop counts and
+   reporting behavior unless a separate decision changes them. Ensure eviction
+   terminates even with zero-sized entries or zero capacity. For blocking, test
+   timeout when projected space is insufficient, admission after sufficient
+   space is freed, and immediate oversized rejection; advance the fake clock via
+   the sleep seam. Test flush, expiration, auto-flush, close budgets, repeated
+   close, observer callbacks, throwing sinks and throwing health reporters, with
+   state and accounting checked after each removal or interruption. Preserve
+   standalone exception propagation and test default pipeline failure handling;
+   do not silently settle Phase 4's broader reporting policy.
+5. **Evaluate representation only after correctness.** Repeat the same
+   workloads against the corrected implementation, including multiple evictions
+   and low-priority searches. Compare an internal head-index or queue only if
+   measurements justify investigating it; verify identical ordering, priority,
+   reporting, lifecycle and accounting behavior before adoption. Record both
+   improvements and regressions, host variance, memory limitations and any
+   unresolved tradeoffs; estimated-byte bounds are not process-memory bounds.
+6. **Verify and document completion.** Run focused tests and target controls,
+   then `composer test`, `composer quality`, and `composer api:check`; inspect
+   `composer.json` for the current scripts and report separate results even if a
+   composite command stops early. Run supported PHP versions where available,
+   including the PHP 8.4 floor, and record skips and unavailable extensions.
+   Run benchmarks separately because quality does not cover them. Update
+   `docs/architecture/publication.md`, `docs/benchmarks.md`, configuration or
+   estimator documentation, `docs/CHANGELOG.md`, and this phase's status with
+   actual behavior, compatibility effects, commands and results. Do not describe
+   the new invariant as current until implemented and verified.
+
+- [x] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
 - [ ] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
-- [ ] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
+- [x] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
 - [ ] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after each removal. Assert `estimatedBytes() <= maxEstimatedBytes` after every accepted operation; note estimates are not exact process-memory limits.
 - [ ] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
 - [ ] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.

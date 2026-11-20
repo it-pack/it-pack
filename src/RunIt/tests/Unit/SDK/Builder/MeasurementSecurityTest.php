@@ -19,6 +19,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 #[CoversClass(RunItBuilder::class)]
 final class MeasurementSecurityTest extends TestCase
@@ -27,6 +28,7 @@ final class MeasurementSecurityTest extends TestCase
     {
         foreach (['default', 'null', 'custom'] as $mode) {
             $sink = new InMemoryArtifactPublisher();
+            $dropReports = [];
             $sampler = new class () implements SamplingPolicyInterface {
                 /** @var list<ExecutionArtifactInterface> */
                 public array $seen = [];
@@ -44,6 +46,9 @@ final class MeasurementSecurityTest extends TestCase
                 ->withSnapshotSerializer(new JsonSnapshotSerializer())
                 ->withIdentifierGenerator(new RandomIdentifierGenerator())
                 ->withSamplingPolicy($sampler)
+                ->withPublicationFailureHandler(static function (Throwable $failure) use (&$dropReports): void {
+                    $dropReports[] = $failure;
+                })
             ;
             if ($mode !== 'default') {
                 $builder = $builder->withRedactor($mode === 'null' ? null : new DefaultArtifactRedactor());
@@ -56,22 +61,27 @@ final class MeasurementSecurityTest extends TestCase
                 },
             );
 
-            // Valid measurements pass classification and reach the sink.
+            // SDK measurements are dropped before sampling and never reach the sink.
             $measurements = array_values(array_filter(
                 $sink->published(),
                 static fn (ExecutionArtifactInterface $a): bool =>
                     ($a->normalize()['name'] ?? null) === 'dogfood-metric',
             ));
-            self::assertNotEmpty($measurements, $mode);
-            self::assertSame(123, $measurements[0]->normalize()['value'] ?? null, $mode);
+            self::assertEmpty($measurements, $mode);
+            self::assertNotEmpty($dropReports, $mode);
+            self::assertStringContainsString(
+                'Default measurement classification dropped an unclassified measurement.',
+                $dropReports[0]->getMessage(),
+                $mode,
+            );
 
-            // Sampler sees the classified measurement too.
+            // Sampler does not see dropped measurements.
             $samplerMeasurements = array_values(array_filter(
                 $sampler->seen,
                 static fn (ExecutionArtifactInterface $a): bool =>
                     ($a->normalize()['name'] ?? null) === 'dogfood-metric',
             ));
-            self::assertNotEmpty($samplerMeasurements, $mode);
+            self::assertEmpty($samplerMeasurements, $mode);
         }
     }
 }

@@ -298,7 +298,7 @@ final class RunItResolutionReporter implements ResolutionReporterInterface
     private function attributes(array $context): ?AttributeCollection
     {
 
-        $filtered = array_filter($context, function ($value) {
+        $filtered = array_filter($context, function (mixed $value): bool {
             return is_scalar($value) || $value === null;
         });
 

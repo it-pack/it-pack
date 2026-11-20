@@ -149,6 +149,10 @@ composer quality
 - Use the relevant Unit tests for focused behavior, Integration for cross-layer
   wiring, Conformance for port behavior, and Concurrency for isolation. Include
   failure paths and extension-specific tests when relevant; report skips.
+- Do not put assertions inside test loops. Use named data-provider cases for
+  independently checked inputs; loops for setup or repeated operations without
+  assertions are fine. In Codeception Unit tests, use
+  `Codeception\Attribute\DataProvider` and verify dataset discovery.
 - `composer refactor:dry` checks Rector changes without modifying files;
   `composer refactor` applies them. Rector scans `src`, `tests`, and `examples`
   except `tests/Support/_generated` and `tests/Support/Fixture`. Run Rector

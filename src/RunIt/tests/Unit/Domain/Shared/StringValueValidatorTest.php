@@ -7,7 +7,6 @@ namespace Tests\Unit\Domain\Shared;
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Behavior\Domain\StringValueValidator;
-use ItPack\RunIt\Contract\Domain\StringValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
@@ -83,9 +82,9 @@ final class StringValueValidatorTest extends Unit
             $caught = $throwable;
         }
 
-        self::assertInstanceOf(InvalidStringValueException::class, $caught);
-        self::assertInstanceOf(InvalidValueExceptionInterface::class, $caught);
         self::assertInstanceOf(RunItExceptionInterface::class, $caught);
+        self::assertInstanceOf(InvalidValueExceptionInterface::class, $caught);
+        self::assertInstanceOf(InvalidStringValueException::class, $caught);
     }
 
     #[DataProvider('rejectedProvider')]
@@ -117,8 +116,15 @@ final class StringValueValidatorTest extends Unit
     {
         $validator = new StringValueValidator();
 
-        self::assertInstanceOf(StringValueValidatorInterface::class, $validator);
+        $valid = false;
 
-        $validator->validate('acceptable.name');
+        try {
+            $validator->validate('acceptable.name');
+            $valid = true;
+        } finally {
+            self::assertTrue($valid);
+        }
+
+
     }
 }
