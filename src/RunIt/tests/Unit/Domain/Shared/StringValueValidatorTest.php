@@ -117,8 +117,13 @@ final class StringValueValidatorTest extends Unit
     {
         $validator = new StringValueValidator();
 
-        self::assertInstanceOf(StringValueValidatorInterface::class, $validator);
+        $valid = false;
 
-        $validator->validate('acceptable.name');
+        try {
+            $validator->validate('acceptable.name');
+            $valid = true;
+        } catch (InvalidStringValueException) {}
+
+        self::assertTrue($valid);
     }
 }
