@@ -37,20 +37,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   Reentrant-storage hardening is complete; the overlapping-activity provenance
   blocker is resolved and all Phase 2 checks pass. The execution-wide
   open-activity limit is unchanged.
-- Phase 2 (publication security and artifact routing) is complete subject to
-  clearing the aggregate `composer quality` gate, which is blocked on pre-existing
-  failures (`cs:check` on `ProvenanceAuthority.php`, `refactor:dry` on
-  `RemoveUselessParamTagRector`, and `composer test` due to missing
-  `tests/Functional/_bootstrap.php`). Individual suites pass. The SDK builder
-  checks provenance, invokes a configured custom redactor on the original artifact,
-  then verifies and projects its output and applies strict classifiers before the
-  configured stack, regardless of whether the redactor is custom or null. Ordinary
-  and health-aware custom stack factories receive a null redactor and their stacks
-  receive classified projections. These extension behavior changes can require
-  consumer migration. The default standalone factory without a shared issuing
-  authority reports and drops unverifiable artifacts before sampling or delivery;
-  arbitrary custom composition remains unsafe without independent controls. Consumer
-  migration and downstream checks are deferred; no release is made by these changes.
+- Phase 2 (publication security and artifact routing) is complete. The aggregate
+  `composer quality` gate passes on the current checkout: all static checks pass
+  (`cs:check`, `analyse`, `architecture`, `lint:length`, `api:check`, `refactor:dry`,
+  `security:audit`), all `composer test` suites pass (Unit, Integration, Conformance,
+  Concurrency), and sensitive markers do not reach samplers or sinks except under
+  approved policy. The execution-wide open-activity limit is unchanged.
 - A failing health callback now produces fixed payload-free fallback diagnostics
   without logging exception messages or artifact identifiers. Configured callbacks
   still receive the original arguments.

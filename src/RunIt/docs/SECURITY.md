@@ -124,9 +124,12 @@ none is supplied. It reports and drops unverifiable artifacts before the redacto
 sampler or sink. A default standalone `PublicationPipeline` does not share the SDK
 authority. Arbitrary custom composition can bypass this boundary and remains unsafe
 for untrusted artifacts without independently verified controls. Phase 2 is complete: the overlapping activity provenance blocker is resolved, the custom factory boundary
-delivers classified projections. The aggregate `composer quality` gate is blocked on pre-existing
-failures (`cs:check` on `ProvenanceAuthority.php`, `refactor:dry` on `RemoveUselessParamTagRector`,
-and `composer test` due to missing `tests/Functional/_bootstrap.php`); individual suites pass.
+delivers classified projections, and all non-deferred exit criteria are demonstrated
+on the current checkout (PHP 8.5.12): all `composer test` suites pass (Unit, Integration,
+Conformance, Concurrency), all static quality gates pass (`cs:check`, `analyse`,
+`architecture`, `lint:length`, `api:check`, `refactor:dry`, `security:audit`), and
+sensitive markers do not reach samplers or sinks except under approved policy. The
+aggregate `composer quality` gate is no longer blocked on pre-existing failures.
 Planned configurable alternative extension-input modes and independent classification/provenance bypasses
 remain deferred; they are not Phase 2 requirements. Consumer migration and downstream
 checks are deferred; no release is made by these changes.

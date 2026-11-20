@@ -52,13 +52,13 @@ depending on typed dispatch need review.
 The planned configurable extension-input modes and independent classification
 and provenance bypasses are not implemented; they remain deferred and are not
 Phase 2 requirements. Phase 2 is complete: the overlapping activity provenance
-blocker is resolved, the custom factory boundary delivers classified projections.
-The aggregate `composer quality` gate is blocked on pre-existing failures
-(`cs:check` on `ProvenanceAuthority.php`, `refactor:dry` on `RemoveUselessParamTagRector`,
-and `composer test` due to missing `tests/Functional/_bootstrap.php`); affected
-downstream packages must not be released until their issues are fixed and verified.
-No release is made by this work. These behavioral changes require compatibility
-review alongside any API and schema differences; no baseline update is implied.
+blocker is resolved, the custom factory boundary delivers classified projections,
+and all non-deferred exit criteria are demonstrated on the current checkout
+(all `composer test` suites and all static quality gates pass). Downstream
+packages must not be released until their issues are fixed and verified; downstream
+migration and checks remain deferred. No release is made by this work. These
+behavioral changes require compatibility review alongside any API and schema
+differences; no baseline update is implied.
 
 The public API is the set of symbols under these source directories:
 

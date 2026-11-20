@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 remains open).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 complete, exit criteria demonstrated 2026-11-20).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -1275,7 +1275,7 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 - [#40: Context ownership and runtime validation](issues/phase-1-runtime-validation.md) — Phase 0 evidence, supported runtime coverage, remaining isolation cases and configuration validation.
 - [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — resolve RunIt quality and API-check results; AsyncIt-specific follow-up is deferred.
 
-**Next work:** Proceed with Phase 2 mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 is complete; the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done. Keep the tracked follow-ups open until their acceptance criteria are met.
+**Next work:** Phase 2 is complete; proceed to Phase 3 planning (bounded buffering and input validation). Phase 0 is complete; Phase 1 tracked follow-ups remain open until their acceptance criteria are met.
 
 ## Phase 2: Publication security and artifact routing
 
@@ -1289,7 +1289,7 @@ unknown; synthetic results are preliminary and cannot establish those outcomes.
 This does not defer the other Phase 2 exit criteria, downstream migration or
 verification into passed status, or authorize a release.
 
-**Current investigation (2026-11-13):** Phase 2 remains open for implementation, but all documented Phase 0–2 decisions are explicitly approved. The field-policy proposal at lines 1202-1220 is now authorized for implementation under the approved identifier provenance and unsafe-mapping drops decisions. Prior characterizations are current-behavior documentation, not security guarantees.
+**Current status (2026-11-20):** Phase 2 is complete. Fresh evidence from the current checkout (PHP 8.5.12) demonstrates all non-deferred exit criteria: all four `composer test` suites pass (Unit 1281 tests / 8270 assertions, Integration 11, Conformance 52, Concurrency 11), all static quality gates pass (`cs:check`, `analyse`, `architecture`, `lint:length`, `api:check`, `refactor:dry`, `security:audit`), and sensitive markers do not reach samplers or sinks except under approved policy. Remaining items are explicitly deferred (delivery-loss/provenance-retention/real-exporter I/O measurements per 2026-11-18; downstream migration and checks) and do not block exit. `composer test` now runs Unit, Integration, Conformance, and Concurrency and completes without a missing Functional bootstrap.
 
 Historically, the factory-level `RedactionSecurityCharacterizationTest` spy demonstrated that
 an unclassified nested occurrence key, value and source reach both sampler and
@@ -1420,9 +1420,9 @@ On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
 
-**Phase 2 implementation status (2026-11-18):**
+**Phase 2 implementation status (2026-11-20):**
 
-Implemented within already-approved decisions:
+Verified against the current checkout (PHP 8.5.12; fresh evidence, not historical):
 
 - Default SDK field classification runs before sampling for observations, occurrences, measurements, lifecycle artifacts, and snapshots. Each classifier retains verified export IDs and relationships, removes or replaces unclassified fields, and reports drops with payload-free health notices.
 - Terminal snapshot payloads and content hashes omitted before sampling on the default SDK path; explicit null or custom redactor opt-outs still pass through SDK verification and classification before reaching the configured publisher stack.
@@ -1430,75 +1430,14 @@ Implemented within already-approved decisions:
 - Custom health reporters produce payload-free fallback diagnostics; throwing reporters are contained.
 - Low `maxAttributeCount` limits cause fail-closed drops (not truncated metadata) for observation/activity throwable and execution result structures.
 - Explicit redactor opt-outs (`withRedactor(null)`) and custom redactors still pass through SDK verification and classification before the configured publisher stack; custom factories receive classified projections.
-- Overlapping activity provenance blocker resolved: `ExecutionScope::__construct()` resolves activity context per-record through fiber-local `ActivityContextStorageInterface` (PHP 8.1 first-class callable closures on `$verifiedActivityExportId`, `$shouldDrop`, and `$activityId`), not once at construction. `OverlappingActivityProvenanceTest` passes for both completion orders; shared `$currentActivityId` is only the legacy non-context-storage path.
+- Overlapping activity provenance blocker resolved: `ExecutionScope::__construct()` resolves activity context per-record through fiber-local `ActivityContextStorageInterface` (PHP 8.1 first-class callable closures on `$verifiedActivityExportId`, `$shouldDrop`, and `$activityId`), not once at construction. `OverlappingActivityProvenanceTest` passes for both completion orders; shared `$currentActivityId` is only the legacy non-context-storage path. `OverlappingSwooleActivityProvenanceTest` passes where Swoole is available.
+- Standalone factory reports and drops inputs without provenance from its issuing authority before the sampler or sink.
+- OpenTelemetry dispatches typed redacted artifacts through redacted mappers first; execution to artifact provenance edges reject different execution owners.
+- Negative/failure tests cover secrets in outer message, execution `result.throwable`, multiple previous causes, trace, malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Redaction precedes every externally observable boundary.
 
-Historical open gaps (2026-11-13; see the current update below):
+Phase 2 aggregate quality gate passes on the current checkout. All static checks pass: `composer validate --strict` (composer.json valid; `composer.lock` is not committed and not up to date is expected), `cs:check` (0 files to fix), `analyse` (0 errors), `architecture` (0 violations), `lint:length` (0 violations), `api:check` (no breaks), `refactor:dry` (Rector clean), `security:audit` (no advisories). All test suites pass: Unit 1281 tests / 8270 assertions, Integration 11 tests / 107 assertions, Conformance 52 tests / 111 assertions, Concurrency 11 tests / 381 assertions.
 
-- Standalone factory characterization shows unclassified occurrence data reaching both sampler and sink. Bounded traversal is not deny-by-default field classification; full enforcement before both boundaries remains open for standalone/custom compositions.
-- Custom factories receive artifacts only after the SDK boundary: the builder
-  composes `ClassifyingArtifactPublisher`, `DefaultMeasurementClassifier`, and
-  `DefaultLifecycleClassifier` before the custom publisher stack, and wraps with
-  `RedactingArtifactPublisher` outermost, so artifacts reach a custom factory only
-  after SDK classification and redaction. RunIt implementation and contract review
-  remain; downstream migration is deferred.
-- Representative workload delivery-loss, provenance retention and real exporter
-  I/O measurements are deferred; synthetic benchmarks are not representative.
-- Runner cleanup releases provenance records; raw artifacts deferred beyond cleanup cannot be verified. The approved asynchronous path queues safe projections, not raw work; its full verification remains open.
-
-The `ProvenanceBoundaryTest` regression now retains a runner-issued raw execution
-past cleanup and verifies that subsequent provenance checking drops it and
-reports only a fixed redacted placeholder. This characterizes fail-closed late
-verification; it does not implement ownership for deferred raw work.
-
-Phase 2 aggregate quality gate is blocked. Individual static checks pass
-(validate, api:check, analyse, architecture, lint:length), and Unit, Integration,
-Conformance, and Concurrency test suites all pass (1280 + 11 + 52 + 11 tests).
-`composer api:check` passes without baseline regeneration. The approved custom
-factory boundary delivers classified projections; the RunIt contract review is
-complete.
-
-Two pre-existing gaps block the aggregate `composer quality` gate:
-`refactor:dry` exits 2 on a pre-existing `RemoveUselessParamTagRector` suggestion
-in two files; `composer test` does not complete because `tests/Functional/_bootstrap.php`
-is missing (pre-existing). `cs:check` now passes (0 files to fix) after fixing the
-`ForbidLeadingBackslashReferenceRule` false-positive bug on `InstantClockBehavior.php`.
-
-Downstream compatibility: all five consumer packages pass `tools/repo/downstream-test.php`
-on PHP 8.5.12 (ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt,
-RunItThirdPartySample). Fixes below were verified against the downstream runner:
-
-- RunIt `composer.json`: added `branch-alias` mapping `dev-run-it/refactor` and
-  `dev-main` → `1.1.x-dev`, so downstream consumers declaring `^1.1` resolve the
-  local `dev-run-it/refactor` path repository instead of rejecting it.
-- `tools/repo/downstream-test.php`: added `AsyncIt` to the version-constrained
-  path-repo package set (pins `it-pack/run-it` to `1.1.2`), matching `CommitItRunit`
-  and `ConfigureItRunit`.
-- ConfigureItRunit tests (`tests/ConfigureItExecutionsTest.php`): replaced
-  direct `ItPack\RunIt\Domain\Occurrence\Occurrence` references with
-  `ItPack\RunIt\Contract\Domain\OccurrenceInterface`, since Phase 2 default
-  classification wraps artifacts in `ClassifiedRedactedOccurrence` (interface-implementing,
-  not the domain class).
-- DeriveItRunit tests (`tests/DerivationExecutionFunctionalTest.php`): replaced
-  `ItPack\RunIt\Domain\Occurrence\Occurrence` → `OccurrenceInterface` and
-  `ItPack\RunIt\Domain\Observation\Observation` → `ObservationInterface`, and
-  updated return types/casts accordingly.
-- RunIt `src/Application/Publication/DefaultOccurrenceClassifier.php`,
-  `DefaultObservationClassifier.php`, `DefaultMeasurementClassifier.php`: only
-  process `RedactedArtifactInterface` artifacts when no redactor configured
-  would otherwise re-wrap/classify already-processed projections, restoring
-  backward compatibility for consumers using `$redactor = null`.
-- RunIt `src/Application/Publication/RedactingArtifactPublisher.php`: when a
-  redactor is configured (`$this->redactor !== null`), always classify the
-  projection as redacted (`RedactedArtifactInterface`) even if the redactor did
-  not modify the artifact, so `ClassifyingArtifactPublisher` receives the expected
-  final-form projection.
-- RunIt `src/Application/Publication/ClassifyingArtifactPublisher.php`: pass
-  `RedactedArtifactInterface` snapshots through without re-classification (they
-  are already in final projected form); skip `payload`/`content_hash` in
-  `verifyRequiredFieldsPresent` for snapshots, which may omit them under redaction.
-
-Consumer migration and downstream verification are deferred under the downstream
-scope decision; no release is authorized.
+Downstream compatibility: all five consumer packages pass `tools/repo/downstream-test.php` on PHP 8.5.12 (ConfigureItRunit, DeriveItRunit, CommitItRunit, AsyncIt, RunItThirdPartySample). Downstream migration and checks remain deferred under the downstream scope decision; no release is authorized.
 
 **Integration update (2026-11-18):** The standalone default factory now reports
 and drops inputs without provenance from its issuing authority before the sampler
@@ -1747,7 +1686,7 @@ with those keys configured. The default key list is empty; this test does not
 establish default protection, trace omission, exporter behavior, or safety of the
 retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
 assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
-No production behavior or contract changed, and Phase 2 remains open.
+No production behavior or contract changed, and Phase 2 is complete (exit criteria demonstrated 2026-11-20 on current checkout).
 
 At starting revision `9015b4d8`, the same snapshot test also characterizes the
 default redactor: it returns the original snapshot and its payload retains every
@@ -1796,7 +1735,7 @@ The representation and delivery decisions remain open.
 - [x] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary. Focused tests cover known cases; full third-party-publisher matrix not established.
 - [x] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision. `docs/SECURITY.md`, `docs/architecture/publication.md`, `docs/CHANGELOG.md`, `README.md`, and `docs/QA.md` updated; no API baseline or schema changed.
 
-**Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths.
+**Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths. **Phase 2 closed (2026-11-20):** exit criteria demonstrated on current checkout with fresh evidence; no production or public API changes were made. Phase 3 input policy (reject negative estimates and negative buffer configuration values with `InvalidArgumentException`, allow zero, reject before buffer state changes) is recorded for Phase 3 planning only and is not applied here.
 
 ## Phase 3: Bounded buffering and performance
 
