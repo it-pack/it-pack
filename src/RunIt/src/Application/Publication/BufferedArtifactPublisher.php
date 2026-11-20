@@ -107,9 +107,9 @@ final class BufferedArtifactPublisher implements
         }
 
         if (!$this->fits($item[self::KEY_BYTES])) {
-            if ($this->applyOverflow($item)) {
-                $this->checkIntervalFlush();
-            }
+            $this->applyOverflow($item);
+
+            $this->checkIntervalFlush();
 
             return;
         }

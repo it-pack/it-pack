@@ -147,8 +147,8 @@ final class BufferingTest extends Unit
                 OverflowStrategy::DropNewest,
             );
             self::fail('Negative configuration field ' . $index . ' must be rejected.');
-        } catch (InvalidArgumentException $exception) {
-            self::assertSame('Buffer configuration values must not be negative.', $exception->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame('Buffer configuration values must not be negative.', $invalidArgumentException->getMessage());
         }
     }
 
@@ -723,6 +723,39 @@ final class BufferingTest extends Unit
         self::assertSame([$second], $sink->published(), 'overflow replacement reaches the interval flush');
         self::assertSame(0, $buffer->bufferedCount());
         self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testFlushIntervalRunsAfterOverflowRejection(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            new BufferConfiguration(
+                maxItems: 1,
+                maxEstimatedBytes: 100,
+                maxAgeSeconds: 60,
+                batchSize: 10,
+                flushIntervalSeconds: 5,
+                shutdownFlushBudget: 10,
+                overflow: OverflowStrategy::DropNewest,
+            ),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(60),
+        );
+
+        $first = $this->artifact('info', 'obs-1');
+        $second = $this->artifact('info', 'obs-2');
+        $buffer->publish($first);
+        self::assertSame([], $sink->published(), 'within the interval nothing drains');
+        self::assertSame(1, $buffer->bufferedCount());
+
+        $clock->advanceSeconds(6);
+        $buffer->publish($second);
+
+        self::assertSame([$first], $sink->published(), 'rejected overflow still reaches the interval flush');
+        self::assertSame(1, $buffer->droppedCount());
+        self::assertSame(0, $buffer->bufferedCount());
     }
 
     public function testDropLowPriorityFallsBackToDroppingOldestWhenEverythingIsHighPriority(): void
