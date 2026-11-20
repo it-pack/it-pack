@@ -675,10 +675,14 @@ final class RunItBuilderTest extends TestCase
     public function testNullRedactorStillDropsUnclassifiedMeasurements(): void
     {
         $sink = new InMemoryArtifactPublisher();
+        $dropReports = [];
         $runtime = $this->builder()
             ->withPublisher($sink)
             ->withRedactor(null)
             ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$dropReports): void {
+                $dropReports[] = $failure;
+            })
             ->build()
         ;
 
@@ -690,13 +694,18 @@ final class RunItBuilderTest extends TestCase
             return 1;
         });
 
-        // Valid measurements pass classification and reach the sink.
+        // SDK measurements are dropped before sampling and never reach the sink.
         $measurements = array_values(array_filter(
             $sink->published(),
             static fn (ExecutionArtifactInterface $artifact): bool =>
                 ($artifact->normalize()['name'] ?? null) === 'limit.test',
         ));
-        self::assertNotEmpty($measurements);
+        self::assertEmpty($measurements);
+        self::assertNotEmpty($dropReports);
+        self::assertStringContainsString(
+            'Default measurement classification dropped an unclassified measurement.',
+            $dropReports[0]->getMessage(),
+        );
     }
 
     public function testCustomSnapshotFactoryPublishesTerminalSnapshot(): void
