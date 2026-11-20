@@ -661,6 +661,41 @@ final class BufferingTest extends Unit
         self::assertSame(0, $buffer->bufferedCount());
     }
 
+    public function testFlushIntervalRunsAfterOverflowReplacementAdmission(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $estimator = new DeterministicArtifactByteEstimator(60);
+        $buffer = new BufferedArtifactPublisher(
+            new BufferConfiguration(
+                maxItems: 10,
+                maxEstimatedBytes: 100,
+                maxAgeSeconds: 60,
+                batchSize: 10,
+                flushIntervalSeconds: 5,
+                shutdownFlushBudget: 10,
+                overflow: OverflowStrategy::DropOldest,
+            ),
+            $sink,
+            $clock,
+            $estimator,
+        );
+
+        $first = $this->artifact('info', 'obs-1');
+        $second = $this->artifact('info', 'obs-2');
+        $buffer->publish($first);
+        self::assertSame([], $sink->published(), 'within the interval nothing drains');
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(60, $buffer->estimatedBytes());
+
+        $clock->advanceSeconds(6);
+        $buffer->publish($second);
+
+        self::assertSame([$second], $sink->published(), 'overflow replacement reaches the interval flush');
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
     public function testDropLowPriorityFallsBackToDroppingOldestWhenEverythingIsHighPriority(): void
     {
         $sink = new InMemoryArtifactPublisher();
