@@ -57,6 +57,7 @@ final readonly class DeriveConfig
         public readonly bool $preserveDocblocks = false,
         public readonly array $methodRenames = [],
         public readonly array $reExposeOwnedInterfaces = [],
+        public ?string $namespace = null,
     ) {
         // Normalize to the enum; an invalid string is rejected as the previous
         // "unsupported visibility" InvalidArgumentException (not a raw ValueError).
@@ -287,5 +288,10 @@ final readonly class DeriveConfig
     public function withReExposeOwnedInterfaces(array $reExposeOwnedInterfaces): self
     {
         return $this->copyWith(['reExposeOwnedInterfaces' => $reExposeOwnedInterfaces]);
+    }
+
+    public function withNamespace(string $namespace): self
+    {
+        return $this->copyWith(['namespace' => $namespace]);
     }
 }

@@ -38,7 +38,7 @@ use ReflectionClass;
  */
 final readonly class InterfaceDeriver
 {
-    private readonly DerivationCore $core;
+    private DerivationCore $core;
 
     public function __construct(
         DeriveConfig                   $config = new DeriveConfig(),
@@ -74,17 +74,12 @@ final readonly class InterfaceDeriver
     public function deriveSource(ReflectionClass|string $class): string
     {
         $reflection = $this->core->reflect($class);
-        $meta = $this->build($reflection);
-
-        $source = $this->core->renderer()->render($meta->interface, $reflection->getNamespaceName());
-        $this->core->events()->measured(
-            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
-            strlen($source),
-            DeriveUnits::UNIT_BYTES,
-            ['target' => $reflection->getName()],
+        return $this->renderAndReport(
+            $this->build(
+                $reflection
+            ),
+            $reflection
         );
-
-        return $source;
     }
 
     /**
@@ -94,14 +89,7 @@ final readonly class InterfaceDeriver
     {
         $reflection = $this->core->reflect($class);
         $meta = $this->build($reflection);
-
-        $source = $this->core->renderer()->render($meta->interface, $reflection->getNamespaceName());
-        $this->core->events()->measured(
-            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
-            strlen($source),
-            DeriveUnits::UNIT_BYTES,
-            ['target' => $reflection->getName()],
-        );
+        $source = $this->renderAndReport($meta, $reflection);
 
         return new DerivationResult(
             interface: $meta->interface,
@@ -136,6 +124,27 @@ final readonly class InterfaceDeriver
     }
 
     /**
+     * Asserts the core leakage invariant (flat mode): no extends, no trait uses —
+     * except owned interfaces explicitly re-exposed via the G16 allow-list.
+     *
+     * @param list<string> $allowedExtends Owned interface FQCNs permitted in `extends`.
+     */
+    public static function assertSelfContained(InterfaceType $interface, array $allowedExtends = []): void
+    {
+        $unexpected = array_diff($interface->getExtends(), $allowedExtends);
+        if ($unexpected !== []) {
+            throw new LeakageDetectedException(sprintf(
+                'Derived interface "%s" must not extend non-owned interface(s): %s (adaptee leakage).',
+                $interface->getName(),
+                implode(', ', $unexpected),
+            ));
+        }
+    }
+
+    /**
+     * @param ReflectionClass $reflection
+     * @param TypeSubstitutor|null $substitutor
+     * @param array $allowedNamespaces
      * @return BuildMeta
      */
     private function build(
@@ -307,30 +316,41 @@ final readonly class InterfaceDeriver
             return false;
         }
 
-        foreach ($value as $item) {
-            if (!is_scalar($item) && $item !== null) {
-                return false;
-            }
-        }
+        return array_all($value, fn($item) => is_scalar($item) || $item === null);
 
-        return true;
     }
 
-    /**
-     * Asserts the core leakage invariant (flat mode): no extends, no trait uses —
-     * except owned interfaces explicitly re-exposed via the G16 allow-list.
-     *
-     * @param list<string> $allowedExtends Owned interface FQCNs permitted in `extends`.
-     */
-    public static function assertSelfContained(InterfaceType $interface, array $allowedExtends = []): void
+    private function resolveNamespace(ReflectionClass $reflection): string
     {
-        $unexpected = array_diff($interface->getExtends(), $allowedExtends);
-        if ($unexpected !== []) {
-            throw new LeakageDetectedException(sprintf(
-                'Derived interface "%s" must not extend non-owned interface(s): %s (adaptee leakage).',
-                $interface->getName(),
-                implode(', ', $unexpected),
-            ));
-        }
+        return $this->core->config()->namespace ?? $reflection->getNamespaceName();
+    }
+
+    public function render(BuildMeta $meta, ReflectionClass $reflection): string
+    {
+        $source = $this
+            ->core->renderer()
+            ->render(
+                $meta->interface,
+                $this->resolveNamespace($reflection)
+            );
+        return $source;
+    }
+
+    public function report(string $source, ReflectionClass $reflection): void
+    {
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
+            strlen($source),
+            DeriveUnits::UNIT_BYTES,
+            ['target' => $reflection->getName()],
+        );
+    }
+
+    public function renderAndReport(BuildMeta $meta, ReflectionClass $reflection): string
+    {
+        $source = $this->render($meta, $reflection);
+
+        $this->report($source, $reflection);
+        return $source;
     }
 }
