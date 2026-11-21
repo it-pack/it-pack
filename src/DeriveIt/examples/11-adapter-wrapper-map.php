@@ -33,7 +33,7 @@ $serviceSource = DeriveIt::deriveAdapter(
     returnWrapperMap: [
         _Fixture\CollaboratorInterface::class => _Fixture\CollaboratorAdapter::class,
     ],
-    config: (new DeriveConfig())->withTypeSubstitutionMap([
+    config: new DeriveConfig()->withTypeSubstitutionMap([
         _Fixture\Collaborator::class => _Fixture\CollaboratorInterface::class,
     ]),
 );

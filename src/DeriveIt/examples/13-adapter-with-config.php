@@ -17,7 +17,8 @@ use ItPack\DeriveIt\DeriveIt;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 
 $config = DeriveConfig::forAdapter()
-    ->withMethodRenames(['instanceMethod' => 'doWork']);
+    ->withMethodRenames(['instanceMethod' => 'doWork'])
+;
 
 $source = DeriveIt::deriveAdapter(_Fixture\StaticHeavyClass::class, config: $config);
 

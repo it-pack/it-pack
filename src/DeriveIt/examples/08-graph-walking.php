@@ -16,9 +16,9 @@ use ItPack\DeriveIt\Reflection\ClassReflection;
 
 $reflection = ClassReflection::create(_Fixture\Stubs\ClassD::class);
 
-$names = static fn(array $reflections): string => implode(
+$names = static fn (array $reflections): string => implode(
     "\n",
-    array_map(static fn(\ReflectionClass $r): string => '  - ' . $r->getName(), $reflections),
+    array_map(static fn (\ReflectionClass $r): string => '  - ' . $r->getName(), $reflections),
 );
 
 show(

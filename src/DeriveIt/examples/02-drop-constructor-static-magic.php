@@ -38,7 +38,8 @@ show(
 
 // Magic methods are dropped unless you ask for them (via the config).
 $magic = new InterfaceDeriver(config: new DeriveConfig(includeMagic: true))
-    ->deriveSource(_Fixture\MagicMethodsClass::class);
+    ->deriveSource(_Fixture\MagicMethodsClass::class)
+;
 
 show(
     'MagicMethodsClass — includeMagic: true',

@@ -30,8 +30,9 @@ $config = new DeriveConfig(
     includeMagic: true,
 );
 
-$source = (new InterfaceDeriver(config: $config))
-    ->deriveSource(_Fixture\VisibilityMixClass::class);
+$source = new InterfaceDeriver(config: $config)
+    ->deriveSource(_Fixture\VisibilityMixClass::class)
+;
 
 show(
     'VisibilityMixClass — visibility=protected, static+magic on',
