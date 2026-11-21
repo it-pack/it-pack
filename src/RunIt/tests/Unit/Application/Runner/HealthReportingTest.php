@@ -41,6 +41,30 @@ final class HealthReportingTest extends Unit
         );
     }
 
+    public function testDefaultNoCallbackReportsPublisherFailureToErrorLog(): void
+    {
+        $logPath = (string) tempnam(sys_get_temp_dir(), 'runit-health');
+        $previous = (string) ini_get('error_log');
+
+        try {
+            ini_set('error_log', $logPath);
+
+            $kit = new RunItTestKit(publisher: new ThrowingArtifactPublisher());
+
+            $result = $kit->runner->run($this->definition(), static fn (): string => 'business-value');
+
+            self::assertSame('business-value', $result);
+            self::assertStringContainsString(
+                'publication health',
+                (string) @file_get_contents($logPath),
+                'a throwing publisher with no callback must still be reported to the default error log'
+            );
+        } finally {
+            ini_set('error_log', $previous);
+            @unlink($logPath);
+        }
+    }
+
     public function testDefaultNoCallbackStillPreservesBusinessResult(): void
     {
         $kit = new RunItTestKit(publisher: new ThrowingArtifactPublisher());

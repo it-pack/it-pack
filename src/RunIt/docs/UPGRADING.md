@@ -81,7 +81,7 @@ integration compatibility matrix.
   api:check` passes.
 - Explicit silence is opted into by passing a no-op closure as the publication
   failure handler, e.g. `withPublicationFailureHandler(static function (): void
-  {})` or `onPublicationFailure: static function (Throwable): void {}`. The
+  {})` or `onPublicationFailure: static function (Throwable $e): void {}`. The
   runner invokes it directly and reports nothing; the publisher stack's health
   reporter likewise reports nothing.
 - The default open-activity completion policy (`AutoFailOpenActivitiesPolicy`)

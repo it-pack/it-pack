@@ -150,7 +150,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     ) {
         $health = $this->onPublicationFailure instanceof Closure
             ? new CallbackHealthReporter($this->onPublicationFailure)
-            : null;
+            : new ErrorLogHealthReporter($this->throwableMapper);
         $bounded = new BoundedArtifactPublisher(
             $this->limits,
             $this->publisher,
@@ -615,7 +615,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
                 return;
             } catch (Throwable $throwable) {
-                $this->reportPublicationFailureToFallback($failure, $throwable, $artifact);
+                $this->reportPublicationFailureToFallback($failure, $throwable);
 
                 return;
             }
@@ -636,24 +636,16 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         try {
             new ErrorLogHealthReporter($this->throwableMapper)->report($failure, $artifact);
         } catch (Throwable $throwable) {
-            $this->reportPublicationFailureToFallback($failure, $throwable, $artifact);
+            $this->reportPublicationFailureToFallback($failure, $throwable);
         }
     }
 
     private function reportPublicationFailureToFallback(
         Throwable $failure,
         Throwable $reportingFault,
-        ?ExecutionArtifactInterface $artifact,
     ): void {
-        $artifactId = null;
-
-        if ($artifact instanceof ExecutionArtifactInterface) {
-            $id = $artifact->normalize()[ArtifactField::ID] ?? null;
-            $artifactId = is_string($id) ? $id : null;
-        }
-
         try {
-            new FallbackErrorLogReporter()->report($failure, $reportingFault, $artifactId);
+            new FallbackErrorLogReporter()->report($failure, $reportingFault, null);
         } catch (Throwable) {
             // No further independent sink remains; preserve the business outcome.
         }
