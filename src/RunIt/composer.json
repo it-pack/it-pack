@@ -25,7 +25,8 @@
     "require": {
         "php": "^8.4",
         "ext-mbstring": "*",
-        "just-bases/php-obs-base": "^1.0"
+        "just-bases/php-obs-base": "^1.0",
+        "it-pack/hash-it": "^1.1"
     },
     "require-dev": {
         "codeception/module-asserts": "^3.3",
