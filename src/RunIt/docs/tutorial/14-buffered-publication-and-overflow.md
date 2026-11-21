@@ -84,7 +84,6 @@ faulty reporter cannot loop:
 ```php
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use Throwable;
 
 final class LoggingReporter implements InternalHealthReporterInterface
 {
