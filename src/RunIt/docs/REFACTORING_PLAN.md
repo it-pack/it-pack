@@ -1836,6 +1836,30 @@ overflow rejection regression does not cover those early-return paths. On the sa
 runtime, `composer test --quiet`, `composer analyse`, `composer cs:check` and
 `composer api:check` also passed; the quiet test run does not report skip counts.
 
+**Current verification note (2026-11-21):** On PHP 8.5.13 the target-policy
+regression harness still exits 1 with 21 sampling, redaction and recursive-health
+failures and no reported buffer failures. Integration, conformance and concurrency
+suites passed (11, 52 and 11 tests respectively). `composer api:check` exits 1
+because two pre-existing untracked public symbols are detected as additions;
+no baseline was changed. `composer validate --strict` reports an out-of-date local
+lock file. `composer lint:length` reports the existing 123-column line in
+`BufferingTest.php:153`. Architecture checks passed. These results do not establish
+Phase 3 completion.
+
+Additional deterministic tests exercise close interrupted by a throwing drop
+reporter, subsequent and repeated close, and a throwing observer after a partial
+flush. They check exception identity, deliveries, drop counts and retained-byte
+accounting. The focused `BufferingTest` passed with 52 tests and 225 assertions;
+the separate flush-observer suite passed with 3 tests and 11 assertions. The full
+unit suite passed (1,312 tests, 8,383 assertions), as did Rector dry-run. PHP 8.6
+passed the focused suite with Codeception deprecation warnings; PHP 8.4 could not
+start because the installed dependency set requires PHP 8.5 or later. PHPStan
+reports two errors in the pre-existing untracked `Hash.php`, and style checking
+reports both untracked files. Full `composer quality` was not run because its
+prerequisites already fail. Two corrected-buffer benchmark runs and their
+non-comparable baseline limitations are recorded in `docs/benchmarks.md`; they do
+not isolate queue costs or justify a representation change.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which

@@ -75,6 +75,67 @@ uncontrolled host prevent a general speed or regression claim. PHPBench process
 peaks, including fixtures and harness, ranged from 6.977 to 8.707 MB on 8.6 and
 8.307 to 10.206 MB on 8.5; they are not isolated buffer-memory measurements.
 
+## Phase 3 Corrected Buffer Follow-Up (2026-11-21)
+
+Two sequential focused runs at `4f208970953d72e71916c1ff9f8f7d4efca9f840`
+used PHPBench 1.7.0 and PHP 8.5.13 CLI NTS on the same unpinned, unisolated
+x86-64 WSL2 host described below. No other benchmark was deliberately run in
+parallel; other host activity was not controlled. The worktree had two unrelated
+untracked source files; unrelated documentation and test changes appeared during
+the runs. The measured buffer implementation and benchmark files were not modified
+in the worktree. The PHP 8.5 runtime loaded PCOV, Swoole, OpenTelemetry and
+simdjson_plus; Xdebug was absent. The estimator uses the existing default JSON
+path, not a separately benchmarked SIMD implementation.
+
+Run twice from the package directory:
+
+```bash
+php8.5 vendor/bin/phpbench run benchmarks/BufferedAdmissionBench.php benchmarks/BufferedOverflowBench.php benchmarks/BufferedFlushBench.php benchmarks/BufferedMixedOverflowBench.php --config=phpbench.json --php-binary=/usr/bin/php8.5 --php-config='{"opcache.enable_cli":"0","opcache.jit":"disable","pcov.enabled":"0"}' --report=aggregate
+```
+
+The subprocess flags explicitly disable CLI OPcache, JIT and PCOV. All ten
+subjects completed in both runs with no errors or failures; verification hooks
+passed, although PHPBench reported zero framework assertions. Values below are
+aggregate modes in microseconds per operation or indicated batch, followed by
+within-run relative standard deviation (RSD), not confidence intervals.
+
+| Workload | Run 1 mode / RSD | Run 2 mode / RSD |
+| --- | ---: | ---: |
+| Small admission, one publish | 3.509 / 1.93% | 3.697 / 2.00% |
+| Large admission, one publish | 21.329 / 4.28% | 22.334 / 16.47% |
+| Count overflow, 128 publishes | 738.569 / 6.33% | 790.029 / 23.37% |
+| Byte overflow, 128 publishes | 745.356 / 7.79% | 754.630 / 15.73% |
+| Flush 256 | 579.908 / 4.84% | 585.924 / 9.64% |
+| Full close, 1,024 | 1,516.370 / 6.06% | 1,631.137 / 23.72% |
+| Four flushes, 1,024 | 1,584.863 / 11.40% | 1,724.268 / 8.48% |
+| Limited close, 256 delivered | 1,581.145 / 11.12% | 1,737.845 / 126.52% |
+| Mixed-size byte overflow, 128 publishes | 1,445.932 / 7.91% | 1,558.515 / 13.96% |
+| Priority eviction, 128 publishes | 6,741.877 / 44.00% | 6,686.342 / 6.17% |
+
+The first three benchmark files and `phpbench.json` are unchanged from baseline
+revision `c74780b15c075a6c1923e9fbea01b8457cc28c7d`. Their fixture, iteration and
+batch details are described below. Each new mode is below both corresponding
+recorded Phase 3 baseline modes, and far below the earlier corrected run under
+concurrent quality-gate load. This does not establish an improvement or exclude a
+regression: the baseline used PHP 8.5.12, different process invocation flags and
+concurrent work, not an interleaved controlled comparison. The explicit subprocess
+flags above avoid assuming the parent's `-d` flags reached PHPBench workers. The
+two mixed/priority baseline samples below also differ in bootstrap and potentially
+eviction behavior, so their modes cannot establish a code-change effect. The new
+values are broadly consistent with the separate PHP 8.5.13 samples above, but are
+not independent production evidence.
+
+Priority eviction is substantially slower than the other synthetic overflow
+workloads, but its priority mix and selection work differ, and neither profile
+nor queue-specific cost was measured. A targeted profiling and scaling investigation
+is reasonable if priority overflow is important to a representative workload;
+these results alone do not justify replacing the queue or claim it is a bottleneck.
+The fixed-order runs, small sample counts and substantial outliers, including
+126.52% RSD, limit interpretation. They exclude real exporter I/O, concurrency,
+representative traffic and isolated memory profiling. PHPBench process peaks were
+8.309-10.208 MB, including harness and fixtures, not buffer memory. No performance
+threshold, production throughput or controlled before/after result is established.
+
 ## Phase 3 Buffer Baseline (2026-11-20)
 
 At revision `c74780b15c075a6c1923e9fbea01b8457cc28c7d`, each command below ran

@@ -14,6 +14,7 @@ use ItPack\RunIt\Application\Publication\BufferConfiguration;
 use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\BufferOverflowException;
 use ItPack\RunIt\Application\Publication\OverflowStrategy;
+use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
@@ -642,8 +643,8 @@ final class BufferingTest extends Unit
         try {
             $buffer->flush();
             self::fail('The sink failure must propagate.');
-        } catch (RuntimeException $exception) {
-            self::assertSame($failure, $exception);
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
         }
 
         self::assertSame(1, $buffer->bufferedCount());
@@ -731,6 +732,110 @@ final class BufferingTest extends Unit
         self::assertSame(2, $buffer->droppedCount());
         self::assertCount(2, $reported, 'remainder drops at close() must be reported to the health channel');
         self::assertInstanceOf(BufferOverflowException::class, $reported[0][0]);
+    }
+
+    public function testCloseCanBeRetriedAfterDropReporterThrows(): void
+    {
+        $failure = new RuntimeException('health failure');
+        $health = new class ($failure) implements InternalHealthReporterInterface {
+            public int $calls = 0;
+
+            public function __construct(private readonly RuntimeException $failure)
+            {
+            }
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                $this->calls++;
+                if ($this->calls === 1) {
+                    throw $this->failure;
+                }
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(3, OverflowStrategy::DropNewest, budget: 0, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(20, ['second' => 30, 'third' => 40]),
+            $health,
+        );
+        $buffer->publish($this->artifact(id: 'first'));
+        $buffer->publish($this->artifact(id: 'second'));
+        $buffer->publish($this->artifact(id: 'third'));
+        self::assertSame(90, $buffer->estimatedBytes());
+
+        try {
+            $buffer->close();
+            self::fail('The reporter failure must propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(70, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+        self::assertSame(1, $health->calls);
+        self::assertCount(0, $sink->published());
+
+        $buffer->close();
+        $buffer->close();
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(3, $buffer->droppedCount());
+        self::assertSame(3, $health->calls);
+        self::assertCount(0, $sink->published());
+    }
+
+    public function testThrowingFlushObserverLeavesRemainingItemsAccountedFor(): void
+    {
+        $failure = new RuntimeException('observer failure');
+        $observer = new readonly class ($failure) implements BatchFlushObserverInterface {
+            public function __construct(private RuntimeException $failure)
+            {
+            }
+
+            public function onFlush(int $flushedCount, int $durationMicroseconds, int $remainingBuffered): void
+            {
+                throw $this->failure;
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(2, OverflowStrategy::DropNewest, batchSize: 1, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(20, ['second' => 30]),
+            observer: $observer,
+        );
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $buffer->publish($first);
+        $buffer->publish($second);
+
+        try {
+            $buffer->flush();
+            self::fail('The observer failure must propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame([$first], $sink->published());
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(30, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+
+        try {
+            $buffer->flush();
+            self::fail('The observer failure must propagate on retry.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame([$first, $second], $sink->published());
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
     }
 
     public function testMemoryStaysBoundedUnderSustainedLoad(): void

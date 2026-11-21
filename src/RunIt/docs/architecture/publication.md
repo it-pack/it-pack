@@ -173,6 +173,14 @@ guarded pipeline.
 A throwing health reporter can interrupt an eviction before the replacement is
 appended; standalone exceptions propagate. Buffered item accounting is updated before
 the report. The configured pipeline failure policy governs exceptions raised within it.
+During draining, an item is removed and its estimate deducted before the sink is called.
+If the sink throws, that attempted item is not retried by the buffer; later items remain
+buffered, and the exception propagates to the caller or surrounding failure policy.
+The drop counter does not count this failed sink attempt.
+During close, a throwing drop reporter interrupts removal of the remaining items;
+the item being reported has already been removed and counted as dropped. A later
+close can process the remaining items. Flush observers run after the batch is drained,
+so an observer exception propagates after those deliveries and does not undo them.
 
 ## Recursion prevention
 
