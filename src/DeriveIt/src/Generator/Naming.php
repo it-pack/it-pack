@@ -18,18 +18,18 @@ final class Naming
     /**
      * Suffix appended to a derived interface's short name (naming contract).
      */
-    public const INTERFACE_SUFFIX = 'Interface';
+    public const string INTERFACE_SUFFIX = 'Interface';
 
     /**
      * Suffix appended to a generated adapter's short name (naming contract).
      */
-    public const ADAPTER_SUFFIX = 'Adapter';
+    public const string ADAPTER_SUFFIX = 'Adapter';
 
     /**
      * Marker appended when an input name already ends in {@see self::INTERFACE_SUFFIX},
      * so deriving from an interface-shaped name stays collision-free.
      */
-    private const DERIVED_MARKER = 'Derived';
+    private const string DERIVED_MARKER = 'Derived';
 
     /**
      * Short name of an arbitrary FQCN: the substring after the last `\` (or the
@@ -88,9 +88,9 @@ final class Naming
     /**
      * Fully qualified name of the interface derived from a class.
      */
-    public static function derivedInterfaceFqcn(ReflectionClass $reflection): string
+    public static function derivedInterfaceFqcn(ReflectionClass $reflection, ?string $namespace = null): string
     {
-        return self::join($reflection->getNamespaceName(), self::derivedInterfaceShortName($reflection));
+        return self::join($namespace ?? $reflection->getNamespaceName(), self::derivedInterfaceShortName($reflection));
     }
 
     /**
@@ -102,10 +102,13 @@ final class Naming
      * the same process is a benign, identical redefinition rather than a clash with
      * adaptee code. Concrete class/trait collisions, however, would shadow real
      * adaptee types and are therefore escalated.
+     *
+     * @param string|null $namespace Destination namespace, defaulting to the
+     *     reflected namespace when null.
      */
-    public static function assertNoCollision(ReflectionClass $reflection): void
+    public static function assertNoCollision(ReflectionClass $reflection, ?string $namespace = null): void
     {
-        $fqcn = self::derivedInterfaceFqcn($reflection);
+        $fqcn = self::derivedInterfaceFqcn($reflection, $namespace);
 
         if ($fqcn === $reflection->getName()) {
             return;

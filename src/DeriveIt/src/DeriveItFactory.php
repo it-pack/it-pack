@@ -27,16 +27,16 @@ use ReflectionClass;
  * each type at most once. Lives in the Entry layer — deptrac already allows Entry to
  * depend on Generator + Contract — so no `deptrac.yaml` change is required.
  */
-final class DeriveItFactory
+final readonly class DeriveItFactory
 {
-    private readonly ReflectionCacheInterface $reflectionCache;
-    private readonly ?Factory $factory;
-    private readonly ?DeriveEventSinkInterface $eventSink;
+    private ReflectionCacheInterface $reflectionCache;
+    private ?Factory $factory;
+    private ?DeriveEventSinkInterface $eventSink;
 
     public function __construct(
-        private readonly DeriveConfig $config = new DeriveConfig(),
+        private DeriveConfig      $config = new DeriveConfig(),
         ?ReflectionCacheInterface $reflectionCache = null,
-        ?Factory $factory = null,
+        ?Factory                  $factory = null,
         ?DeriveEventSinkInterface $eventSink = null,
     ) {
         $this->reflectionCache = $reflectionCache ?? new InMemoryReflectionCache();
@@ -91,12 +91,15 @@ final class DeriveItFactory
 
     /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
+     * @param string|null $namespace Destination namespace, defaulting to the
+     *     adaptee's reflected namespace when null.
      */
     public function adapterGenerator(
         InterfaceType $interface,
         ReflectionClass $adaptee,
         array $returnWrapperMap = [],
+        ?string $namespace = null,
     ): AdapterGeneratorInterface {
-        return new AdapterGenerator($interface, $adaptee, $returnWrapperMap);
+        return new AdapterGenerator($interface, $adaptee, $returnWrapperMap, $namespace);
     }
 }

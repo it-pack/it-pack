@@ -94,7 +94,7 @@ final class DeriveIt
             $interface = $derived[$reflection->getName()];
             $result[$reflection->getName()] = self::factory($config)
                 ->sourceRenderer()
-                ->render($interface, $reflection->getNamespaceName())
+                ->render($interface, $config->effectiveNamespace($reflection->getNamespaceName()))
             ;
         }
 
@@ -118,11 +118,12 @@ final class DeriveIt
         ?DeriveEventSinkInterface $eventSink = null,
     ): string {
         $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+        $namespace = $config->effectiveNamespace($reflection->getNamespaceName());
 
         $interface = self::factory($config, $eventSink)->interfaceDeriver()->derive($reflection);
 
         return self::factory($config, $eventSink)
-            ->adapterGenerator($interface, $reflection, $returnWrapperMap)
+            ->adapterGenerator($interface, $reflection, $returnWrapperMap, $namespace)
             ->generateSource()
         ;
     }
@@ -177,7 +178,7 @@ final class DeriveIt
             $reflection = new ReflectionClass($fqcn);
             $result[$fqcn] = self::factory($config)
                 ->sourceRenderer()
-                ->render($interface, $reflection->getNamespaceName())
+                ->render($interface, $config->effectiveNamespace($reflection->getNamespaceName()))
             ;
         }
 
@@ -211,13 +212,21 @@ final class DeriveIt
             $reflections[$reflection->getName()] = $reflection;
         }
 
+        // Resolve the effective destination namespace once per member so the
+        // wrapper-map keys and the adapter-by-namespace grouping share a single
+        // source of truth and can never desynchronize (R3 duplication/drift risk).
+        $namespaces = [];
+        foreach ($reflections as $name => $reflection) {
+            $namespaces[$name] = $config->effectiveNamespace($reflection->getNamespaceName());
+        }
+
         // Auto-wire each member's derived interface to its own generated adapter
         // (the FQCN used as a wrapper-map key matches the substituted return type
         // rendered onto the interface methods).
         $autoWrapperMap = [];
-        foreach ($reflections as $reflection) {
-            $interface = $interfaces[$reflection->getName()];
-            $namespace = $reflection->getNamespaceName();
+        foreach ($reflections as $name => $reflection) {
+            $interface = $interfaces[$name];
+            $namespace = $namespaces[$name];
             $interfaceFqcn = Naming::join($namespace, $interface->getName());
             $adapterFqcn = Naming::join($namespace, Naming::adapterShortName($reflection));
             $autoWrapperMap[$interfaceFqcn] = $adapterFqcn;
@@ -226,13 +235,13 @@ final class DeriveIt
         $wrapperMap = [...$autoWrapperMap, ...$returnWrapperMap];
 
         $byNamespace = [];
-        foreach ($reflections as $reflection) {
-            $namespace = $reflection->getNamespaceName();
+        foreach ($reflections as $name => $reflection) {
+            $namespace = $namespaces[$name];
             $adapter = self::factory($config, $eventSink)
-                ->adapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)
+                ->adapterGenerator($interfaces[$name], $reflection, $wrapperMap, $namespace)
                 ->generate()
             ;
-            $byNamespace[$namespace][] = [$interfaces[$reflection->getName()], $adapter];
+            $byNamespace[$namespace][] = [$interfaces[$name], $adapter];
         }
 
         $file = new PhpFile();

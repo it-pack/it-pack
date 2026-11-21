@@ -39,24 +39,25 @@ final readonly class DeriveConfig
     public readonly Visibility $visibility;
 
     public function __construct(
-        string|Visibility $visibility = self::VISIBILITY_PUBLIC,
-        public readonly bool $includeStatic = false,
-        public readonly bool $includeMagic = false,
-        public readonly bool $dropConstruct = true,
-        public readonly bool $dropDestruct = true,
-        public readonly array $typeSubstitutionMap = [],
-        public readonly bool $substituteSelfStatic = true,
-        public readonly bool $includeConstants = false,
-        public readonly array $onlyMethods = [],
-        public readonly array $skipMethods = [],
-        public readonly bool $failOnEmpty = false,
-        public readonly bool $attributePassThrough = false,
-        public readonly bool $throwsCapture = false,
-        public readonly bool $auditLeakage = false,
-        public readonly array $ownedAttributes = [],
-        public readonly bool $preserveDocblocks = false,
-        public readonly array $methodRenames = [],
-        public readonly array $reExposeOwnedInterfaces = [],
+        string|Visibility     $visibility = self::VISIBILITY_PUBLIC,
+        public bool           $includeStatic = false,
+        public bool           $includeMagic = false,
+        public bool  $dropConstruct = true,
+        public bool  $dropDestruct = true,
+        public array $typeSubstitutionMap = [],
+        public bool  $substituteSelfStatic = true,
+        public bool  $includeConstants = false,
+        public array $onlyMethods = [],
+        public array $skipMethods = [],
+        public bool  $failOnEmpty = false,
+        public bool  $attributePassThrough = false,
+        public bool  $throwsCapture = false,
+        public bool $auditLeakage = false,
+        public array $ownedAttributes = [],
+        public bool $preserveDocblocks = false,
+        public array $methodRenames = [],
+        public array $reExposeOwnedInterfaces = [],
+        public ?string $namespace = null,
     ) {
         // Normalize to the enum; an invalid string is rejected as the previous
         // "unsupported visibility" InvalidArgumentException (not a raw ValueError).
@@ -287,5 +288,20 @@ final readonly class DeriveConfig
     public function withReExposeOwnedInterfaces(array $reExposeOwnedInterfaces): self
     {
         return $this->copyWith(['reExposeOwnedInterfaces' => $reExposeOwnedInterfaces]);
+    }
+
+    public function withNamespace(string $namespace): self
+    {
+        return $this->copyWith(['namespace' => $namespace]);
+    }
+
+    /**
+     * Destination namespace for a derived interface: the configured namespace
+     * when one is provided, otherwise the reflected (adaptee) namespace. A null
+     * config namespace preserves the existing reflected-namespace behavior.
+     */
+    public function effectiveNamespace(string $reflectedNamespace): string
+    {
+        return $this->namespace ?? $reflectedNamespace;
     }
 }

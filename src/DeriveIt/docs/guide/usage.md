@@ -134,6 +134,47 @@ $source = (new InterfaceDeriver(config: $config))
     ->deriveSource(\App\Widget::class);
 ```
 
+## Recipe: render derived interfaces into a port namespace
+
+`DeriveConfig::$namespace` places every rendered interface under a namespace you
+own instead of the adaptee's reflected namespace. `null` (the default) preserves
+the existing reflected-namespace behaviour.
+
+```php
+use ItPack\DeriveIt\DeriveIt;
+use ItPack\DeriveIt\Generator\DeriveConfig;
+use ItPack\DeriveIt\Generator\InterfaceDeriver;
+
+// Flat: a single port under Custom\Port instead of App\ThirdParty.
+$config = new DeriveConfig()->withNamespace('Custom\\Port');
+$source = (new InterfaceDeriver(config: $config))
+    ->deriveSource(\App\ThirdParty\Widget::class);
+// namespace Custom\Port;
+// interface WidgetInterface { ... }
+
+// Per-trait: every derived trait interface and the composed main interface land
+// under the same namespace.
+$source = DeriveIt::derivePerTrait(\App\UsesTraits::class, $config);
+
+// Family: all cross-referencing members share the port namespace.
+$sources = DeriveIt::deriveFamily([
+    \App\Node::class,
+    \App\Tree::class,
+], $config);
+
+// Auto-discovered from a root, likewise grouped under Custom\Port:
+$sources = DeriveIt::deriveFamilyFromRoot(\App\Payments\Gateway::class, [], $config);
+
+// Batch `deriveMany` and `deriveWithResult`/`analyze` report FQCNs in the
+// effective namespace as well.
+$result = (new InterfaceDeriver(config: $config))->deriveWithResult(\App\ThirdParty\Widget::class);
+// $result->fqcn === 'Custom\Port\WidgetInterface'
+```
+
+Collision checks (`Naming::assertNoCollision`) run against the effective
+destination namespace, so the configured namespace participates in collision
+detection exactly as the reflected one did before.
+
 `DeriveConfig` is immutable; `withIncludeStatic(bool)` returns a copy with that
 flag toggled.
 
@@ -219,9 +260,11 @@ defaults):
 | `dropConstruct` | `bool` | `true` |
 | `dropDestruct` | `bool` | `true` |
 | `typeSubstitutionMap` | `array<string, string>` (class FQCN ⇒ interface FQCN) | `[]` |
+| `namespace` | `string` | `null` (reflected namespace) |
 
 Methods: `visibilityMask(): int` (bitmask for extraction),
-`withIncludeStatic(bool): self` (immutable copy).
+`withIncludeStatic(bool): self` (immutable copy),
+`withNamespace(string): self` (immutable copy).
 
 ## FAQ / gotchas
 

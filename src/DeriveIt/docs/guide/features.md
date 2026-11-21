@@ -169,10 +169,17 @@ so behaviour is testable and never an accidental opinion.
 | `dropConstruct` | `true` | Drop `__construct`. |
 | `dropDestruct` | `true` | Drop `__destruct`. |
 | `typeSubstitutionMap` | `[]` | Class FQCN ⇒ derived interface FQCN. |
+| `namespace` | `null` (reflected) | Destination namespace for rendered derived interfaces; `null` preserves the adaptee's reflected namespace. |
 
 `DeriveIt::derive()` and `deriveInterface()` expose an `includeStatic` shortcut;
 for the full set of flags, pass a `DeriveConfig` to `DeriveIt::deriveAdapter()`
 or construct an `InterfaceDeriver` directly.
+
+The `namespace` flag is honoured by per-trait (`derivePerTrait`) and family
+(`deriveFamily`, `deriveFamilyFromRoot`, `deriveFamilySource`) rendering, so all
+derived interfaces in a set land under the same port namespace. Flat derivation
+(`derive` / `deriveInterface`) uses it via `InterfaceDeriver` directly as well.
+When `null` (the default), every mode keeps the adaptee's reflected namespace.
 
 > Example: [`examples/07-configuration.php`](../../examples/07-configuration.php)
 

@@ -64,7 +64,7 @@ final readonly class PerTraitInterfaceDeriver
 
         $allowedNamespaces = LeakageAuditor::allowedNamespaces(
             $reflection->getNamespaceName(),
-            $this->core->config()->typeSubstitutionMap,
+            $this->core->seedTypeMap($reflection),
             [],
         );
 
@@ -93,7 +93,7 @@ final readonly class PerTraitInterfaceDeriver
             }
             $shortNameToFqcn[$shortName] = $fqcn;
 
-            Naming::assertNoCollision($trait);
+            Naming::assertNoCollision($trait, $this->core->config()->effectiveNamespace($trait->getNamespaceName()));
 
             $methods = [];
             foreach ($this->core->extractor()->extract($trait) as $method) {
@@ -146,7 +146,8 @@ final readonly class PerTraitInterfaceDeriver
     public function derive(ReflectionClass|string $class): InterfaceType
     {
         $reflection = $this->core->reflect($class);
-        Naming::assertNoCollision($reflection);
+        $namespace = $this->core->config()->effectiveNamespace($reflection->getNamespaceName());
+        Naming::assertNoCollision($reflection, $namespace);
         $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_STARTED, ['target' => $reflection->getName()]);
         $main = $this->assemble($reflection, $this->deriveTraitInterfaces($reflection));
         $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_COMPLETED, ['target' => $reflection->getName()]);
@@ -165,7 +166,7 @@ final readonly class PerTraitInterfaceDeriver
     private function assemble(ReflectionClass $reflection, array $traitInterfaces): InterfaceType
     {
         $main = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
-        $namespace = $reflection->getNamespaceName();
+        $namespace = $this->core->config()->effectiveNamespace($reflection->getNamespaceName());
         $main->setExtends(array_map(
             static fn (InterfaceType $i): string => $namespace === ''
                 ? $i->getName()
@@ -215,7 +216,7 @@ final readonly class PerTraitInterfaceDeriver
             $reflection->getNamespaceName(),
             LeakageAuditor::allowedNamespaces(
                 $reflection->getNamespaceName(),
-                $this->core->config()->typeSubstitutionMap,
+                $this->core->seedTypeMap($reflection),
                 [],
             ),
             $this->core->config()->auditLeakage,
@@ -230,7 +231,8 @@ final readonly class PerTraitInterfaceDeriver
     public function deriveSource(ReflectionClass|string $class): string
     {
         $reflection = $this->core->reflect($class);
-        Naming::assertNoCollision($reflection);
+        $namespace = $this->core->config()->effectiveNamespace($reflection->getNamespaceName());
+        Naming::assertNoCollision($reflection, $namespace);
         $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_STARTED, ['target' => $reflection->getName()]);
 
         // Derive the trait graph exactly once and reuse it for both the composed
@@ -241,7 +243,7 @@ final readonly class PerTraitInterfaceDeriver
 
         $source = $this->core->renderer()->renderMany(
             [...array_values($traitInterfaces), $main],
-            $reflection->getNamespaceName(),
+            $namespace,
         );
         $this->core->events()->measured(
             DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,

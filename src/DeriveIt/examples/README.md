@@ -43,6 +43,7 @@ Each script `require`s `examples/bootstrap.php`, which loads Composer's autoload
 | 13 | `13-adapter-with-config.php` | **Adapter with full config.** The `forAdapter()` preset keeps static methods; `methodRenames` reshapes the port's vocabulary. |
 | 14 | `14-drift-detection.php` | **CI guardrail.** `DeriveIt::diff()` flags when a committed port diverges from the adaptee it was derived from. |
 | 15 | `15-dogfood-adapter.php` | **Real-world adapter.** Emit interface + adapter for `nette/php-generator`'s `ClassType` and instantiate the generated adapter. |
+| 16 | `16-namespace.php` | **Destination namespace.** `DeriveConfig::$namespace` renders every derived interface under a port namespace you own instead of the adaptee's reflected namespace; `null` (default) preserves current behaviour. |
 
 ## Fixtures used
 
