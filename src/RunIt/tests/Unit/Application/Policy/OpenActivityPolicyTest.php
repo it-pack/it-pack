@@ -58,7 +58,7 @@ final class OpenActivityPolicyTest extends Unit
      */
     public static function policyProvider(): iterable
     {
-        yield 'auto-fail' => [new AutoFailOpenActivitiesPolicy(), ObservationSeverity::Warning, 'auto-resolved'];
+        yield 'auto-fail' => [new AutoFailOpenActivitiesPolicy(), ObservationSeverity::Critical, 'auto-resolved'];
         yield 'auto-cancel' => [new AutoCancelOpenActivitiesPolicy(), ObservationSeverity::Warning, 'auto-cancelled'];
         yield 'warn-and-ignore' => [new WarnAndIgnoreOpenActivitiesPolicy(), ObservationSeverity::Info, 'ignored'];
         yield 'fail-execution' => [

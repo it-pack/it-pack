@@ -70,3 +70,21 @@ OpenTelemetry, CloudEvents, PSR, Swoole, and OpenSwoole are optional adapters. A
 upgrade may change an adapter's package or version constraint; core RunIt never
 requires them. See [`docs/compatibility.md`](docs/compatibility.md) for the
 integration compatibility matrix.
+
+## Behavior changes
+
+- An omitted or `null` `onPublicationFailure` publication-failure handler now
+  reports to the replaceable SDK default health sink (the PHP error log) instead
+  of being silent, including when a `DefaultExecutionRunner` is constructed
+  directly. This is the default destination selected for Phase 4. No public
+  signature changed (`onPublicationFailure` remains `?Closure`); `composer
+  api:check` passes.
+- Explicit silence is opted into by passing a no-op closure as the publication
+  failure handler, e.g. `withPublicationFailureHandler(static function (): void
+  {})` or `onPublicationFailure: static function (Throwable): void {}`. The
+  runner invokes it directly and reports nothing; the publisher stack's health
+  reporter likewise reports nothing.
+- The default open-activity completion policy (`AutoFailOpenActivitiesPolicy`)
+  now records a `Critical` diagnostic instead of `Warning` when activities are
+  still open at completion. The operation-derived terminal status and the exact
+  business result or original exception are preserved.

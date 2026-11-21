@@ -78,8 +78,10 @@ snapshot. A snapshot factory failure is reported through `onPublicationFailure`
 escaping execution publication prevents the snapshot attempt. Under the default
 `FailOpenPolicy`, an inner publisher error is swallowed and does not prevent
 the snapshot attempt. These guarantees concern attempts, not successful
-delivery by a failing publisher. When no `onPublicationFailure` callback is
-configured, failures are not reported at all.
+delivery by a failing publisher. **When no `onPublicationFailure` callback is
+configured, failures are reported to the replaceable SDK default health sink
+(the PHP error log) instead of being silent.** A no-op closure passed as the
+handler is the explicit silence opt-out.
 
 Publication failures never replace the business result or exception: the runner
 publishes through `FailSafeArtifactPublisher` (configured with the fail-open default

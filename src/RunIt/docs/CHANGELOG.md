@@ -28,6 +28,19 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Publication health reporting now defaults to the replaceable SDK error-log
+  sink: an omitted or `null` `onPublicationFailure` handler reports publication
+  failures to the PHP error log instead of being silent, including for directly
+  constructed runners. Diagnostics are sanitized through the throwable mapper and
+  exclude artifact identifiers; a throwing reporter or sink falls back to a
+  bounded, payload-free error-log notice, and re-entering publication is routed
+  through the health channel without recursion. Explicit silence is opted into by
+  passing a no-op closure as the handler. No public signature changed;
+  `composer api:check` passes.
+- The default open-activity completion policy (`AutoFailOpenActivitiesPolicy`)
+  now records a `Critical` diagnostic instead of `Warning` when activities are
+  still open at completion. The operation-derived terminal status and the exact
+  business result or original exception are preserved.
 - `BufferedArtifactPublisher` now drops and counts same-instance publications
   reentered during a drop-health callback, before estimating or admitting them.
   Nested drops do not recursively invoke the configured reporter; a best-effort

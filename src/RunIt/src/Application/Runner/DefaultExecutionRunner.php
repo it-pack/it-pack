@@ -11,6 +11,7 @@ use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
@@ -608,24 +609,64 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
     private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
     {
-        if (!$this->onPublicationFailure instanceof Closure) {
-            return;
+        if ($this->onPublicationFailure instanceof Closure) {
+            try {
+                ($this->onPublicationFailure)($failure);
+
+                return;
+            } catch (Throwable $throwable) {
+                $this->reportPublicationFailureToFallback($failure, $throwable, $artifact);
+
+                return;
+            }
+        }
+
+        // No callback configured: the replaceable SDK default reports to the
+        // PHP error log so a broken publisher stays observable even when the
+        // runner is constructed directly without a health handler. An explicit
+        // opt-out is a no-op closure passed as the handler, which reaches this
+        // branch as a Closure and reports nothing.
+        $this->reportToDefaultErrorLog($failure, $artifact);
+    }
+
+    private function reportToDefaultErrorLog(Throwable $failure, ?ExecutionArtifactInterface $artifact): void
+    {
+        $artifact ??= $this->placeholderArtifact();
+
+        try {
+            new ErrorLogHealthReporter($this->throwableMapper)->report($failure, $artifact);
+        } catch (Throwable $throwable) {
+            $this->reportPublicationFailureToFallback($failure, $throwable, $artifact);
+        }
+    }
+
+    private function reportPublicationFailureToFallback(
+        Throwable $failure,
+        Throwable $reportingFault,
+        ?ExecutionArtifactInterface $artifact,
+    ): void {
+        $artifactId = null;
+
+        if ($artifact instanceof ExecutionArtifactInterface) {
+            $id = $artifact->normalize()[ArtifactField::ID] ?? null;
+            $artifactId = is_string($id) ? $id : null;
         }
 
         try {
-            ($this->onPublicationFailure)($failure);
-        } catch (Throwable $throwable) {
-            // A throwing health callback must never replace the business
-            // outcome: both faults land in the last-resort fallback sink.
-            $artifactId = null;
-
-            if ($artifact instanceof ExecutionArtifactInterface) {
-                $id = $artifact->normalize()[ArtifactField::ID] ?? null;
-                $artifactId = is_string($id) ? $id : null;
-            }
-
-            new FallbackErrorLogReporter()->report($failure, $throwable, $artifactId);
+            new FallbackErrorLogReporter()->report($failure, $reportingFault, $artifactId);
+        } catch (Throwable) {
+            // No further independent sink remains; preserve the business outcome.
         }
+    }
+
+    private function placeholderArtifact(): ExecutionArtifactInterface
+    {
+        return new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [];
+            }
+        };
     }
 
     /**
