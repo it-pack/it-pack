@@ -11,29 +11,92 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 
 ## Covered scenarios
 
-| Scenario                      | Benchmark subject                  | What it measures                                                    |
-|-------------------------------|------------------------------------|---------------------------------------------------------------------|
-| Null execution wrapper        | `benchNullWrapper`                 | Baseline call overhead                                              |
-| In-memory execution lifecycle | `benchInMemoryExecutionLifecycle`  | One execution: start, complete, publish                             |
-| Activity lifecycle            | `benchActivityLifecycle`           | One nested activity start/complete                                  |
-| Measurement creation          | `benchMeasurementCreation`         | Recording one measurement                                           |
-| Observation creation          | `benchObservationCreation`         | Recording one observation                                           |
-| Throwable normalization       | `benchThrowableNormalization`      | `DefaultThrowableMapper::describe`                                  |
-| Bounded publication gate      | `benchBoundedPublish`              | Per-execution count + payload-bound checks (native byte estimation) |
-| OTel bridge no-op path        | `benchOtelNullProviderRecord`      | Instrument-mapper record without a meter provider                   |
-| Sampling and redaction        | `benchRedaction`                   | Sampling, redaction and in-memory publication of a snapshot         |
-| In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
-| Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
-| Buffered overflow             | `BufferedOverflowBench`            | Count- and byte-triggered DropOldest batches                        |
-| Buffered flush and close      | `BufferedFlushBench`               | One 256-item flush or full-budget close of 1,024 items              |
-| Buffer queue scaling          | `BufferedQueueScalingBench`        | Close and fixed-batch eviction at three queue depths               |
-| Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
-| CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
-| Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach and lookup at two depths          |
-| Interleaved Fiber storage     | `FiberContextStorageBench`         | Two Fiber switches and attach/detach pairs at two nesting depths     |
+| Scenario                      | Benchmark subject                 | What it measures                                                    |
+|-------------------------------|-----------------------------------|---------------------------------------------------------------------|
+| Null execution wrapper        | `benchNullWrapper`                | Baseline call overhead                                              |
+| In-memory execution lifecycle | `benchInMemoryExecutionLifecycle` | One execution: start, complete, publish                             |
+| Activity lifecycle            | `benchActivityLifecycle`          | One nested activity start/complete                                  |
+| Measurement creation          | `benchMeasurementCreation`        | Recording one measurement                                           |
+| Observation creation          | `benchObservationCreation`        | Recording one observation                                           |
+| Throwable normalization       | `benchThrowableNormalization`     | `DefaultThrowableMapper::describe`                                  |
+| Bounded publication gate      | `benchBoundedPublish`             | Per-execution count + payload-bound checks (native byte estimation) |
+| OTel bridge no-op path        | `benchOtelNullProviderRecord`     | Instrument-mapper record without a meter provider                   |
+| Sampling and redaction        | `benchRedaction`                  | Sampling, redaction and in-memory publication of a snapshot         |
+| In-memory publication         | `benchBuffering`                  | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer   |
+| Buffered admission            | `BufferedAdmissionBench`          | Normal buffered publish with real byte estimation                   |
+| Buffered overflow             | `BufferedOverflowBench`           | Count- and byte-triggered DropOldest batches                        |
+| Buffered flush and close      | `BufferedFlushBench`              | One 256-item flush or full-budget close of 1,024 items              |
+| Buffer queue scaling          | `BufferedQueueScalingBench`       | Close and fixed-batch eviction at three queue depths                |
+| Nested snapshots              | `NestedSnapshotBench`             | Projection, key masking, JSON normalization and publication         |
+| CloudEvents mapping and JSON  | `CloudEventBench`                 | Occurrence mapping and structured JSON serialization separately     |
+| Synchronous context storage   | `ContextStorageBench`             | Stack and composite attach/detach and lookup at two depths          |
+| Interleaved Fiber storage     | `FiberContextStorageBench`        | Two Fiber switches and attach/detach pairs at two nesting depths    |
 
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
+
+## Phase 3 Representation Comparison (2026-11-21)
+
+At revision `86a13a9cf86b87c2a13f31fc26ab01f556a90781`, the production
+publisher was unchanged. Two sequential invocations on PHP 8.5.13 CLI NTS used:
+
+```bash
+php8.5 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 benchmarks/queue-representation.php
+```
+
+The standalone harness compares a packed array with `array_shift` and reindexing
+on priority removal (the existing representation), a head-indexed sparse array,
+and a sparse array using `array_key_first` on removal. All three use identical
+item tuples, count and byte limits, admission logic, linear priority searches,
+drop collection and result construction. Each measured run checks delivered and
+dropped IDs, retained tuples and bytes against the array reference. The priority
+fixture has a high-priority first half and removes the first low-priority item;
+the mixed-size fixture adds 64 seven-byte items to a full queue of two-byte items,
+forcing multiple oldest evictions. Other overflow rows add 64 two-byte items.
+Admission fills an empty queue; drain removes every item. Setup is untimed except
+for admission; result collection and final survivor copying are timed for all.
+
+Each workload has nine interleaved rounds with rotated/reversed candidate order;
+the first round is discarded. The table gives medians of eight samples in
+microseconds per operation batch, in array / head / sparse order, for each run.
+This is a representation model, not timings of three complete publishers.
+
+| Workload and depth       |                  Run 1 |                  Run 2 |
+|--------------------------|-----------------------:|-----------------------:|
+| Admission 256            |           47 / 54 / 47 |           57 / 69 / 63 |
+| Admission 1,024          |        228 / 248 / 212 |        357 / 334 / 351 |
+| Admission 4,096          |  1,003 / 1,183 / 1,060 |  1,252 / 1,242 / 1,103 |
+| Drain 256                |         144 / 84 / 105 |        176 / 115 / 143 |
+| Drain 1,024              |      1,289 / 293 / 684 |      1,486 / 319 / 850 |
+| Drain 4,096              | 22,733 / 1,422 / 8,615 | 19,999 / 1,206 / 8,232 |
+| Oldest 4,096             |        774 / 269 / 187 |        747 / 165 / 252 |
+| Multiple evictions 4,096 |      2,107 / 270 / 308 |      2,591 / 277 / 317 |
+| Priority search 4,096    |  5,668 / 3,882 / 4,083 |  4,814 / 3,569 / 3,515 |
+
+The harness also measures smaller eviction depths and prints full sample ranges.
+There were large outliers: for example, the second run's 1,024-item admission
+samples ranged from 206 to 569 microseconds for the array, and 250 to 2,141 for
+the head candidate. The unpinned, unisolated WSL2 host was not controlled for
+other activity; no other benchmark was deliberately run concurrently. These are
+synthetic wall-clock samples, not confidence intervals or production throughput.
+
+PHP-accounted live-memory deltas for 4,096 tuples were 819,200 bytes for the
+array and 954,584 for either sparse candidate; after removing half, deltas were
+376,864 and 512,216 respectively, in both invocations. This includes tuple and
+queue allocations, not RSS, allocator peaks or production artifact memory. The
+head candidate has no compaction or index-overflow policy, and long-running
+churn and peak retention were not measured. Estimated byte limits are not
+process-memory limits.
+
+The model supports investigating head indexing, especially for deep drains,
+but is not a safe production replacement. Its priority scan uses `foreach`,
+whereas the actual publisher uses `array_find_key`; it does not exercise real
+estimators, clocks, sinks, drop reporters, observer callbacks, expiry, blocking,
+auto-flush, exceptions or reentrancy. It checks final modeled outcomes, not every
+intermediate state or all strategies. An integrated candidate and the existing
+full lifecycle/regression matrix, including interruption and memory/churn
+measurements, are required before adoption. The current representation remains
+unchanged; Phase 3 completion is not implied.
 
 ## Phase 3 Completion Samples (2026-11-21)
 
@@ -54,17 +117,17 @@ one-revolution iterations without warmup. Setup and verification were untimed.
 Modes below are microseconds per operation or indicated batch; parentheses are
 within-run relative standard deviations, not confidence intervals.
 
-| Workload | Run 1 | Run 2 |
-| --- | ---: | ---: |
-| Small / large admission | 6.61 (15.97%) / 25.79 (27.11%) | 6.48 (26.14%) / 24.70 (16.27%) |
-| Count / byte overflow, 128 publishes | 1,246 (15.36%) / 1,254 (8.81%) | 1,245 (12.44%) / 1,316 (20.20%) |
-| Mixed byte / priority, 128 publishes | 2,169 (18.76%) / 10,890 (12.12%) | 1,948 (7.83%) / 10,722 (6.97%) |
-| Flush 256 / close 1,024 | 700 (14.14%) / 2,135 (39.86%) | 718 (100.53%) / 2,005 (36.89%) |
-| Four flushes / limited close, 1,024 | 2,364 (36.25%) / 1,776 (30.14%) | 1,974 (12.05%) / 1,783 (17.88%) |
-| Full close, 256 / 1,024 / 4,096 | 279 / 1,734 / 20,797 | 269 / 1,749 / 20,535 |
-| Zero-budget close, 256 / 1,024 / 4,096 | 174 / 1,403 / 20,225 | 171 / 1,466 / 20,389 |
-| DropOldest, 64 publishes, 256 / 1,024 / 4,096 | 569 / 677 / 1,062 | 522 / 658 / 1,141 |
-| Priority search, 64 publishes, 256 / 1,024 / 4,096 | 1,918 / 5,446 / 22,476 | 1,739 / 5,202 / 20,501 |
+| Workload                                           |                            Run 1 |                           Run 2 |
+|----------------------------------------------------|---------------------------------:|--------------------------------:|
+| Small / large admission                            |   6.61 (15.97%) / 25.79 (27.11%) |  6.48 (26.14%) / 24.70 (16.27%) |
+| Count / byte overflow, 128 publishes               |   1,246 (15.36%) / 1,254 (8.81%) | 1,245 (12.44%) / 1,316 (20.20%) |
+| Mixed byte / priority, 128 publishes               | 2,169 (18.76%) / 10,890 (12.12%) |  1,948 (7.83%) / 10,722 (6.97%) |
+| Flush 256 / close 1,024                            |    700 (14.14%) / 2,135 (39.86%) |  718 (100.53%) / 2,005 (36.89%) |
+| Four flushes / limited close, 1,024                |  2,364 (36.25%) / 1,776 (30.14%) | 1,974 (12.05%) / 1,783 (17.88%) |
+| Full close, 256 / 1,024 / 4,096                    |             279 / 1,734 / 20,797 |            269 / 1,749 / 20,535 |
+| Zero-budget close, 256 / 1,024 / 4,096             |             174 / 1,403 / 20,225 |            171 / 1,466 / 20,389 |
+| DropOldest, 64 publishes, 256 / 1,024 / 4,096      |                569 / 677 / 1,062 |               522 / 658 / 1,141 |
+| Priority search, 64 publishes, 256 / 1,024 / 4,096 |           1,918 / 5,446 / 22,476 |          1,739 / 5,202 / 20,501 |
 
 Scaling-row RSD ranged from 6.92% to 96.82%. Overflow fixtures prefill 1,024
 items. The mixed-size byte fixture exercises repeated eviction, but its hooks
@@ -109,20 +172,20 @@ bytes after close and drops; eviction cleanup is untimed. Both runs completed al
 Modes are microseconds per close or per 64-publish batch; parentheses are
 within-run relative standard deviations, not confidence intervals.
 
-| Workload | Items | Run 1 | Run 2 |
-| --- | ---: | ---: | ---: |
-| Full close | 256 | 158.479 (10.67%) | 155.681 (6.24%) |
-| Full close | 1,024 | 1,386.548 (6.23%) | 1,413.573 (8.70%) |
-| Full close | 4,096 | 18,139.376 (1.98%) | 18,434.078 (6.26%) |
-| Zero-budget close | 256 | 137.372 (23.56%) | 126.585 (15.81%) |
-| Zero-budget close | 1,024 | 1,256.319 (10.00%) | 1,263.172 (6.76%) |
-| Zero-budget close | 4,096 | 17,476.806 (3.33%) | 18,174.953 (4.27%) |
-| DropOldest | 256 | 287.750 (4.66%) | 268.847 (11.25%) |
-| DropOldest | 1,024 | 403.045 (22.44%) | 396.106 (15.68%) |
-| DropOldest | 4,096 | 887.658 (22.95%) | 799.712 (18.41%) |
-| DropLowPriority | 256 | 1,027.640 (11.42%) | 1,022.219 (2.50%) |
-| DropLowPriority | 1,024 | 3,319.387 (4.87%) | 3,213.160 (7.39%) |
-| DropLowPriority | 4,096 | 14,501.507 (54.81%) | 12,110.630 (4.26%) |
+| Workload          | Items |               Run 1 |              Run 2 |
+|-------------------|------:|--------------------:|-------------------:|
+| Full close        |   256 |    158.479 (10.67%) |    155.681 (6.24%) |
+| Full close        | 1,024 |   1,386.548 (6.23%) |  1,413.573 (8.70%) |
+| Full close        | 4,096 |  18,139.376 (1.98%) | 18,434.078 (6.26%) |
+| Zero-budget close |   256 |    137.372 (23.56%) |   126.585 (15.81%) |
+| Zero-budget close | 1,024 |  1,256.319 (10.00%) |  1,263.172 (6.76%) |
+| Zero-budget close | 4,096 |  17,476.806 (3.33%) | 18,174.953 (4.27%) |
+| DropOldest        |   256 |     287.750 (4.66%) |   268.847 (11.25%) |
+| DropOldest        | 1,024 |    403.045 (22.44%) |   396.106 (15.68%) |
+| DropOldest        | 4,096 |    887.658 (22.95%) |   799.712 (18.41%) |
+| DropLowPriority   |   256 |  1,027.640 (11.42%) |  1,022.219 (2.50%) |
+| DropLowPriority   | 1,024 |   3,319.387 (4.87%) |  3,213.160 (7.39%) |
+| DropLowPriority   | 4,096 | 14,501.507 (54.81%) | 12,110.630 (4.26%) |
 
 Close grows substantially faster than item count in these samples; the fixed
 64-publish eviction batches also grow with queue depth, especially for this
@@ -158,18 +221,18 @@ no SIMD JSON extension was loaded and these benchmarks use the existing default
 JSON estimator. Admission measures one publish; overflow and priority rows measure
 128 publishes, while drain rows measure the specified batch or close operation.
 
-| Workload | PHP 8.5 run 1 / run 2 | PHP 8.6 run 1 / run 2 |
-|---|---:|---:|
-| Small admission | 3.918 / 3.518 µs | 3.277 / 3.432 µs |
-| Large admission | 21.354 / 20.977 µs | 21.565 / 21.886 µs |
-| Count overflow | 706.789 / 726.415 µs | 684.076 / 706.916 µs |
-| Byte overflow | 738.391 / 752.260 µs | 674.125 / 681.626 µs |
-| Flush 256 | 595.438 / 601.922 µs | 594.875 / 626.452 µs |
-| Full close 1,024 | 1,469.677 / 1,467.411 µs | 1,475.123 / 1,504.358 µs |
-| Four flushes, 1,024 | 1,470.720 / 1,493.630 µs | 1,493.885 / 1,561.816 µs |
-| Limited close | 1,403.493 / 1,425.562 µs | 1,381.035 / 1,349.877 µs |
+| Workload                 |    PHP 8.5 run 1 / run 2 |    PHP 8.6 run 1 / run 2 |
+|--------------------------|-------------------------:|-------------------------:|
+| Small admission          |         3.918 / 3.518 µs |         3.277 / 3.432 µs |
+| Large admission          |       21.354 / 20.977 µs |       21.565 / 21.886 µs |
+| Count overflow           |     706.789 / 726.415 µs |     684.076 / 706.916 µs |
+| Byte overflow            |     738.391 / 752.260 µs |     674.125 / 681.626 µs |
+| Flush 256                |     595.438 / 601.922 µs |     594.875 / 626.452 µs |
+| Full close 1,024         | 1,469.677 / 1,467.411 µs | 1,475.123 / 1,504.358 µs |
+| Four flushes, 1,024      | 1,470.720 / 1,493.630 µs | 1,493.885 / 1,561.816 µs |
+| Limited close            | 1,403.493 / 1,425.562 µs | 1,381.035 / 1,349.877 µs |
 | Mixed-size byte overflow | 1,383.706 / 1,456.865 µs | 1,321.297 / 1,371.845 µs |
-| Priority eviction | 6,370.885 / 6,598.205 µs | 6,192.759 / 6,181.599 µs |
+| Priority eviction        | 6,370.885 / 6,598.205 µs | 6,192.759 / 6,181.599 µs |
 
 Values are PHPBench aggregate modes, not averages or confidence intervals.
 Relative standard deviations ranged from 2.82% to 15.26% in the PHP 8.5 runs
@@ -204,18 +267,18 @@ passed, although PHPBench reported zero framework assertions. Values below are
 aggregate modes in microseconds per operation or indicated batch, followed by
 within-run relative standard deviation (RSD), not confidence intervals.
 
-| Workload | Run 1 mode / RSD | Run 2 mode / RSD |
-| --- | ---: | ---: |
-| Small admission, one publish | 3.509 / 1.93% | 3.697 / 2.00% |
-| Large admission, one publish | 21.329 / 4.28% | 22.334 / 16.47% |
-| Count overflow, 128 publishes | 738.569 / 6.33% | 790.029 / 23.37% |
-| Byte overflow, 128 publishes | 745.356 / 7.79% | 754.630 / 15.73% |
-| Flush 256 | 579.908 / 4.84% | 585.924 / 9.64% |
-| Full close, 1,024 | 1,516.370 / 6.06% | 1,631.137 / 23.72% |
-| Four flushes, 1,024 | 1,584.863 / 11.40% | 1,724.268 / 8.48% |
-| Limited close, 256 delivered | 1,581.145 / 11.12% | 1,737.845 / 126.52% |
-| Mixed-size byte overflow, 128 publishes | 1,445.932 / 7.91% | 1,558.515 / 13.96% |
-| Priority eviction, 128 publishes | 6,741.877 / 44.00% | 6,686.342 / 6.17% |
+| Workload                                |   Run 1 mode / RSD |    Run 2 mode / RSD |
+|-----------------------------------------|-------------------:|--------------------:|
+| Small admission, one publish            |      3.509 / 1.93% |       3.697 / 2.00% |
+| Large admission, one publish            |     21.329 / 4.28% |     22.334 / 16.47% |
+| Count overflow, 128 publishes           |    738.569 / 6.33% |    790.029 / 23.37% |
+| Byte overflow, 128 publishes            |    745.356 / 7.79% |    754.630 / 15.73% |
+| Flush 256                               |    579.908 / 4.84% |     585.924 / 9.64% |
+| Full close, 1,024                       |  1,516.370 / 6.06% |  1,631.137 / 23.72% |
+| Four flushes, 1,024                     | 1,584.863 / 11.40% |   1,724.268 / 8.48% |
+| Limited close, 256 delivered            | 1,581.145 / 11.12% | 1,737.845 / 126.52% |
+| Mixed-size byte overflow, 128 publishes |  1,445.932 / 7.91% |  1,558.515 / 13.96% |
+| Priority eviction, 128 publishes        | 6,741.877 / 44.00% |   6,686.342 / 6.17% |
 
 The first three benchmark files and `phpbench.json` are unchanged from baseline
 revision `c74780b15c075a6c1923e9fbea01b8457cc28c7d`. Their fixture, iteration and
@@ -347,15 +410,15 @@ publication attempts implied by this fixture, not counts of unique objects.
 Counts classify sink outputs by projection kind or concrete domain class, and
 do not prove downstream export or complete field retention.
 
-| Artifact | Expected | Sink, each run | Difference |
-| --- | ---: | ---: | ---: |
-| Execution lifecycle | 200 | 200 | 0 |
-| Activity lifecycle | 200 | 200 | 0 |
-| Counter measurement | 100 | 0 | 100 |
-| Observation | 100 | 100 | 0 |
-| Occurrence | 100 | 100 | 0 |
-| Explicit snapshot | 100 | 100 | 0 |
-| Terminal snapshot | 100 | 100 | 0 |
+| Artifact            | Expected | Sink, each run | Difference |
+|---------------------|---------:|---------------:|-----------:|
+| Execution lifecycle |      200 |            200 |          0 |
+| Activity lifecycle  |      200 |            200 |          0 |
+| Counter measurement |      100 |              0 |        100 |
+| Observation         |      100 |            100 |          0 |
+| Occurrence          |      100 |            100 |          0 |
+| Explicit snapshot   |      100 |            100 |          0 |
+| Terminal snapshot   |      100 |            100 |          0 |
 
 Both runs reported 100 health notices, each `Default measurement classification
 dropped an unclassified measurement.` This correlates with the missing counters,
@@ -491,14 +554,14 @@ one-revolution iterations with no warmups. Both commands exited successfully;
 verification hooks passed, although PHPBench reported zero assertions.
 Modes are microseconds per operation or batch, with relative standard deviations:
 
-| Existing synthetic workload | Mode | Relative standard deviation |
-| --- | ---: | ---: |
-| Flush one 256-item batch | 653.726 | 2.74% |
-| Close, full 1,024-item budget | 1,747.587 | 4.06% |
-| Four 256-item flushes | 1,718.004 | 2.32% |
-| Close, 256-item budget | 1,533.479 | 7.33% |
-| Count-bound overflow, 128 publishes | 984.476 | 6.11% |
-| Byte-bound overflow, 128 publishes | 988.033 | 1.63% |
+| Existing synthetic workload         |      Mode | Relative standard deviation |
+|-------------------------------------|----------:|----------------------------:|
+| Flush one 256-item batch            |   653.726 |                       2.74% |
+| Close, full 1,024-item budget       | 1,747.587 |                       4.06% |
+| Four 256-item flushes               | 1,718.004 |                       2.32% |
+| Close, 256-item budget              | 1,533.479 |                       7.33% |
+| Count-bound overflow, 128 publishes |   984.476 |                       6.11% |
+| Byte-bound overflow, 128 publishes  |   988.033 |                       1.63% |
 
 The close fixture pre-fills 1,024 distinct small snapshots outside timing with
 the real byte estimator, an 8 MiB byte limit, and an in-memory sink. Full close
@@ -551,18 +614,18 @@ assertions. Values are PHPBench modes in microseconds per operation, or per
 128-publication batch for the sampled-out case; parentheses show relative
 standard deviation within that run, not a confidence interval.
 
-| Workload | First run | Repeat |
-| --- | ---: | ---: |
-| Snapshot projection, 8 rows | 1.388 (3.86%) | 1.377 (1.40%) |
-| Snapshot projection, 64 rows | 1.385 (2.73%) | 1.407 (5.29%) |
-| Configured redaction, 8 rows | 43.813 (5.61%) | 43.801 (9.27%) |
-| Configured redaction, 64 rows | 258.772 (4.07%) | 274.499 (1.93%) |
-| JSON normalization, 8 rows | 47.106 (2.03%) | 47.973 (5.19%) |
-| JSON normalization, 64 rows | 346.947 (0.20%) | 356.929 (3.30%) |
-| Redacting publisher, 8 rows | 50.428 (3.24%) | 52.561 (3.44%) |
-| Redacting publisher, 64 rows | 299.868 (3.87%) | 287.522 (4.77%) |
-| Sampled-out, 128 publications | 38.315 (9.79%) | 39.507 (11.62%) |
-| Always-sampled small snapshot chain | 10.397 (2.59%) | 10.727 (7.30%) |
+| Workload                            |       First run |          Repeat |
+|-------------------------------------|----------------:|----------------:|
+| Snapshot projection, 8 rows         |   1.388 (3.86%) |   1.377 (1.40%) |
+| Snapshot projection, 64 rows        |   1.385 (2.73%) |   1.407 (5.29%) |
+| Configured redaction, 8 rows        |  43.813 (5.61%) |  43.801 (9.27%) |
+| Configured redaction, 64 rows       | 258.772 (4.07%) | 274.499 (1.93%) |
+| JSON normalization, 8 rows          |  47.106 (2.03%) |  47.973 (5.19%) |
+| JSON normalization, 64 rows         | 346.947 (0.20%) | 356.929 (3.30%) |
+| Redacting publisher, 8 rows         |  50.428 (3.24%) |  52.561 (3.44%) |
+| Redacting publisher, 64 rows        | 299.868 (3.87%) | 287.522 (4.77%) |
+| Sampled-out, 128 publications       |  38.315 (9.79%) | 39.507 (11.62%) |
+| Always-sampled small snapshot chain |  10.397 (2.59%) |  10.727 (7.30%) |
 
 Nested snapshot subjects use five iterations of 100 revolutions after two
 warmups, prebuilt 8- or 64-row payloads and two sensitive keys per row. Setup
@@ -594,17 +657,17 @@ not establish Phase 2 performance coverage or completion.
 This inventory distinguishes durable workloads from historical temporary harnesses;
 their different fixtures and methods do not support direct comparisons.
 
-| Matrix cell | Evidence | Remaining gap |
-| --- | --- | --- |
-| Synchronous attach/detach and lookup | `ContextStorageBench`, stack and composite, depths 0 and 63 | No coroutine detector or realistic scheduling |
-| Fiber attach/detach | `FiberContextStorageBench`, two interleaved Fibers at depths 1 and 63 | Switches included; other scheduling not covered |
-| Fiber lookup | `tools/runtime-context-benchmark.php`; `FiberContextStorageBench` interleaved at depths 1 and 63 | Checks only the last lookup in each Fiber |
-| Swoole attach/detach and lookup | `tools/runtime-context-benchmark.php`, depths 0 and 63 | No interleaving, OpenSwoole or Swow measurement |
-| Buffer admission | `BufferedAdmissionBench`, two nested snapshot sizes, real estimator | No concurrent traffic |
-| Count and byte overflow | `BufferedOverflowBench`, equal-sized snapshots and real estimator; historical priority harness below | Priority cases not durable; limited strategies and fixture sizes; projected byte admission unmeasured |
-| Drain and close | `BufferedFlushBench` times single and repeated flush, full- and limited-budget close | Synthetic in-memory sink, no concurrent traffic |
-| Publication, sampling and redaction | `ExecutionBench::benchRedaction`; `NestedSnapshotBench`; `SampledOutBench` | No representative mixed traffic |
-| Serialization, nested artifacts | `NestedSnapshotBench` and `CloudEventBench` | No real export I/O or broad artifact distribution |
+| Matrix cell                          | Evidence                                                                                             | Remaining gap                                                                                         |
+|--------------------------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| Synchronous attach/detach and lookup | `ContextStorageBench`, stack and composite, depths 0 and 63                                          | No coroutine detector or realistic scheduling                                                         |
+| Fiber attach/detach                  | `FiberContextStorageBench`, two interleaved Fibers at depths 1 and 63                                | Switches included; other scheduling not covered                                                       |
+| Fiber lookup                         | `tools/runtime-context-benchmark.php`; `FiberContextStorageBench` interleaved at depths 1 and 63     | Checks only the last lookup in each Fiber                                                             |
+| Swoole attach/detach and lookup      | `tools/runtime-context-benchmark.php`, depths 0 and 63                                               | No interleaving, OpenSwoole or Swow measurement                                                       |
+| Buffer admission                     | `BufferedAdmissionBench`, two nested snapshot sizes, real estimator                                  | No concurrent traffic                                                                                 |
+| Count and byte overflow              | `BufferedOverflowBench`, equal-sized snapshots and real estimator; historical priority harness below | Priority cases not durable; limited strategies and fixture sizes; projected byte admission unmeasured |
+| Drain and close                      | `BufferedFlushBench` times single and repeated flush, full- and limited-budget close                 | Synthetic in-memory sink, no concurrent traffic                                                       |
+| Publication, sampling and redaction  | `ExecutionBench::benchRedaction`; `NestedSnapshotBench`; `SampledOutBench`                           | No representative mixed traffic                                                                       |
+| Serialization, nested artifacts      | `NestedSnapshotBench` and `CloudEventBench`                                                          | No real export I/O or broad artifact distribution                                                     |
 
 Memory profiling and real traffic are unmeasured for this matrix. Historical
 temporary scripts are not guaranteed to exist; missing durable cases remain open.
@@ -625,13 +688,13 @@ php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/
 php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/SampledOutBench.php --config=phpbench.json --report=aggregate
 ```
 
-| Workload | Mode | Relative standard deviation |
-| --- | ---: | ---: |
-| Four 256-item flushes | 2,828.501 µs/batch | 70.62% |
-| Limited-budget close, 1,024 items | 1,918.221 µs/close | 14.80% |
-| Two interleaved Fiber lookups, depth 1 | 2.262 µs/pair | 34.67% |
-| Two interleaved Fiber lookups, depth 63 | 2.635 µs/pair | 34.33% |
-| 128 sampled-out publications | 48.182 µs/batch | 10.51% |
+| Workload                                |               Mode | Relative standard deviation |
+|-----------------------------------------|-------------------:|----------------------------:|
+| Four 256-item flushes                   | 2,828.501 µs/batch |                      70.62% |
+| Limited-budget close, 1,024 items       | 1,918.221 µs/close |                      14.80% |
+| Two interleaved Fiber lookups, depth 1  |      2.262 µs/pair |                      34.67% |
+| Two interleaved Fiber lookups, depth 63 |      2.635 µs/pair |                      34.33% |
+| 128 sampled-out publications            |    48.182 µs/batch |                      10.51% |
 
 Buffer and sampled-out workloads used ten one-revolution iterations without
 warmups; Fiber used ten iterations of 10,000 revolutions after two warmups.
@@ -664,10 +727,10 @@ The flush subject times one batch and checks its remaining accounting before an
 untimed close. Ten iterations with one revolution and no warmups ran in fixed
 subject order; both hooks passed, although PHPBench reports zero assertions.
 
-| Operation | Mode per operation | Relative standard deviation |
-| --- | ---: | ---: |
-| Flush 256 items | 808.777 µs | 166.10% |
-| Full-budget close, 1,024 items | 2,117.933 µs | 42.17% |
+| Operation                      | Mode per operation | Relative standard deviation |
+|--------------------------------|-------------------:|----------------------------:|
+| Flush 256 items                |         808.777 µs |                     166.10% |
+| Full-budget close, 1,024 items |       2,117.933 µs |                      42.17% |
 
 The shared host was not pinned or isolated. These highly variable synthetic
 measurements include clock and in-memory delivery, not actual export I/O, and
@@ -700,10 +763,10 @@ buffer after close. Two distinct reused snapshots have equal estimated sizes.
 Ten iterations use one batch per revolution and zero warmups; values are modes
 in microseconds **per 128-publish batch**, with relative standard deviation:
 
-| Trigger | First run | Repeat run |
-| --- | ---: | ---: |
-| Count | 1,224.233 (16.53%) | 1,124.450 (9.65%) |
-| Bytes | 1,318.041 (131.45%) | 1,210.945 (136.48%) |
+| Trigger |           First run |          Repeat run |
+|---------|--------------------:|--------------------:|
+| Count   |  1,224.233 (16.53%) |   1,124.450 (9.65%) |
+| Bytes   | 1,318.041 (131.45%) | 1,210.945 (136.48%) |
 
 All verification hooks passed, though PHPBench reports zero assertions. The
 first attempted run rejected unequal fixture sizes before timing; the fixture was
@@ -725,12 +788,12 @@ coroutine skip. A PHP 8.4.27 invocation also completed with Swoole; OpenSwoole
 and Swow were not available for verification. The PHP 8.5 run reported median
 and full range in microseconds per operation:
 
-| Runtime | Operation | Depth 0 | Depth 63 |
-| --- | --- | ---: | ---: |
-| Fiber | Lookup | 0.249 (0.234-0.472) | 1.054 (0.487-1.564) |
-| Fiber | Attach/detach | 2.065 (0.953-2.990) | 2.683 (1.767-4.744) |
-| Swoole | Lookup | 0.434 (0.384-2.141) | 1.103 (0.672-1.435) |
-| Swoole | Attach/detach | 1.858 (1.597-4.256) | 4.104 (2.337-5.439) |
+| Runtime | Operation     |             Depth 0 |            Depth 63 |
+|---------|---------------|--------------------:|--------------------:|
+| Fiber   | Lookup        | 0.249 (0.234-0.472) | 1.054 (0.487-1.564) |
+| Fiber   | Attach/detach | 2.065 (0.953-2.990) | 2.683 (1.767-4.744) |
+| Swoole  | Lookup        | 0.434 (0.384-2.141) | 1.103 (0.672-1.435) |
+| Swoole  | Attach/detach | 1.858 (1.597-4.256) | 4.104 (2.337-5.439) |
 
 These fixed-order, unpinned synthetic samples include loop overhead and have
 large outliers. They exclude scheduling, concurrency, real I/O, failure paths
@@ -782,15 +845,15 @@ The second invocation overlapped extension inspection and hashing. Median and
 full sample range in microseconds per operation, first and repeat invocation:
 
 | Runtime and operation | Depth | First median (range) | Repeat median (range) |
-| --- | ---: | ---: | ---: |
-| Fiber lookup | 0 | 0.222 (0.205-1.213) | 0.234 (0.225-0.265) |
-| Fiber pair | 0 | 1.085 (0.941-1.954) | 2.062 (1.005-3.616) |
-| Fiber lookup | 63 | 0.547 (0.494-0.564) | 0.545 (0.525-2.484) |
-| Fiber pair | 63 | 1.610 (1.533-4.274) | 1.917 (1.571-2.565) |
-| Swoole lookup | 0 | 0.388 (0.358-0.546) | 0.466 (0.373-2.372) |
-| Swoole pair | 0 | 1.693 (1.411-2.452) | 1.904 (1.492-3.426) |
-| Swoole lookup | 63 | 0.727 (0.669-2.765) | 0.830 (0.714-1.056) |
-| Swoole pair | 63 | 3.622 (2.243-8.152) | 4.066 (2.968-5.303) |
+|-----------------------|------:|---------------------:|----------------------:|
+| Fiber lookup          |     0 |  0.222 (0.205-1.213) |   0.234 (0.225-0.265) |
+| Fiber pair            |     0 |  1.085 (0.941-1.954) |   2.062 (1.005-3.616) |
+| Fiber lookup          |    63 |  0.547 (0.494-0.564) |   0.545 (0.525-2.484) |
+| Fiber pair            |    63 |  1.610 (1.533-4.274) |   1.917 (1.571-2.565) |
+| Swoole lookup         |     0 |  0.388 (0.358-0.546) |   0.466 (0.373-2.372) |
+| Swoole pair           |     0 |  1.693 (1.411-2.452) |   1.904 (1.492-3.426) |
+| Swoole lookup         |    63 |  0.727 (0.669-2.765) |   0.830 (0.714-1.056) |
+| Swoole pair           |    63 |  3.622 (2.243-8.152) |   4.066 (2.968-5.303) |
 
 Both runs passed their checks. Fixed case order, scheduler noise, loop and result
 assignment costs, and substantial outliers preclude thresholds or controlled
@@ -847,12 +910,12 @@ PHPBench 1.7.0, PHP CLI NTS, x86-64 Microsoft-hypervisor guest, four virtual
 CPUs on Intel Core i7-9700; CLI OPcache, JIT and PCOV disabled and Xdebug absent.
 Values are modes in microseconds per lookup, with relative standard deviations:
 
-| Workload | PHP 8.5.12 | PHP 8.4.27 |
-| --- | ---: | ---: |
-| Stack, depth 0 | 0.323709 (135.11%) | 0.311564 (5.91%) |
-| Stack, depth 63 | 0.442937 (68.16%) | 0.348178 (65.97%) |
-| Composite, depth 0 | 0.821923 (50.22%) | 0.722870 (40.55%) |
-| Composite, depth 63 | 0.747100 (14.38%) | 0.795883 (59.89%) |
+| Workload            |         PHP 8.5.12 |        PHP 8.4.27 |
+|---------------------|-------------------:|------------------:|
+| Stack, depth 0      | 0.323709 (135.11%) |  0.311564 (5.91%) |
+| Stack, depth 63     |  0.442937 (68.16%) | 0.348178 (65.97%) |
+| Composite, depth 0  |  0.821923 (50.22%) | 0.722870 (40.55%) |
+| Composite, depth 63 |  0.747100 (14.38%) | 0.795883 (59.89%) |
 
 The host was unpinned and not isolated; subjects ran in fixed order. These short
 operations include benchmark dispatch and result assignment, and the last result
@@ -890,10 +953,10 @@ CLI OPcache, JIT and PCOV disabled, Xdebug absent. Runs were sequential and no
 other checks were deliberately run concurrently; the host was not isolated or
 CPU-pinned. Modes and relative standard deviations per revolution:
 
-| Existing depth per Fiber | PHP 8.5.12 | PHP 8.4.27 |
-| --- | ---: | ---: |
-| 1 | 3.770740 µs (3.57%) | 3.748208 µs (15.04%) |
-| 63 | 4.690875 µs (8.46%) | 4.648044 µs (3.38%) |
+| Existing depth per Fiber |          PHP 8.5.12 |           PHP 8.4.27 |
+|--------------------------|--------------------:|---------------------:|
+| 1                        | 3.770740 µs (3.57%) | 3.748208 µs (15.04%) |
+| 63                       | 4.690875 µs (8.46%) |  4.648044 µs (3.38%) |
 
 This fixed-order synthetic workload includes Fiber switching and loop machinery;
 it does not isolate storage cost or reproduce the earlier temporary Fiber harness.
@@ -926,12 +989,12 @@ and ten iterations of 10,000 pairs.
 PHPBench 1.7.0 on PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on an
 Intel Core i7-9700, with CLI OPcache, JIT and PCOV disabled and Xdebug absent:
 
-| Workload | Mode (µs/pair) | Relative standard deviation |
-| --- | ---: | ---: |
-| Stack, depth 0 | 1.115 | 18.78% |
-| Stack, depth 63 | 1.097 | 5.06% |
-| Composite, depth 0 | 2.289 | 3.65% |
-| Composite, depth 63 | 2.267 | 3.55% |
+| Workload            | Mode (µs/pair) | Relative standard deviation |
+|---------------------|---------------:|----------------------------:|
+| Stack, depth 0      |          1.115 |                      18.78% |
+| Stack, depth 63     |          1.097 |                       5.06% |
+| Composite, depth 0  |          2.289 |                       3.65% |
+| Composite, depth 63 |          2.267 |                       3.55% |
 
 A separate PHP 8.4.27 invocation with the same flags and workload passed the
 checks, reporting modes of 1.130, 1.120, 2.283 and 2.336 µs/pair respectively,
@@ -1002,10 +1065,10 @@ Intel Core i7-9700, with CLI OPcache, JIT and PCOV disabled and Xdebug absent,
 reported these modes and relative standard deviations across five iterations of
 1,000 operations, after two warmups:
 
-| Subject | Mode (µs/operation) | Relative standard deviation |
-| --- | ---: | ---: |
-| Occurrence to CloudEvent | 59.245 | 11.05% |
-| CloudEvent to structured JSON | 5.141 | 10.28% |
+| Subject                       | Mode (µs/operation) | Relative standard deviation |
+|-------------------------------|--------------------:|----------------------------:|
+| Occurrence to CloudEvent      |              59.245 |                      11.05% |
+| CloudEvent to structured JSON |               5.141 |                      10.28% |
 
 This unpinned single-process synthetic run is not a regression threshold or a
 controlled comparison. It excludes occurrence creation, deserialization timing,
@@ -1026,18 +1089,18 @@ OPcache, with two warmups, five iterations and 100 revolutions per iteration.
 The following ranges are the minimum and maximum iteration-average times in
 microseconds per subject invocation, not per individual artifact:
 
-| Subject | Range (µs) |
-| --- | ---: |
-| Null wrapper | 0.210-0.230 |
-| In-memory execution lifecycle | 77.530-91.760 |
-| Activity lifecycle | 114.150-162.680 |
-| Measurement creation with execution | 104.830-114.350 |
-| Observation creation with execution | 94.950-128.160 |
-| Throwable normalization | 1.630-1.850 |
-| Sampling and redaction | 2.950-4.970 |
-| Bounded publication gate | 2.670-3.510 |
-| OTel null-provider record | 0.200-0.220 |
-| `benchBuffering` (200 in-memory writes) | 30.680-32.980 |
+| Subject                                 |      Range (µs) |
+|-----------------------------------------|----------------:|
+| Null wrapper                            |     0.210-0.230 |
+| In-memory execution lifecycle           |   77.530-91.760 |
+| Activity lifecycle                      | 114.150-162.680 |
+| Measurement creation with execution     | 104.830-114.350 |
+| Observation creation with execution     |  94.950-128.160 |
+| Throwable normalization                 |     1.630-1.850 |
+| Sampling and redaction                  |     2.950-4.970 |
+| Bounded publication gate                |     2.670-3.510 |
+| OTel null-provider record               |     0.200-0.220 |
+| `benchBuffering` (200 in-memory writes) |   30.680-32.980 |
 
 The snapshot has two payload fields; setup is outside each timed subject.
 The bounded publisher uses default security limits. `benchBuffering` constructs
@@ -1084,12 +1147,12 @@ byte-accounting checks passed. Values are milliseconds for the entire operation,
 median and full range across nine samples after two warmups, with case order
 rotated between rounds.
 
-| Items | Flush median (range) | Full close median (range) | Limited close median (range) |
-| ---: | ---: | ---: | ---: |
-| 256 | 0.149 (0.142-0.223) | 0.155 (0.139-0.187) | 0.143 (0.139-0.150) |
-| 1,024 | 1.332 (1.276-1.889) | 1.388 (1.288-1.640) | 1.249 (1.203-1.903) |
-| 4,096 | 18.107 (17.218-20.042) | 18.215 (17.623-20.033) | 17.510 (17.005-18.634) |
-| 16,384 | 284.814 (268.522-323.959) | 283.731 (273.327-341.804) | 279.919 (275.551-295.503) |
+|  Items |      Flush median (range) | Full close median (range) | Limited close median (range) |
+|-------:|--------------------------:|--------------------------:|-----------------------------:|
+|    256 |       0.149 (0.142-0.223) |       0.155 (0.139-0.187) |          0.143 (0.139-0.150) |
+|  1,024 |       1.332 (1.276-1.889) |       1.388 (1.288-1.640) |          1.249 (1.203-1.903) |
+|  4,096 |    18.107 (17.218-20.042) |    18.215 (17.623-20.033) |       17.510 (17.005-18.634) |
+| 16,384 | 284.814 (268.522-323.959) | 283.731 (273.327-341.804) |    279.919 (275.551-295.503) |
 
 PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on Intel Core i7-9700;
 CLI OPcache, JIT and PCOV disabled, Xdebug absent, without CPU pinning. Other
@@ -1118,12 +1181,12 @@ without `DefaultArtifactRedactor`, using a counting PSR-3 logger. Values are
 microseconds per publication, median and full range over 11 samples of 20,000
 calls each after two warmup rounds; case order rotated between rounds.
 
-| Workload | Median | Range |
-| --- | ---: | ---: |
-| Direct, info | 2.469 | 2.338-3.229 |
-| Redactor then PSR-3, info | 3.755 | 3.572-5.131 |
-| Direct, three-cause error | 3.303 | 3.069-3.499 |
-| Redactor then PSR-3, three-cause error | 5.876 | 5.612-7.507 |
+| Workload                               | Median |       Range |
+|----------------------------------------|-------:|------------:|
+| Direct, info                           |  2.469 | 2.338-3.229 |
+| Redactor then PSR-3, info              |  3.755 | 3.572-5.131 |
+| Direct, three-cause error              |  3.303 | 3.069-3.499 |
+| Redactor then PSR-3, three-cause error |  5.876 | 5.612-7.507 |
 
 PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on Intel Core i7-9700;
 CLI OPcache, JIT and PCOV disabled, Xdebug absent, no CPU pinning. Artifacts
@@ -1146,16 +1209,16 @@ measured immediate attach/detach pairs at a pre-existing nesting depth. Values
 are nanoseconds per pair: median and full range across 11 samples after two
 warmups, with 20,000 pairs per sample and rotated case order.
 
-| Storage | Existing depth | Median | Range |
-| --- | ---: | ---: | ---: |
-| Stack | 0 | 527.58 | 501.52-611.99 |
-| Stack | 7 | 529.90 | 508.18-559.19 |
-| Stack | 63 | 529.07 | 513.02-5,504.74 |
-| Stack | 255 | 553.29 | 525.53-3,620.57 |
-| Fiber | 0 | 855.30 | 805.63-8,444.93 |
-| Fiber | 7 | 884.46 | 854.17-956.09 |
-| Fiber | 63 | 1,268.72 | 1,247.02-5,461.96 |
-| Fiber | 255 | 2,628.49 | 2,555.38-7,674.60 |
+| Storage | Existing depth |   Median |             Range |
+|---------|---------------:|---------:|------------------:|
+| Stack   |              0 |   527.58 |     501.52-611.99 |
+| Stack   |              7 |   529.90 |     508.18-559.19 |
+| Stack   |             63 |   529.07 |   513.02-5,504.74 |
+| Stack   |            255 |   553.29 |   525.53-3,620.57 |
+| Fiber   |              0 |   855.30 |   805.63-8,444.93 |
+| Fiber   |              7 |   884.46 |     854.17-956.09 |
+| Fiber   |             63 | 1,268.72 | 1,247.02-5,461.96 |
+| Fiber   |            255 | 2,628.49 | 2,555.38-7,674.60 |
 
 PHP 8.5.12 CLI NTS on WSL2 x86-64, Intel Core i7-9700, four virtual CPUs;
 CLI OPcache, JIT and PCOV were disabled. A real scope was reused, with setup,
@@ -1253,13 +1316,13 @@ timed region, then times 128 consecutive publishes into the full count-bound
 queue. Values are microseconds per publish: median and full range of 11 sample
 averages, after two warmup rounds, with case order rotated each round.
 
-| Full queue / overflow case | 256 items | 1,024 items | 4,096 items |
-|----------------------------|----------:|------------:|------------:|
-| Drop oldest, incoming high | 1.594 (1.583–1.978) | 3.173 (2.989–12.601) | 9.246 (8.941–10.363) |
-| Priority, reject incoming low | 0.899 (0.873–1.496) | 0.904 (0.886–1.207) | 0.930 (0.898–1.205) |
-| Priority, low items at front | 2.644 (2.536–7.268) | 6.382 (5.677–9.826) | 24.153 (23.120–33.869) |
+| Full queue / overflow case      |              256 items |            1,024 items |               4,096 items |
+|---------------------------------|-----------------------:|-----------------------:|--------------------------:|
+| Drop oldest, incoming high      |    1.594 (1.583–1.978) |   3.173 (2.989–12.601) |      9.246 (8.941–10.363) |
+| Priority, reject incoming low   |    0.899 (0.873–1.496) |    0.904 (0.886–1.207) |       0.930 (0.898–1.205) |
+| Priority, low items at front    |    2.644 (2.536–7.268) |    6.382 (5.677–9.826) |    24.153 (23.120–33.869) |
 | Priority, 128 low items at tail | 12.222 (11.540–39.478) | 73.937 (69.019–88.743) | 349.744 (324.253–374.240) |
-| Priority, all high | 20.791 (20.061–73.284) | 84.183 (77.136–98.860) | 337.253 (307.577–405.166) |
+| Priority, all high              | 20.791 (20.061–73.284) | 84.183 (77.136–98.860) | 337.253 (307.577–405.166) |
 
 The oldest, reject-low and low-front cases start with all low-priority
 observations. The tail case starts with high-priority observations followed by
@@ -1379,12 +1442,12 @@ in microseconds per operation. Each subject used two warmups and five iterations
 of 100 operations. The host was WSL2 x86-64, four virtual CPUs on an Intel
 Core i7-9700; CLI OPcache, JIT and PCOV were disabled and Xdebug was absent.
 
-| Workload | 8 rows | 64 rows |
-| --- | ---: | ---: |
-| Snapshot projection | 1.453 (7.29%) | 1.411 (13.18%) |
+| Workload             |         8 rows |         64 rows |
+|----------------------|---------------:|----------------:|
+| Snapshot projection  |  1.453 (7.29%) |  1.411 (13.18%) |
 | Configured redaction | 26.813 (7.30%) | 224.142 (5.23%) |
-| JSON normalization | 47.591 (9.56%) | 342.713 (3.07%) |
-| Redacting publisher | 33.388 (2.11%) | 218.040 (5.97%) |
+| JSON normalization   | 47.591 (9.56%) | 342.713 (3.07%) |
+| Redacting publisher  | 33.388 (2.11%) | 218.040 (5.97%) |
 
 The prior temporary harness is unavailable and its fixture and method are not
 identical, so these results are not a controlled comparison. Concurrent activity,
@@ -1403,12 +1466,12 @@ subject used two warmups and five iterations of 100 operations; all eight
 subjects completed without errors. Values are modes in microseconds per
 operation, with relative standard deviations in parentheses.
 
-| Workload | 8 rows | 64 rows |
-| --- | ---: | ---: |
-| Snapshot projection | 1.497 (8.54%) | 1.358 (7.11%) |
+| Workload             |          8 rows |          64 rows |
+|----------------------|----------------:|-----------------:|
+| Snapshot projection  |   1.497 (8.54%) |    1.358 (7.11%) |
 | Configured redaction | 42.632 (70.78%) | 238.531 (38.71%) |
-| JSON normalization | 66.778 (13.94%) | 556.602 (10.31%) |
-| Redacting publisher | 39.542 (60.46%) | 240.389 (42.44%) |
+| JSON normalization   | 66.778 (13.94%) | 556.602 (10.31%) |
+| Redacting publisher  | 39.542 (60.46%) | 240.389 (42.44%) |
 
 Execution was unpinned and other investigation was in progress. The especially
 high redaction and publication variance makes these results unsuitable for a
@@ -1438,12 +1501,12 @@ span IDs). Thus 100,000 pairs means 200,000 retained contexts. Autoloading and
 one context construction precede measurements. The harness checks the last
 entry and all timed lookup outcomes; it does not simulate actual publishers.
 
-| Pairs | PHP used-byte delta, median (range) | Hit ns/lookup, median (range) | Miss ns/lookup, median (range) |
-|------:|------------------------------------:|------------------------------:|-------------------------------:|
-| 0 | 80 (80–80) | N/A | 105.458 (92.157–141.933) |
-| 1,000 | 1,490,112 (1,490,112–1,498,304) | 145.887 (119.576–232.170) | 114.591 (102.625–138.068) |
-| 10,000 | 15,390,912 (15,390,912–15,636,672) | 194.694 (155.517–253.500) | 113.124 (101.647–138.451) |
-| 100,000 | 151,286,000 (151,286,000–153,121,032) | 310.162 (211.434–431.107) | 128.213 (106.429–188.564) |
+|   Pairs |   PHP used-byte delta, median (range) | Hit ns/lookup, median (range) | Miss ns/lookup, median (range) |
+|--------:|--------------------------------------:|------------------------------:|-------------------------------:|
+|       0 |                            80 (80–80) |                           N/A |       105.458 (92.157–141.933) |
+|   1,000 |       1,490,112 (1,490,112–1,498,304) |     145.887 (119.576–232.170) |      114.591 (102.625–138.068) |
+|  10,000 |    15,390,912 (15,390,912–15,636,672) |     194.694 (155.517–253.500) |      113.124 (101.647–138.451) |
+| 100,000 | 151,286,000 (151,286,000–153,121,032) |     310.162 (211.434–431.107) |      128.213 (106.429–188.564) |
 
 Each timing is an average of 200,000 calls, alternating execution and activity
 lookups over 256 deterministic precomputed key pairs; hits precede misses.

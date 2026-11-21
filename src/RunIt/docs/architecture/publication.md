@@ -112,6 +112,13 @@ interval has elapsed, retained entries remain buffered
 until a later operation triggers a flush or the caller explicitly flushes or closes.
 Ordinary non-throwing overflow handling instead reaches the interval check.
 
+The byte total is the sum of the estimates retained in the buffer, not a measure
+of PHP heap usage. Removal deducts the estimate before delivery or drop reporting,
+so an exception from either collaborator can interrupt a flush without restoring
+the removed entry. A zero batch size drains no entries, a zero flush interval
+disables interval-triggered flushing, and a zero shutdown budget drops the
+remaining entries on close. These settings do not promise durable delivery.
+
 During `close()`, draining removes each entry and deducts its estimate before
 calling the inner publisher. If that call throws, the same exception propagates;
 the attempted entry is not retried or counted as a buffer drop, and remaining

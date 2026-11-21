@@ -1741,6 +1741,26 @@ The representation and delivery decisions remain open.
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
 
+**Further work (2026-11-21):** A data-provider lifecycle sequence checks retained
+bytes, delivery, drops and observer counts across all five strategy configurations
+through admission, partial flush, expiration and repeated close. The focused buffer
+suite passed on PHP 8.5.13 with 93 tests and 764 assertions; observer and pipeline
+tests passed with 3/11 and 7/31 tests/assertions. The sequence does not trigger
+overflow; separate existing tests cover overflow and interruption paths. The full
+`COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet` exited 0 on PHP 8.5.13.
+The separate target-policy harness still exited 1 with 21 non-buffer failures.
+PHP 8.6 also passed the buffer suite with Codeception deprecation warnings.
+PHP 8.4.28 could not start it because the installed dependencies require PHP 8.5
+or later. OpenSwoole was unavailable.
+
+The new representation model compares packed, head-index and sparse arrays; see
+`docs/benchmarks.md` for results and limitations. Deep modeled drains favor the
+head-index candidate, but it lacks compaction and index-overflow policies and has
+not been evaluated inside the publisher against lifecycle and interruption tests.
+No production representation was changed. Phase 3 remains open until that tradeoff
+and the remaining lifecycle acceptance criteria are resolved; the model is not
+evidence of a production speedup. No API or schema baseline was changed.
+
 **Completion baseline (2026-11-21):** Starting revision
 `726c3e590912f125e3bceec2d7e204cf2a84ab2a` had a clean worktree. PHP 8.5.13
 CLI NTS, Composer 2.9.7 and the installed, ignored lockfile and vendor tree were

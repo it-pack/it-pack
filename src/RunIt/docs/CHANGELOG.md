@@ -28,6 +28,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Added lifecycle accounting regressions across buffer strategy configurations and
+  a modeled queue-representation comparison. The production queue is unchanged;
+  the candidate requires integrated lifecycle and memory/churn evaluation.
 - Expanded buffer and pipeline regression coverage; the pipeline checks use the
   actual wired sink and verified artifacts. These test changes do not change the
   public API or buffer behavior.
