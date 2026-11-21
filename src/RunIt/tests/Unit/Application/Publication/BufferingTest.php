@@ -787,6 +787,98 @@ final class BufferingTest extends Unit
         self::assertCount(0, $sink->published());
     }
 
+    public function testCloseCanBeRetriedAfterPartialDrainFails(): void
+    {
+        $failure = new RuntimeException('sink failure');
+        $sink = new class ($failure) implements ArtifactPublisherInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $attempted = [];
+
+            /** @var list<ExecutionArtifactInterface> */
+            public array $published = [];
+
+            public function __construct(private readonly RuntimeException $failure)
+            {
+            }
+
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                $this->attempted[] = $artifact;
+                if (count($this->attempted) === 2) {
+                    throw $this->failure;
+                }
+
+                $this->published[] = $artifact;
+            }
+        };
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<array{Throwable, ?ExecutionArtifactInterface}> */
+            public array $reported = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = [$error, $artifact];
+            }
+        };
+        $observer = new class () implements BatchFlushObserverInterface {
+            /** @var list<array{int, int, int}> */
+            public array $reports = [];
+
+            public function onFlush(int $flushedCount, int $durationMicroseconds, int $remainingBuffered): void
+            {
+                $this->reports[] = [$flushedCount, $durationMicroseconds, $remainingBuffered];
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(4, OverflowStrategy::DropNewest, budget: 2, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(1_000, 0),
+            new DeterministicArtifactByteEstimator(10, ['second' => 20, 'third' => 30, 'fourth' => 40]),
+            $health,
+            $observer,
+        );
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $third = $this->artifact(id: 'third');
+        $fourth = $this->artifact(id: 'fourth');
+        $buffer->publish($first);
+        $buffer->publish($second);
+        $buffer->publish($third);
+        $buffer->publish($fourth);
+
+        try {
+            $buffer->close();
+            self::fail('The sink failure must propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame([$first, $second], $sink->attempted);
+        self::assertSame([$first], $sink->published);
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(70, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+        self::assertSame([], $health->reported);
+        self::assertSame([], $observer->reports);
+
+        $buffer->close();
+        self::assertSame([$first, $second, $third, $fourth], $sink->attempted);
+        self::assertSame([$first, $third, $fourth], $sink->published);
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+        self::assertSame([], $health->reported);
+        self::assertSame([[2, 0, 0]], $observer->reports);
+
+        $buffer->close();
+        self::assertSame([$first, $second, $third, $fourth], $sink->attempted);
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+        self::assertSame([], $health->reported);
+        self::assertSame([[2, 0, 0], [0, 0, 0]], $observer->reports);
+    }
+
     public function testThrowingFlushObserverLeavesRemainingItemsAccountedFor(): void
     {
         $failure = new RuntimeException('observer failure');
@@ -955,6 +1047,33 @@ final class BufferingTest extends Unit
         self::assertSame([$first], $sink->published(), 'rejected overflow still reaches the interval flush');
         self::assertSame(1, $buffer->droppedCount());
         self::assertSame(0, $buffer->bufferedCount());
+    }
+
+    public function testOversizedRejectionDoesNotRunElapsedIntervalFlush(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropNewest, maxBytes: 100),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(60, ['oversized' => 101]),
+        );
+        $first = $this->artifact(id: 'first');
+        $buffer->publish($first);
+        $clock->advanceSeconds(6);
+        $buffer->publish($this->artifact(id: 'oversized'));
+
+        self::assertSame([], $sink->published());
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(60, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+
+        $buffer->flush();
+        self::assertSame([$first], $sink->published());
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
     }
 
     public function testDropLowPriorityFallsBackToDroppingOldestWhenEverythingIsHighPriority(): void

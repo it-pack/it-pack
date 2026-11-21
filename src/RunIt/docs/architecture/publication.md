@@ -106,6 +106,20 @@ arbitrary artifact contents.
 
 ## Buffering and backpressure
 
+An individually oversized artifact is reported and rejected before the interval
+flush check. Even when the interval has elapsed, retained entries remain buffered
+until a later operation triggers a flush or the caller explicitly flushes or closes.
+Ordinary non-throwing overflow handling instead reaches the interval check.
+
+During `close()`, draining removes each entry and deducts its estimate before
+calling the inner publisher. If that call throws, the same exception propagates;
+the attempted entry is not retried or counted as a buffer drop, and remaining
+entries stay buffered in FIFO order. Remainder dropping and the flush observer
+are not reached on that failed call. A later `close()` starts a new shutdown
+budget and drains the survivors; even an empty repeated close notifies the
+observer with a zero count. These are current semantics, not a delivery guarantee:
+the inner publisher may have performed side effects before throwing.
+
 ### Provenance lifetime and asynchronous delivery
 
 Each SDK build creates its own in-process provenance authority. The execution

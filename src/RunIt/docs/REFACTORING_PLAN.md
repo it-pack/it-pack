@@ -1860,6 +1860,17 @@ prerequisites already fail. Two corrected-buffer benchmark runs and their
 non-comparable baseline limitations are recorded in `docs/benchmarks.md`; they do
 not isolate queue costs or justify a representation change.
 
+**Further characterization (2026-11-21):** With a retained item and an elapsed
+interval, oversized rejection returns without flushing; explicit flush later
+delivers the retained item. A partial close drain removes the failed sink attempt
+without counting or reporting it as a buffer drop, propagates the same exception,
+and skips remainder dropping and observer notification. Retrying close applies a
+fresh budget to FIFO survivors; a further empty close still notifies the observer.
+The focused `BufferingTest` passed with 54 tests and 254 assertions. Zero-item
+capacity's elapsed-interval path, broader lifecycle combinations, performance
+evaluation and full Phase 3 verification remain open; these tests do not settle
+whether the characterized behavior should change.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which
