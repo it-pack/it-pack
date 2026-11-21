@@ -98,12 +98,6 @@ echo PHP_EOL . "=== Default failure policy on buffer overflow ===\n";
 // contained and the business result is preserved. This mirrors that semantics with
 // FailSafeArtifactPublisher directly (no provenance ceremony needed here).
 $sink = new InMemoryArtifactPublisher();
-
-// PublicationPipeline wraps its inner publisher in FailSafeArtifactPublisher with
-// FailOpenPolicy when no failurePolicy is supplied: a transport/buffer error is
-// contained and the business result is preserved. This mirrors that semantics with
-// FailSafeArtifactPublisher directly (no provenance ceremony needed here).
-$sink = new InMemoryArtifactPublisher();
 $buffer = new BufferedArtifactPublisher(
     new BufferConfiguration(
         maxItems: 1,
