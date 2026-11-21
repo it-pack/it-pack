@@ -35,6 +35,16 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Phase 3 Guard Sample (2026-11-21)
+
+On PHP 8.5, the `Buffered(Admission|Overflow|Flush)Bench` filter ran eight
+subjects. Reported variance ranged from 36% to 110%. Baseline timing overlapped
+implementation work, so it is not a valid before/after comparison. A final run
+after implementation also passed all eight subjects, with 15% to 194% variance
+while other checks ran concurrently. These synthetic
+samples support no speedup or regression claim and do not establish production
+throughput or process-memory bounds.
+
 ## Phase 3 Representation Comparison (2026-11-21)
 
 At starting revision `08eada2b`, `composer benchmark -- --filter=BufferedQueueScalingBench`

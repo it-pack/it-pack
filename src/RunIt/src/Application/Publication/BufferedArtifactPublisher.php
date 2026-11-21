@@ -17,6 +17,7 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -75,6 +76,10 @@ final class BufferedArtifactPublisher implements
 
     private int $droppedCount = 0;
 
+    private bool $reportingDrop = false;
+
+    private int $reentrantDrops = 0;
+
     private int $lastFlushEpoch;
 
     private readonly Closure $sleep;
@@ -100,6 +105,13 @@ final class BufferedArtifactPublisher implements
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
+        if ($this->reportingDrop) {
+            ++$this->droppedCount;
+            ++$this->reentrantDrops;
+
+            return;
+        }
+
         $item = $this->toItem($artifact);
 
         if ($item[self::KEY_BYTES] > $this->config->maxEstimatedBytes || $this->config->maxItems === 0) {
@@ -429,7 +441,30 @@ final class BufferedArtifactPublisher implements
     private function reportDrop(ExecutionArtifactInterface $artifact): void
     {
         $this->droppedCount++;
-        $this->health?->report(new BufferOverflowException('Artifact dropped by buffer overflow.'), $artifact);
+        if ($this->reportingDrop) {
+            ++$this->reentrantDrops;
+
+            return;
+        }
+
+        $this->reportingDrop = true;
+        try {
+            $this->health?->report(new BufferOverflowException('Artifact dropped by buffer overflow.'), $artifact);
+        } finally {
+            try {
+                if ($this->reentrantDrops > 0) {
+                    new FallbackErrorLogReporter()->report(
+                        new BufferOverflowException('Artifacts dropped during buffer health reporting.'),
+                        new RuntimeException('Reentrant buffer drops: ' . $this->reentrantDrops),
+                    );
+                }
+            } catch (Throwable) {
+                // A diagnostic failure must not replace the health reporter's exception.
+            } finally {
+                $this->reentrantDrops = 0;
+                $this->reportingDrop = false;
+            }
+        }
     }
 
     private function checkIntervalFlush(): void

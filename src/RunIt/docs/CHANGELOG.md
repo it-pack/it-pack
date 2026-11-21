@@ -28,9 +28,17 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- `BufferedArtifactPublisher` now drops and counts same-instance publications
+  reentered during a drop-health callback, before estimating or admitting them.
+  Nested drops do not recursively invoke the configured reporter; a best-effort
+  fallback diagnostic reports their aggregate count. The guard resets after a
+  reporter exception, which still propagates. Reporters that republish into the
+  buffer will observe loss and different drop counts; concurrent interleaving can
+  also suppress independent publications while reporting is active. No public
+  signature or normalization schema changed; `composer api:check` passed.
 - Added lifecycle regressions for interrupted priority eviction and close observer
-  failure, including retained-byte accounting and retry behavior. These tests do not
-  change the public API or resolve reentrant drop-reporter termination.
+  failure, including retained-byte accounting and retry behavior. Reentrant drop
+  reporting is now covered separately by `BufferedReentrantDropTest`.
 - Added explicit estimated-byte-bound checks for interrupted and partial buffer
   lifecycle operations; these are test-only checks, not a process-memory guarantee.
 - Replaced repeated buffer array shifts with an internally compacted indexed queue.

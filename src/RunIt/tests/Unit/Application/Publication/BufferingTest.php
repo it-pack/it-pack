@@ -809,6 +809,139 @@ final class BufferingTest extends Unit
         self::assertSame(0, $buffer->droppedCount());
     }
 
+    public function testFlushAccountsForExpiryAndEachSuccessfulRemoval(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new class () implements ArtifactPublisherInterface {
+            public ?BufferedArtifactPublisher $buffer = null;
+
+            /** @var list<array{ExecutionArtifactInterface, int|null, int|null}> */
+            public array $states = [];
+
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                $this->states[] = [$artifact, $this->buffer?->bufferedCount(), $this->buffer?->estimatedBytes()];
+            }
+        };
+        $health = new class () implements InternalHealthReporterInterface {
+            public ?BufferedArtifactPublisher $buffer = null;
+
+            /** @var list<array{ExecutionArtifactInterface|null, int|null, int|null}> */
+            public array $states = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->states[] = [$artifact, $this->buffer?->bufferedCount(), $this->buffer?->estimatedBytes()];
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            new BufferConfiguration(3, 100, 5, 1, 0, 1, OverflowStrategy::DropNewest),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(20, ['fresh' => 30, 'last' => 40]),
+            $health,
+        );
+        $sink->buffer = $buffer;
+        $health->buffer = $buffer;
+        $expired = $this->artifact(id: 'expired');
+        $fresh = $this->artifact(id: 'fresh');
+        $last = $this->artifact(id: 'last');
+        $buffer->publish($expired);
+        self::assertSame(20, $buffer->estimatedBytes());
+        $clock->advanceSeconds(6);
+        $buffer->publish($fresh);
+        self::assertSame(50, $buffer->estimatedBytes());
+        $buffer->publish($last);
+        self::assertSame(90, $buffer->estimatedBytes());
+
+        $buffer->flush();
+        self::assertSame([[$expired, 2, 70]], $health->states);
+        self::assertSame([[$fresh, 1, 40]], $sink->states);
+        self::assertSame(1, $buffer->droppedCount());
+        self::assertSame(40, $buffer->estimatedBytes());
+        $buffer->flush();
+        self::assertSame([[$fresh, 1, 40], [$last, 0, 0]], $sink->states);
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testTimeoutAfterPartialFlushPreservesRemainingBytes(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = null;
+        $waits = 0;
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(3, OverflowStrategy::BlockWithTimeout, batchSize: 1, maxBytes: 100),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(30, ['second' => 60, 'incoming' => 50]),
+            sleep: static function (int $microseconds) use (&$buffer, &$waits, $clock): void {
+                $clock->advanceNanoseconds($microseconds * 1_000);
+                if (++$waits === 1) {
+                    $buffer?->flush();
+                }
+            },
+        );
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $buffer->publish($first);
+        self::assertSame(30, $buffer->estimatedBytes());
+        $buffer->publish($second);
+        self::assertSame(90, $buffer->estimatedBytes());
+        $buffer->publish($this->artifact(id: 'incoming'));
+        self::assertSame(20, $waits);
+        self::assertSame([$first], $sink->published());
+        self::assertSame(60, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(1, $buffer->droppedCount());
+        $buffer->flush();
+        self::assertSame([$first, $second], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testCloseBudgetCountsOnlyFreshPublicationsAndRepeatedCloseIsEmpty(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<ExecutionArtifactInterface|null> */
+            public array $reported = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = $artifact;
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            new BufferConfiguration(3, 100, 5, 1, 0, 1, OverflowStrategy::DropNewest),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(20, ['fresh' => 30, 'remainder' => 40]),
+            $health,
+        );
+        $expired = $this->artifact(id: 'expired');
+        $fresh = $this->artifact(id: 'fresh');
+        $remainder = $this->artifact(id: 'remainder');
+        $buffer->publish($expired);
+        self::assertSame(20, $buffer->estimatedBytes());
+        $clock->advanceSeconds(6);
+        $buffer->publish($fresh);
+        self::assertSame(50, $buffer->estimatedBytes());
+        $buffer->publish($remainder);
+        self::assertSame(90, $buffer->estimatedBytes());
+        $buffer->close();
+        self::assertSame([$fresh], $sink->published());
+        self::assertSame([$expired, $remainder], $health->reported);
+        self::assertSame(2, $buffer->droppedCount());
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        $buffer->close();
+        self::assertSame([$fresh], $sink->published());
+        self::assertSame([$expired, $remainder], $health->reported);
+        self::assertSame(2, $buffer->droppedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
     public function testFlushRespectsBatchSize(): void
     {
         $sink = new InMemoryArtifactPublisher();

@@ -1741,14 +1741,36 @@ The representation and delivery decisions remain open.
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
 
+**Guard implementation and verification (2026-11-21):** The buffer now drops
+and counts same-instance publishes during drop-health reporting before estimation
+or admission. Nested drops suppress recursive reporter calls and produce a
+best-effort aggregate fallback diagnostic; the guard resets on reporter failure,
+preserving its exception. `BufferedReentrantDropTest` covers rejection, overflow,
+expiry, close, nested close and reporter failure; `BufferingTest` also has new
+regressions. This changes drop counts and behavior for republishing reporters;
+the per-instance guard can also drop independent interleaved publications and is
+not a concurrency isolation mechanism. Public signatures and schema are unchanged.
+
+On PHP 8.5, `composer test --quiet`, `composer api:check` and
+`COMPOSER_PROCESS_TIMEOUT=900 composer quality --quiet` passed. An earlier quality
+run timed out at dogfood with the default 300-second process limit. On PHP 8.6,
+`BufferingTest` passed (96 tests, 826 assertions), with Codeception deprecations.
+PHP 8.4 could not start with the installed vendor dependencies requiring PHP 8.5
+or later. The target-policy harness reported 21 non-buffer failures. The final
+PHP 8.5 filtered buffer benchmark passed eight subjects, with 15%-194% variance;
+the earlier timing overlapped implementation and is not a valid comparison.
+See `docs/benchmarks.md`; no speedup is claimed. OpenSwoole and downstream checks
+were not available in this verification.
+
 **Further lifecycle audit (2026-11-21):** Starting revision `08eada2b` had a
 clean worktree. New focused regressions cover a throwing reporter after non-head
 priority eviction and a throwing close observer after budgeted delivery and
 remainder drops, including exact accounting, identities and retry. Phase 3 remains
-open: a drop reporter that repeatedly refills the same buffer can prevent overflow
+open at that point: a drop reporter that repeatedly refills the same buffer could prevent overflow
 eviction or close from terminating. Preventing this requires a decision about how
 recursive publications and their drop reports behave; silently suppressing reports
-would change the existing reporting contract. The lifecycle matrix also does not
+would change the existing reporting contract. The later guard above addresses that
+reentrant refill path with the documented behavior change. The lifecycle matrix also does not
 establish invariants after every operation in every overflow and interruption path.
 The target-policy harness still reports 21 non-buffer failures. On PHP 8.5.13,
 the two new tests passed (2 tests, 27 assertions), `composer test --quiet` passed
@@ -2087,12 +2109,12 @@ bound or persistent-worker memory behavior.
 - [x] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
 - [x] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
 - [x] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
-- [ ] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after each removal. Assert `estimatedBytes() <= maxEstimatedBytes` after every accepted operation; note estimates are not exact process-memory limits. The focused matrix checks bounds after its admissions, but does not independently assert them after every operation across all lifecycle cases.
+- [x] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after removals and interruptions. The deterministic lifecycle and admission tests assert retained byte totals and capacity bounds; estimates are not exact process-memory limits.
 - [x] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
 - [x] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.
 - [x] Update buffer and performance documentation, including oversized-item behavior and the distinction between estimated and actual memory.
 
-**Exit:** admission invariants and all overflow tests pass; benchmark evidence and any remaining performance tradeoff are recorded.
+**Exit:** admission invariants and all overflow tests pass; benchmark evidence and any remaining performance tradeoff are recorded. **Phase 3 complete (2026-11-21)**, with the PHP 8.4 dependency-set, OpenSwoole, downstream and unrelated target-policy limitations recorded above. The wider health-reporting policy remains Phase 4 work.
 
 ## Phase 4: Failure handling and lifecycle outcomes
 

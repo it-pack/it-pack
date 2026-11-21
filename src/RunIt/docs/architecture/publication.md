@@ -106,6 +106,17 @@ arbitrary artifact contents.
 
 ## Buffering and backpressure
 
+While a buffer drop is being reported, `BufferedArtifactPublisher` rejects
+reentrant `publish()` calls on the same instance before estimation or admission.
+Each is counted as dropped without recursively calling the configured health
+reporter; a best-effort fallback diagnostic reports the aggregate count without
+the artifacts. Nested drops caused by operations such as `close()` are likewise
+counted without recursive health callbacks. The guard resets even if reporting
+throws, and a fallback failure does not replace the original reporter exception.
+This changes behavior for reporters that republish into the same buffer. The guard
+is per instance, not runtime-local: interleaved independent publications during a
+report can also be dropped. It is not a general concurrency or delivery guarantee.
+
 An individually oversized artifact or an artifact offered to a zero-item-capacity
 buffer is reported and rejected before the interval flush check. Even when the
 interval has elapsed, retained entries remain buffered
