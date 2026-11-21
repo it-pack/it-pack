@@ -25,13 +25,15 @@
     "require": {
         "php": "^8.4",
         "ext-mbstring": "*",
-        "just-bases/php-obs-base": "^1.0",
-        "it-pack/hash-it": "^1.1"
+        "it-pack/hash-it": "^1.1",
+        "just-bases/php-obs-base": "^1.0"
     },
     "require-dev": {
         "codeception/module-asserts": "^3.3",
         "codeception/module-phpbrowser": "^4.1",
         "infection/codeception-adapter": "^0.4",
+        "it-pack/derive-it": "^1.1",
+        "it-pack/derive-it-runit": "^1.1",
         "it-pack/disenchant-it": "^1.1",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "just-bases/php-qa-base": "^1.0",
@@ -46,9 +48,7 @@
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
-        "symfony/http-client": "^8.1",
-        "it-pack/derive-it": "^1.1",
-        "it-pack/derive-it-runit": "^1.1"
+        "symfony/http-client": "^8.1"
     },
     "suggest": {
         "ext-openswoole": "OpenSwoole coroutine execution adapter",
