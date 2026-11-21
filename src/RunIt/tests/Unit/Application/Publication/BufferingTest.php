@@ -150,7 +150,10 @@ final class BufferingTest extends Unit
             );
             self::fail('Negative configuration field ' . $index . ' must be rejected.');
         } catch (InvalidArgumentException $invalidArgumentException) {
-            self::assertSame('Buffer configuration values must not be negative.', $invalidArgumentException->getMessage());
+            self::assertSame(
+                'Buffer configuration values must not be negative.',
+                $invalidArgumentException->getMessage(),
+            );
         }
     }
 
@@ -1076,6 +1079,39 @@ final class BufferingTest extends Unit
         self::assertSame(1, $buffer->droppedCount());
     }
 
+    public function testZeroCapacityRejectionDoesNotRunElapsedIntervalFlush(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $observer = new class () implements BatchFlushObserverInterface {
+            /** @var list<int> */
+            public array $counts = [];
+
+            public function onFlush(int $flushedCount, int $durationMicroseconds, int $remainingBuffered): void
+            {
+                $this->counts[] = $flushedCount;
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(0, OverflowStrategy::DropNewest),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(0),
+            observer: $observer,
+        );
+        $clock->advanceSeconds(6);
+        $buffer->publish($this->artifact());
+
+        self::assertSame([], $sink->published());
+        self::assertSame([], $observer->counts);
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+
+        $buffer->flush();
+        self::assertSame([0], $observer->counts);
+    }
+
     public function testDropLowPriorityFallsBackToDroppingOldestWhenEverythingIsHighPriority(): void
     {
         $sink = new InMemoryArtifactPublisher();
@@ -1153,5 +1189,85 @@ final class BufferingTest extends Unit
         self::assertSame([], $sink->published(), 'an item past its max age must never reach the inner publisher');
         self::assertSame(1, $buffer->droppedCount());
         self::assertCount(1, $health->reported);
+    }
+
+    /** @return iterable<string, array{int, bool}> */
+    public static function ageBoundaryCases(): iterable
+    {
+        yield 'exactly maximum age' => [60, true];
+        yield 'past maximum age' => [61, false];
+    }
+
+    #[DataProvider('ageBoundaryCases')]
+    public function testExpirationUsesStrictAgeBoundary(int $age, bool $published): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(2, OverflowStrategy::DropNewest),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(20),
+        );
+        $artifact = $this->artifact();
+        $buffer->publish($artifact);
+        $clock->advanceSeconds($age);
+        $buffer->flush();
+
+        self::assertSame($published ? [$artifact] : [], $sink->published());
+        self::assertSame($published ? 0 : 1, $buffer->droppedCount());
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testExpiredItemsDoNotConsumeFlushBatchBudget(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<?ExecutionArtifactInterface> */
+            public array $artifacts = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->artifacts[] = $artifact;
+            }
+        };
+        $observer = new class () implements BatchFlushObserverInterface {
+            /** @var list<array{int, int}> */
+            public array $reports = [];
+
+            public function onFlush(int $flushedCount, int $durationMicroseconds, int $remainingBuffered): void
+            {
+                $this->reports[] = [$flushedCount, $remainingBuffered];
+            }
+        };
+        $config = new BufferConfiguration(3, 100, 60, 1, 0, 1, OverflowStrategy::DropNewest);
+        $buffer = new BufferedArtifactPublisher(
+            $config,
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(20, ['remaining' => 30]),
+            $health,
+            $observer,
+        );
+        $expired = $this->artifact(id: 'expired');
+        $fresh = $this->artifact(id: 'fresh');
+        $remaining = $this->artifact(id: 'remaining');
+        $buffer->publish($expired);
+        $clock->advanceSeconds(61);
+        $buffer->publish($fresh);
+        $buffer->publish($remaining);
+        $buffer->flush();
+
+        self::assertSame([$fresh], $sink->published());
+        self::assertSame([$expired], $health->artifacts);
+        self::assertSame([[1, 1]], $observer->reports);
+        self::assertSame(1, $buffer->droppedCount());
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(30, $buffer->estimatedBytes());
+        $buffer->flush();
+        self::assertSame([$fresh, $remaining], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
     }
 }

@@ -26,6 +26,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
 | Buffered overflow             | `BufferedOverflowBench`            | Count- and byte-triggered DropOldest batches                        |
 | Buffered flush and close      | `BufferedFlushBench`               | One 256-item flush or full-budget close of 1,024 items              |
+| Buffer queue scaling          | `BufferedQueueScalingBench`        | Close and fixed-batch eviction at three queue depths               |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
 | Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach and lookup at two depths          |
@@ -33,6 +34,65 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
+
+## Phase 3 Queue Scaling (2026-11-21)
+
+Two sequential runs used the production source at clean starting revision
+`864b04877df85860121a3dabc81310e50678f405` with the new benchmark in the
+worktree. PHPBench 1.7.0 ran PHP 8.5.13 CLI NTS on the unpinned, unisolated
+x86-64 WSL2 host described below. A concurrent `composer quality` run, including
+examples and dogfood, could have contended for resources; host activity was not
+controlled. Unrelated plan, test and generated-support edits appeared during the
+work; the measured publisher was not modified. From the package directory, run
+the following command twice:
+
+```bash
+php8.5 vendor/bin/phpbench run benchmarks/BufferedQueueScalingBench.php --config=phpbench.json --php-binary=/usr/bin/php8.5 --php-config='{"opcache.enable_cli":"0","opcache.jit":"disable","pcov.enabled":"0"}' --report=aggregate
+```
+
+Each subject has ten one-revolution iterations, no warmup and a fresh prefilled
+buffer outside timing. Full close delivers all items; zero-budget close drops all
+items. Eviction subjects time 64 high-priority publishes into a count-full queue.
+DropOldest begins with low-priority items; DropLowPriority begins with a
+high-priority first half and low-priority second half, making it search past the
+prefix. These are different policies and mixes, not equivalent alternatives.
+The real JSON estimator, real clock and in-memory sink are used, with no health
+reporter or observer. The post-iteration hook verifies survivor order, counts,
+bytes after close and drops; eviction cleanup is untimed. Both runs completed all
+12 subjects without failures or errors; PHPBench reports zero framework assertions.
+
+Modes are microseconds per close or per 64-publish batch; parentheses are
+within-run relative standard deviations, not confidence intervals.
+
+| Workload | Items | Run 1 | Run 2 |
+| --- | ---: | ---: | ---: |
+| Full close | 256 | 158.479 (10.67%) | 155.681 (6.24%) |
+| Full close | 1,024 | 1,386.548 (6.23%) | 1,413.573 (8.70%) |
+| Full close | 4,096 | 18,139.376 (1.98%) | 18,434.078 (6.26%) |
+| Zero-budget close | 256 | 137.372 (23.56%) | 126.585 (15.81%) |
+| Zero-budget close | 1,024 | 1,256.319 (10.00%) | 1,263.172 (6.76%) |
+| Zero-budget close | 4,096 | 17,476.806 (3.33%) | 18,174.953 (4.27%) |
+| DropOldest | 256 | 287.750 (4.66%) | 268.847 (11.25%) |
+| DropOldest | 1,024 | 403.045 (22.44%) | 396.106 (15.68%) |
+| DropOldest | 4,096 | 887.658 (22.95%) | 799.712 (18.41%) |
+| DropLowPriority | 256 | 1,027.640 (11.42%) | 1,022.219 (2.50%) |
+| DropLowPriority | 1,024 | 3,319.387 (4.87%) | 3,213.160 (7.39%) |
+| DropLowPriority | 4,096 | 14,501.507 (54.81%) | 12,110.630 (4.26%) |
+
+Close grows substantially faster than item count in these samples; the fixed
+64-publish eviction batches also grow with queue depth, especially for this
+priority prefix. The implementation uses `array_shift` for drain and oldest
+removal and scans and reindexes for priority removal. The measurements are
+consistent with depth-sensitive work but do not profile or isolate those
+operations, prove an asymptotic bound, or establish a production bottleneck.
+Timing includes clock, accounting, drop handling, sink calls or estimation as
+applicable; setup is excluded. The 8.395-9.965 MB process peaks include runtime,
+harness and fixtures, not isolated queue memory. Fixed ordering, two runs and
+outliers, particularly the first 4,096 priority sample, limit comparison.
+No real I/O, concurrency, expiration, failure path, representative traffic or
+alternative implementation was measured. These are not throughput targets or
+evidence of a speedup; controlled comparisons and profiling remain necessary
+before choosing a queue change.
 
 ## PHP 8.6 Buffer Samples (2026-11-20)
 

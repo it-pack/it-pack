@@ -1868,8 +1868,32 @@ and skips remainder dropping and observer notification. Retrying close applies a
 fresh budget to FIFO survivors; a further empty close still notifies the observer.
 The focused `BufferingTest` passed with 54 tests and 254 assertions. Zero-item
 capacity's elapsed-interval path, broader lifecycle combinations, performance
-evaluation and full Phase 3 verification remain open; these tests do not settle
+evaluation and full Phase 3 verification remained open; these tests do not settle
 whether the characterized behavior should change.
+
+**Additional characterization (2026-11-21):** Zero item capacity rejects an
+item after the flush interval without invoking the flush observer; explicit flush
+does invoke it. Expiration uses a strict age boundary: an item at the maximum age
+is published, while one second older is dropped. Expired entries do not consume
+the flush batch's successful-publication budget; the regression checks reporting,
+FIFO delivery, observer counts and retained-byte accounting. The focused buffer
+suite passed on PHP 8.4, 8.5 and 8.6 with 58 tests and 276 assertions each;
+Codeception emits deprecation warnings on PHP 8.6. These are observations of
+existing behavior, not approval to change lifecycle semantics. The separate
+target-policy harness still reports 21 non-buffer failures. Further lifecycle
+combinations and Phase 3 exit verification remain open.
+
+On PHP 8.5, `composer quality` passed after correcting a pre-existing long
+assertion in the buffer test; it includes `composer test` and `composer api:check`.
+The benchmark added during that run was checked separately for style and line
+length. The quality result does not cover the separate target-policy harness or
+benchmark measurements.
+
+The queue-scaling benchmark now exercises close and eviction at three depths,
+with untimed delivery and accounting checks. Both runs show depth-sensitive
+costs, but include other publisher work and ran during quality checks; see
+`docs/benchmarks.md` for measurements and limitations. They warrant further
+investigation, not a claim that an alternative representation is faster.
 
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
