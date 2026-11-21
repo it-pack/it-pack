@@ -141,6 +141,36 @@ final readonly class InterfaceDeriver
         }
     }
 
+    public function render(BuildMeta $meta, ReflectionClass $reflection): string
+    {
+        $source = $this
+            ->core->renderer()
+            ->render(
+                $meta->interface,
+                $this->resolveNamespace($reflection)
+            )
+        ;
+        return $source;
+    }
+
+    public function report(string $source, ReflectionClass $reflection): void
+    {
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
+            strlen($source),
+            DeriveUnits::UNIT_BYTES,
+            ['target' => $reflection->getName()],
+        );
+    }
+
+    public function renderAndReport(BuildMeta $meta, ReflectionClass $reflection): string
+    {
+        $source = $this->render($meta, $reflection);
+
+        $this->report($source, $reflection);
+        return $source;
+    }
+
     /**
      * @param ReflectionClass $reflection
      * @param TypeSubstitutor|null $substitutor
@@ -324,35 +354,5 @@ final readonly class InterfaceDeriver
     private function resolveNamespace(ReflectionClass $reflection): string
     {
         return $this->core->config()->effectiveNamespace($reflection->getNamespaceName());
-    }
-
-    public function render(BuildMeta $meta, ReflectionClass $reflection): string
-    {
-        $source = $this
-            ->core->renderer()
-            ->render(
-                $meta->interface,
-                $this->resolveNamespace($reflection)
-            )
-        ;
-        return $source;
-    }
-
-    public function report(string $source, ReflectionClass $reflection): void
-    {
-        $this->core->events()->measured(
-            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
-            strlen($source),
-            DeriveUnits::UNIT_BYTES,
-            ['target' => $reflection->getName()],
-        );
-    }
-
-    public function renderAndReport(BuildMeta $meta, ReflectionClass $reflection): string
-    {
-        $source = $this->render($meta, $reflection);
-
-        $this->report($source, $reflection);
-        return $source;
     }
 }

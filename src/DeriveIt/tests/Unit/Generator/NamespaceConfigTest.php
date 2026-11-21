@@ -187,4 +187,45 @@ final class NamespaceConfigTest extends Unit
             verify($source)->stringContainsString('namespace Custom\\Root;');
         }
     }
+
+    public function testDeriveAdapterRendersIntoConfiguredNamespace(): void
+    {
+        $ns = 'AdapterNs' . uniqid();
+        eval(
+            'namespace ' . $ns .
+            '; class AdapterPort { public function work(): string { return \'x\'; } }'
+        );
+
+        $config = new DeriveConfig()->withNamespace('Custom\\Adapter');
+
+        $source = DeriveIt::deriveAdapter($ns . '\AdapterPort', [], $config);
+
+        verify($source)->stringContainsString('namespace Custom\\Adapter;');
+        verify($source)->stringContainsString('interface AdapterPortInterface');
+        verify($source)->stringContainsString('class AdapterPortAdapter');
+        // Same namespace -> implements resolves to a short name.
+        verify($source)->stringContainsString('implements AdapterPortInterface');
+        verify($source)->stringNotContainsString('namespace ' . $ns . ';');
+    }
+
+    public function testDeriveFamilyAdapterRendersIntoConfiguredNamespace(): void
+    {
+        $ns = 'FamAdapterNs' . uniqid();
+        eval(
+            'namespace ' . $ns .
+            '; class FamAlpha { public function beta(): FamBeta { return new FamBeta(); } }' .
+            ' class FamBeta { public function gamma(): string { return \'x\'; } }'
+        );
+
+        $config = new DeriveConfig()->withNamespace('Custom\\FamAdapter');
+
+        $source = DeriveIt::deriveFamilyAdapter([$ns . '\FamAlpha', $ns . '\FamBeta'], [], $config);
+
+        verify($source)->stringContainsString('namespace Custom\\FamAdapter;');
+        verify($source)->stringContainsString('interface FamAlphaInterface');
+        verify($source)->stringContainsString('interface FamBetaInterface');
+        verify($source)->stringContainsString('class FamAlphaAdapter');
+        verify($source)->stringContainsString('class FamBetaAdapter');
+        verify($source)->stringNotContainsString('namespace ' . $ns . ';');
+    }
 }

@@ -43,6 +43,7 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
         private InterfaceType   $interface,
         private ReflectionClass $adaptee,
         private array           $returnWrapperMap = [],
+        private ?string         $namespace = null,
     ) {
     }
     public function generate(): ClassType
@@ -97,11 +98,12 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
 
     /**
      * FQCN of the derived interface, matching the adaptee's namespace so Nette
-     * renders the `implements` clause as a local short name.
+     * renders the `implements` clause as a local short name. Falls back to the
+     * adaptee's reflected namespace when no destination namespace is configured.
      */
     private function interfaceFqcn(): string
     {
-        return Naming::join($this->adaptee->getNamespaceName(), $this->interface->getName());
+        return Naming::join($this->namespace ?? $this->adaptee->getNamespaceName(), $this->interface->getName());
     }
 
     /**
@@ -110,7 +112,7 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
      */
     public function generateSource(): string
     {
-        $namespace = new PhpNamespace($this->adaptee->getNamespaceName());
+        $namespace = new PhpNamespace($this->namespace ?? $this->adaptee->getNamespaceName());
         $namespace->add($this->interface);
         $namespace->add($this->generate());
 

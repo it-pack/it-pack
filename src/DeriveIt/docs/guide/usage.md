@@ -143,6 +143,7 @@ the existing reflected-namespace behaviour.
 ```php
 use ItPack\DeriveIt\DeriveIt;
 use ItPack\DeriveIt\Generator\DeriveConfig;
+use ItPack\DeriveIt\Generator\InterfaceDeriver;
 
 // Flat: a single port under Custom\Port instead of App\ThirdParty.
 $config = new DeriveConfig()->withNamespace('Custom\\Port');

@@ -91,12 +91,15 @@ final readonly class DeriveItFactory
 
     /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
+     * @param string|null $namespace Destination namespace, defaulting to the
+     *     adaptee's reflected namespace when null.
      */
     public function adapterGenerator(
         InterfaceType $interface,
         ReflectionClass $adaptee,
         array $returnWrapperMap = [],
+        ?string $namespace = null,
     ): AdapterGeneratorInterface {
-        return new AdapterGenerator($interface, $adaptee, $returnWrapperMap);
+        return new AdapterGenerator($interface, $adaptee, $returnWrapperMap, $namespace);
     }
 }

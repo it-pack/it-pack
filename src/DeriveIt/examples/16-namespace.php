@@ -81,3 +81,31 @@ show(
     implode("\n\n", $fromRoot),
     'Auto-discovered members share Custom\Port as well.',
 );
+
+// --- Adapter ------------------------------------------------------------
+
+// Single adapter: interface + delegating adapter under Custom\Adapter.
+$adapter = DeriveIt::deriveAdapter(
+    _Fixture\VisibilityMixClass::class,
+    [],
+    new DeriveConfig()->withNamespace('Custom\\Adapter'),
+);
+
+show(
+    'VisibilityMixClass adapter — namespace Custom\Adapter',
+    $adapter,
+    'Interface and adapter both render into Custom\Adapter.',
+);
+
+// Family of adapters: one adapter per member, all under Custom\FamAdapter.
+$familyAdapter = DeriveIt::deriveFamilyAdapter(
+    [_Fixture\Node::class, _Fixture\Tree::class],
+    [],
+    new DeriveConfig()->withNamespace('Custom\\FamAdapter'),
+);
+
+show(
+    'Node/Tree family adapter — namespace Custom\FamAdapter',
+    $familyAdapter,
+    'Each member interface + adapter shares Custom\FamAdapter.',
+);
