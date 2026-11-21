@@ -119,6 +119,12 @@ the removed entry. A zero batch size drains no entries, a zero flush interval
 disables interval-triggered flushing, and a zero shutdown budget drops the
 remaining entries on close. These settings do not promise durable delivery.
 
+Internally the buffer uses indexed entries and removes references before invoking
+the sink or health reporter. Empty buffers reset their indexes; sparse entries are
+periodically compacted, and indexes are compacted before the tail can overflow.
+This avoids repeated full-array shifts, but does not change the configured byte
+estimate into a bound on PHP heap usage or guarantee a speedup for small queues.
+
 During `close()`, draining removes each entry and deducts its estimate before
 calling the inner publisher. If that call throws, the same exception propagates;
 the attempted entry is not retried or counted as a buffer drop, and remaining

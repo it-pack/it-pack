@@ -37,6 +37,30 @@ harnesses rather than the checked-in PHPBench suite.
 
 ## Phase 3 Representation Comparison (2026-11-21)
 
+An integrated head-index candidate was compared against the existing publisher
+with the same PHPBench subjects on PHP 8.5.13, CLI opcache disabled, ten
+iterations and one revolution. Baseline and candidate modes in microseconds
+were: full close at 256 items 235 / 294, at 1,024 items 1,653 / 1,070 and at
+4,096 items 19,162 / 4,868; 64 oldest evictions at 4,096 1,043 / 566; 64
+priority evictions at 4,096 18,845 / 17,796; a 256-item flush from 1,024
+658 / 325; and mixed-byte overflow 2,027 / 1,643. Variance was material:
+the 256-item close deviations were 20% / 21%, and priority 12% / 22%.
+Small queues may regress, and the priority result is inconclusive. Measurements
+are synthetic elapsed times on an unisolated host, not production throughput;
+candidate timings preceded minor control-flow and style cleanup. The existing
+benchmark verifies its outcomes, but does not measure long-lived churn memory,
+peak RSS or all callback and interruption behavior.
+
+An additional real-publisher baseline on PHP 8.5.13 with CLI opcache disabled
+used ten PHPBench iterations. Modes for full close at depths 256, 1,024 and
+4,096 were 250, 1,755 and 20,251 microseconds; 64 oldest evictions were 528,
+593 and 992 microseconds; 64 priority evictions were 1,722, 5,103 and 18,515
+microseconds. The 1,024-item, 256-batch flush mode was 677 microseconds and
+the mixed-byte overflow mode was 1,925 microseconds. Other work overlapped this
+run and variability was high (reported deviation 52% for close at 4,096 and 50%
+for oldest eviction at 256). These values are diagnostic, not a controlled
+comparison with a replacement.
+
 At revision `86a13a9cf86b87c2a13f31fc26ab01f556a90781`, the production
 publisher was unchanged. Two sequential invocations on PHP 8.5.13 CLI NTS used:
 

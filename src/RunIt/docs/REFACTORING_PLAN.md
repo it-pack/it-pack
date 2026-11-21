@@ -1975,6 +1975,39 @@ the `composer quality` run reported all four suites and 10 dogfood tools passing
 including Rector, style, analysis, architecture and API checks; the process monitor
 did not expose the final exit code. No independent queue comparison was run.
 
+**Further lifecycle verification (2026-11-21):** On the clean starting revision
+`35c2f799`, the buffer tests gained explicit byte-bound assertions after timeout,
+partial flush, expiry, sink and observer failures, and interrupted close. The
+focused suite passed on PHP 8.5.13 (93 tests, 796 assertions) and PHP 8.6.0
+(with Codeception deprecation warnings). PHP 8.4.28 could not start it because
+the installed dependency set requires PHP 8.5 or later. `composer prohibits php
+8.4.28` identifies installed `it-pack/derive-it` 1.1.2, `it-pack/disenchant-it`
+1.1.1 and `it-pack/hash-it` 1.1.1 as requiring PHP ^8.5. The local ignored
+lockfile metadata was refreshed with `composer update --lock --no-install`;
+installed packages were not updated. The separate target-policy harness still
+reports 21 non-buffer failures. These assertions supplement existing
+exact accounting checks; they do not by themselves resolve the remaining queue
+representation evaluation or establish Phase 3 completion.
+
+**Integrated queue evaluation (2026-11-21):** The publisher now uses an indexed
+array, compacts after at least 1,024 holes when holes are at least as numerous as
+live entries, compacts before index exhaustion, and resets indexes when empty.
+Removal and byte accounting precede callbacks. Focused tests cover churn, index
+exhaustion, distinct FIFO and priority survivors through compaction, reentrant
+sink publication and a bounded reentrant health callback; the queue suite passed
+with 4 tests and 24 assertions, and the buffer suite with 93 and 796. An independent
+review found no queue regression but identified an existing limitation: a health
+reporter that refills on every drop can keep overflow or close loops running. This
+is not resolved by the queue change. See `docs/benchmarks.md` for real-publisher
+comparisons, including small-queue regression, variance and memory limitations.
+On PHP 8.5.13, `composer test --quiet`, `composer quality --quiet` and separate
+`composer api:check` passed after refreshing local lock metadata. The queue suite
+also passed on PHP 8.6 with Codeception deprecation warnings. OpenSwoole was not
+available, and no downstream migration checks were run. Phase 3 remains open:
+the reentrant-reporter termination case and comprehensive lifecycle invariant
+coverage still need resolution; the measurements do not establish a process-memory
+bound or persistent-worker memory behavior.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which
@@ -2039,9 +2072,9 @@ did not expose the final exit code. No independent queue comparison was run.
 - [x] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
 - [x] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
 - [ ] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after each removal. Assert `estimatedBytes() <= maxEstimatedBytes` after every accepted operation; note estimates are not exact process-memory limits. The focused matrix checks bounds after its admissions, but does not independently assert them after every operation across all lifecycle cases.
-- [ ] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
-- [ ] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.
-- [ ] Update buffer and performance documentation, including oversized-item behavior and the distinction between estimated and actual memory.
+- [x] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
+- [x] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.
+- [x] Update buffer and performance documentation, including oversized-item behavior and the distinction between estimated and actual memory.
 
 **Exit:** admission invariants and all overflow tests pass; benchmark evidence and any remaining performance tradeoff are recorded.
 

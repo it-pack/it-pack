@@ -767,6 +767,7 @@ final class BufferingTest extends Unit
 
         self::assertSame(1, $buffer->bufferedCount());
         self::assertSame(60, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(1, $buffer->droppedCount());
         $buffer->flush();
         self::assertSame([$first], $sink->published());
@@ -804,6 +805,7 @@ final class BufferingTest extends Unit
 
         self::assertSame(1, $buffer->bufferedCount());
         self::assertSame(50, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(0, $buffer->droppedCount());
     }
 
@@ -929,6 +931,7 @@ final class BufferingTest extends Unit
 
         self::assertSame(2, $buffer->bufferedCount());
         self::assertSame(70, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(1, $buffer->droppedCount());
         self::assertSame(1, $health->calls);
         self::assertCount(0, $sink->published());
@@ -1012,6 +1015,7 @@ final class BufferingTest extends Unit
         self::assertSame([$first], $sink->published);
         self::assertSame(2, $buffer->bufferedCount());
         self::assertSame(70, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(0, $buffer->droppedCount());
         self::assertSame([], $health->reported);
         self::assertSame([], $observer->reports);
@@ -1070,6 +1074,7 @@ final class BufferingTest extends Unit
         self::assertSame([$first], $sink->published());
         self::assertSame(1, $buffer->bufferedCount());
         self::assertSame(30, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(0, $buffer->droppedCount());
 
         try {
@@ -1484,6 +1489,7 @@ final class BufferingTest extends Unit
         self::assertSame([], $observer->reports);
         self::assertSame(1, $buffer->bufferedCount());
         self::assertSame(30, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(1, $buffer->droppedCount());
 
         $buffer->flush();
@@ -1539,6 +1545,7 @@ final class BufferingTest extends Unit
         self::assertSame([$first], $sink->published());
         self::assertSame(1, $buffer->bufferedCount());
         self::assertSame(20, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
 
         $clock->advanceSeconds(61);
         $buffer->publish($fresh);
@@ -1551,6 +1558,7 @@ final class BufferingTest extends Unit
         self::assertSame([$stale], $health->artifacts);
         self::assertSame(1, $buffer->bufferedCount());
         self::assertSame(40, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual(100, $buffer->estimatedBytes());
         self::assertSame(1, $buffer->droppedCount());
 
         $last = $this->artifact(id: 'last');
