@@ -17,13 +17,14 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
+use RuntimeException;
 use Throwable;
 
 /**
  * Artifact publisher that buffers artifacts and flushes them in bounded batches.
  *
- * The buffer is hard-bounded by item count and estimated bytes, so memory never grows
- * without limit under sustained load. When it is full the configured {@see OverflowStrategy}
+ * The buffer is bounded by item count and estimated bytes, not actual process memory.
+ * When it is full the configured {@see OverflowStrategy}
  * decides what to drop. Flush emits at most `batchSize` non-expired artifacts; `close()`
  * flushes within `shutdownFlushBudget` and drops whatever remains. Dropped and expired
  * artifacts are reported to the internal health reporter so loss stays observable without
@@ -60,14 +61,24 @@ final class BufferedArtifactPublisher implements
 
     private const int SLEEP_QUANTUM_MICROSECONDS = 100;
 
+    private const int COMPACTION_HOLES = 1024;
+
     /**
      * @var array<int, array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int}>
      */
     private array $buffer = [];
 
+    private int $head = 0;
+
+    private int $tail = 0;
+
     private int $estimatedBytes = 0;
 
     private int $droppedCount = 0;
+
+    private bool $reportingDrop = false;
+
+    private int $reentrantDrops = 0;
 
     private int $lastFlushEpoch;
 
@@ -94,6 +105,13 @@ final class BufferedArtifactPublisher implements
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
+        if ($this->reportingDrop) {
+            ++$this->droppedCount;
+            ++$this->reentrantDrops;
+
+            return;
+        }
+
         $item = $this->toItem($artifact);
 
         if ($item[self::KEY_BYTES] > $this->config->maxEstimatedBytes || $this->config->maxItems === 0) {
@@ -114,8 +132,7 @@ final class BufferedArtifactPublisher implements
             return;
         }
 
-        $this->buffer[] = $item;
-        $this->estimatedBytes += $item[self::KEY_BYTES];
+        $this->appendIncoming($item);
 
         $this->checkIntervalFlush();
     }
@@ -140,9 +157,7 @@ final class BufferedArtifactPublisher implements
         $flushed = $this->drain($this->config->shutdownFlushBudget);
 
         while ($this->buffer !== []) {
-            /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $item */
-            $item = array_shift($this->buffer);
-            $this->estimatedBytes -= $item[self::KEY_BYTES];
+            $item = $this->takeFirst();
             $this->reportDrop($item[self::KEY_ATTRIBUTE]);
         }
 
@@ -222,7 +237,11 @@ final class BufferedArtifactPublisher implements
      */
     private function appendIncoming(array $incoming): void
     {
-        $this->buffer[] = $incoming;
+        if ($this->tail === PHP_INT_MAX) {
+            $this->compact();
+        }
+
+        $this->buffer[$this->tail++] = $incoming;
         $this->estimatedBytes += $incoming[self::KEY_BYTES];
     }
 
@@ -311,23 +330,59 @@ final class BufferedArtifactPublisher implements
 
     private function dropOldest(): void
     {
-        /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int}|null $item */
-        $item = array_shift($this->buffer);
-
-        if ($item !== null) {
-            $this->estimatedBytes -= $item[self::KEY_BYTES];
+        if ($this->buffer !== []) {
+            $item = $this->takeFirst();
             $this->reportDrop($item[self::KEY_ATTRIBUTE]);
         }
     }
 
     private function removeAt(int $index): void
     {
-        /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $item */
+        $item = $this->takeAt($index);
+        $this->reportDrop($item[self::KEY_ATTRIBUTE]);
+    }
+
+    /** @return array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} */
+    private function takeFirst(): array
+    {
+        return $this->takeAt($this->head);
+    }
+
+    /** @return array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} */
+    private function takeAt(int $index): array
+    {
         $item = $this->buffer[$index];
         unset($this->buffer[$index]);
-        $this->buffer = array_values($this->buffer);
         $this->estimatedBytes -= $item[self::KEY_BYTES];
-        $this->reportDrop($item[self::KEY_ATTRIBUTE]);
+
+        if ($this->buffer === []) {
+            $this->head = 0;
+            $this->tail = 0;
+
+            return $item;
+        }
+
+        $holes = $this->tail - count($this->buffer);
+        if ($holes >= self::COMPACTION_HOLES && $holes >= count($this->buffer)) {
+            $this->compact();
+
+            return $item;
+        }
+
+        if ($index === $this->head) {
+            do {
+                ++$this->head;
+            } while (!isset($this->buffer[$this->head]));
+        }
+
+        return $item;
+    }
+
+    private function compact(): void
+    {
+        $this->buffer = array_values($this->buffer);
+        $this->head = 0;
+        $this->tail = count($this->buffer);
     }
 
     private function oldestLowPriorityIndex(): ?int
@@ -352,9 +407,7 @@ final class BufferedArtifactPublisher implements
         $flushed = 0;
 
         while ($this->buffer !== [] && $flushed < $limit) {
-            /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $item */
-            $item = array_shift($this->buffer);
-            $this->estimatedBytes -= $item[self::KEY_BYTES];
+            $item = $this->takeFirst();
 
             /** @var int $enqueued */
             $enqueued = $item[self::KEY_ENQUEUED];
@@ -388,7 +441,30 @@ final class BufferedArtifactPublisher implements
     private function reportDrop(ExecutionArtifactInterface $artifact): void
     {
         $this->droppedCount++;
-        $this->health?->report(new BufferOverflowException('Artifact dropped by buffer overflow.'), $artifact);
+        if ($this->reportingDrop) {
+            ++$this->reentrantDrops;
+
+            return;
+        }
+
+        $this->reportingDrop = true;
+        try {
+            $this->health?->report(new BufferOverflowException('Artifact dropped by buffer overflow.'), $artifact);
+        } finally {
+            try {
+                if ($this->reentrantDrops > 0) {
+                    new FallbackErrorLogReporter()->report(
+                        new BufferOverflowException('Artifacts dropped during buffer health reporting.'),
+                        new RuntimeException('Reentrant buffer drops: ' . $this->reentrantDrops),
+                    );
+                }
+            } catch (Throwable) {
+                // A diagnostic failure must not replace the health reporter's exception.
+            } finally {
+                $this->reentrantDrops = 0;
+                $this->reportingDrop = false;
+            }
+        }
     }
 
     private function checkIntervalFlush(): void

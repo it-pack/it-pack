@@ -45,7 +45,7 @@ PHP;
     }
     $composer = "$temp/composer.php";
     $marker = "$temp/composer-ran";
-    file_put_contents($composer, '<?php file_put_contents(' . var_export($marker, true) . ', "yes"); fwrite(STDERR, "bad\\xFFoutput"); exit(1);');
+    file_put_contents($composer, '<?php file_put_contents(' . var_export($marker, true) . ', json_encode($argv)); fwrite(STDERR, "bad\\xFFoutput"); exit(1);');
     $output = "$temp/results.json";
     file_put_contents($output, 'existing evidence');
     $args = [PHP_BINARY, $runner, '--package=RunItThirdPartySample', "--composer=$composer", "--output=$output"];
@@ -63,6 +63,10 @@ PHP;
     $summary = json_decode(file_get_contents($output), true, 512, JSON_THROW_ON_ERROR);
     if ($invalidUtf8['exit_code'] === 0 || !str_contains($summary['results'][0]['steps']['install']['stderr'] ?? '', "bad\u{FFFD}output")) {
         throw new RuntimeException('Invalid UTF-8 output was not preserved with substitution');
+    }
+    $installArgs = json_decode((string) file_get_contents($marker), true, 512, JSON_THROW_ON_ERROR);
+    if (!in_array('-vvv', $installArgs, true)) {
+        throw new RuntimeException('Verbose Composer install output was not enabled');
     }
     $stdoutResult = command(array_slice($args, 0, 4), $temp);
     $stdoutSummary = json_decode($stdoutResult['stdout'], true, 512, JSON_THROW_ON_ERROR);

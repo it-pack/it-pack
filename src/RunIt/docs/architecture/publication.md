@@ -106,6 +106,45 @@ arbitrary artifact contents.
 
 ## Buffering and backpressure
 
+While a buffer drop is being reported, `BufferedArtifactPublisher` rejects
+reentrant `publish()` calls on the same instance before estimation or admission.
+Each is counted as dropped without recursively calling the configured health
+reporter; a best-effort fallback diagnostic reports the aggregate count without
+the artifacts. Nested drops caused by operations such as `close()` are likewise
+counted without recursive health callbacks. The guard resets even if reporting
+throws, and a fallback failure does not replace the original reporter exception.
+This changes behavior for reporters that republish into the same buffer. The guard
+is per instance, not runtime-local: interleaved independent publications during a
+report can also be dropped. It is not a general concurrency or delivery guarantee.
+
+An individually oversized artifact or an artifact offered to a zero-item-capacity
+buffer is reported and rejected before the interval flush check. Even when the
+interval has elapsed, retained entries remain buffered
+until a later operation triggers a flush or the caller explicitly flushes or closes.
+Ordinary non-throwing overflow handling instead reaches the interval check.
+
+The byte total is the sum of the estimates retained in the buffer, not a measure
+of PHP heap usage. Removal deducts the estimate before delivery or drop reporting,
+so an exception from either collaborator can interrupt a flush without restoring
+the removed entry. A zero batch size drains no entries, a zero flush interval
+disables interval-triggered flushing, and a zero shutdown budget drops the
+remaining entries on close. These settings do not promise durable delivery.
+
+Internally the buffer uses indexed entries and removes references before invoking
+the sink or health reporter. Empty buffers reset their indexes; sparse entries are
+periodically compacted, and indexes are compacted before the tail can overflow.
+This avoids repeated full-array shifts, but does not change the configured byte
+estimate into a bound on PHP heap usage or guarantee a speedup for small queues.
+
+During `close()`, draining removes each entry and deducts its estimate before
+calling the inner publisher. If that call throws, the same exception propagates;
+the attempted entry is not retried or counted as a buffer drop, and remaining
+entries stay buffered in FIFO order. Remainder dropping and the flush observer
+are not reached on that failed call. A later `close()` starts a new shutdown
+budget and drains the survivors; even an empty repeated close notifies the
+observer with a zero count. These are current semantics, not a delivery guarantee:
+the inner publisher may have performed side effects before throwing.
+
 ### Provenance lifetime and asynchronous delivery
 
 Each SDK build creates its own in-process provenance authority. The execution
@@ -160,11 +199,19 @@ actual process-memory measurements. When an item does not fit, the configured
 
 - **DropNewest** — discard the incoming artifact.
 - **DropOldest** — discard oldest buffered artifacts until the incoming item fits.
-- **DropLowPriority** — discard a low-priority artifact (high-priority = error observations
-  and terminal snapshots win); a high-priority incoming item may require multiple evictions.
+- **DropLowPriority** — reject a low-priority incoming artifact when it does not fit.
+  For a high-priority incoming artifact, repeatedly evict the oldest low-priority
+  entry, or the oldest entry if none is low priority, until the incoming item fits.
+  Error observations and terminal snapshots are high priority; survivors retain FIFO order.
 - **BlockWithTimeout** — wait briefly for space, then drop newest.
 - **Fail** — throw `BufferOverflowException` so the surrounding failure policy decides.
 
+An entry expires only when its age exceeds `maxAgeSeconds`; an entry exactly at
+the boundary remains eligible for publication. Expired entries are removed and
+reported without consuming the successful-publication batch budget.
+If their health reporter throws, the removed entry is already counted as dropped
+and deducted from the estimate; the exception interrupts the flush and its
+observer, while later entries remain available for a retry.
 `flush()` emits at most `batchSize` non-expired artifacts; `close()` flushes within
 `shutdownFlushBudget` and drops whatever remains. Dropped and expired artifacts are
 reported to the internal health reporter so loss stays observable without re-entering the
@@ -173,6 +220,17 @@ guarded pipeline.
 A throwing health reporter can interrupt an eviction before the replacement is
 appended; standalone exceptions propagate. Buffered item accounting is updated before
 the report. The configured pipeline failure policy governs exceptions raised within it.
+During draining, an item is removed and its estimate deducted before the sink is called.
+If the sink throws, that attempted item is not retried by the buffer; later items remain
+buffered, and the exception propagates to the caller or surrounding failure policy.
+The drop counter does not count this failed sink attempt.
+The flush interval is reset before draining, even if the drain throws. After an
+automatic flush fails, subsequent publishes within the interval do not immediately
+retry the retained entries; an explicit flush can still attempt them sooner.
+During close, a throwing drop reporter interrupts removal of the remaining items;
+the item being reported has already been removed and counted as dropped. A later
+close can process the remaining items. Flush observers run after the batch is drained,
+so an observer exception propagates after those deliveries and does not undo them.
 
 ## Recursion prevention
 

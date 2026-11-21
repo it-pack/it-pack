@@ -164,7 +164,7 @@ function main(array $argv): int
                 $manifest['repositories'] = $repositories;
                 file_put_contents("$root/composer.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
                 $steps = [
-                    'install' => [PHP_BINARY, $composer, 'install', '--no-interaction', '--prefer-dist', '--no-progress'],
+                    'install' => [PHP_BINARY, $composer, 'install', '--no-interaction', '--prefer-dist', '--no-progress', '-vvv'],
                     'platform' => [PHP_BINARY, $composer, 'check-platform-reqs', '--no-interaction'],
                     'verify' => [PHP_BINARY, __FILE__, '--verify', $root, $checkout, $expectedVersion ?? ''],
                     'build' => [PHP_BINARY, "$root/vendor/bin/codecept", 'build'],

@@ -28,6 +28,27 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- `BufferedArtifactPublisher` now drops and counts same-instance publications
+  reentered during a drop-health callback, before estimating or admitting them.
+  Nested drops do not recursively invoke the configured reporter; a best-effort
+  fallback diagnostic reports their aggregate count. The guard resets after a
+  reporter exception, which still propagates. Reporters that republish into the
+  buffer will observe loss and different drop counts; concurrent interleaving can
+  also suppress independent publications while reporting is active. No public
+  signature or normalization schema changed; `composer api:check` passed.
+- Added lifecycle regressions for interrupted priority eviction and close observer
+  failure, including retained-byte accounting and retry behavior. Reentrant drop
+  reporting is now covered separately by `BufferedReentrantDropTest`.
+- Added explicit estimated-byte-bound checks for interrupted and partial buffer
+  lifecycle operations; these are test-only checks, not a process-memory guarantee.
+- Replaced repeated buffer array shifts with an internally compacted indexed queue.
+  FIFO and priority rules remain unchanged; small-queue performance can vary.
+- Added lifecycle accounting regressions across buffer strategy configurations and
+  a modeled queue-representation comparison. See `benchmarks.md` for integrated
+  measurements and their limitations.
+- Expanded buffer and pipeline regression coverage; the pipeline checks use the
+  actual wired sink and verified artifacts. These test changes do not change the
+  public API or buffer behavior.
 - Buffer admission now enforces projected item and estimated-byte limits, including
   repeated eviction and blocking paths. Oversized items are reported and rejected
   without eviction or waiting; `Fail` throws. Negative numeric buffer configuration

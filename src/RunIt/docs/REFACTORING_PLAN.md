@@ -1741,6 +1741,97 @@ The representation and delivery decisions remain open.
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
 
+**Guard implementation and verification (2026-11-21):** The buffer now drops
+and counts same-instance publishes during drop-health reporting before estimation
+or admission. Nested drops suppress recursive reporter calls and produce a
+best-effort aggregate fallback diagnostic; the guard resets on reporter failure,
+preserving its exception. `BufferedReentrantDropTest` covers rejection, overflow,
+expiry, close, nested close and reporter failure; `BufferingTest` also has new
+regressions. This changes drop counts and behavior for republishing reporters;
+the per-instance guard can also drop independent interleaved publications and is
+not a concurrency isolation mechanism. Public signatures and schema are unchanged.
+
+On PHP 8.5, `composer test --quiet`, `composer api:check` and
+`COMPOSER_PROCESS_TIMEOUT=900 composer quality --quiet` passed. An earlier quality
+run timed out at dogfood with the default 300-second process limit. On PHP 8.6,
+`BufferingTest` passed (96 tests, 826 assertions), with Codeception deprecations.
+PHP 8.4 could not start with the installed vendor dependencies requiring PHP 8.5
+or later. The target-policy harness reported 21 non-buffer failures. The final
+PHP 8.5 filtered buffer benchmark passed eight subjects, with 15%-194% variance;
+the earlier timing overlapped implementation and is not a valid comparison.
+See `docs/benchmarks.md`; no speedup is claimed. OpenSwoole and downstream checks
+were not available in this verification.
+
+**Further lifecycle audit (2026-11-21):** Starting revision `08eada2b` had a
+clean worktree. New focused regressions cover a throwing reporter after non-head
+priority eviction and a throwing close observer after budgeted delivery and
+remainder drops, including exact accounting, identities and retry. Phase 3 remains
+open at that point: a drop reporter that repeatedly refills the same buffer could prevent overflow
+eviction or close from terminating. Preventing this requires a decision about how
+recursive publications and their drop reports behave; silently suppressing reports
+would change the existing reporting contract. The later guard above addresses that
+reentrant refill path with the documented behavior change. The lifecycle matrix also does not
+establish invariants after every operation in every overflow and interruption path.
+The target-policy harness still reports 21 non-buffer failures. On PHP 8.5.13,
+the two new tests passed (2 tests, 27 assertions), `composer test --quiet` passed
+before the additions, and `COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet`
+passed after them, including all test suites. A separate `composer api:check`
+passed. Downstream checks, PHP 8.4 with a compatible dependency set, and
+OpenSwoole remain unverified.
+
+**Further work (2026-11-21):** A data-provider lifecycle sequence checks retained
+bytes, delivery, drops and observer counts across all five strategy configurations
+through admission, partial flush, expiration and repeated close. The focused buffer
+suite passed on PHP 8.5.13 with 93 tests and 764 assertions; observer and pipeline
+tests passed with 3/11 and 7/31 tests/assertions. The sequence does not trigger
+overflow; separate existing tests cover overflow and interruption paths. The full
+`COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet` exited 0 on PHP 8.5.13.
+The separate target-policy harness still exited 1 with 21 non-buffer failures.
+PHP 8.6 also passed the buffer suite with Codeception deprecation warnings.
+PHP 8.4.28 could not start it because the installed dependencies require PHP 8.5
+or later. OpenSwoole was unavailable.
+
+The new representation model compares packed, head-index and sparse arrays; see
+`docs/benchmarks.md` for results and limitations. Deep modeled drains favor the
+head-index candidate, but it lacks compaction and index-overflow policies and has
+not been evaluated inside the publisher against lifecycle and interruption tests.
+No production representation was changed. Phase 3 remains open until that tradeoff
+and the remaining lifecycle acceptance criteria are resolved; the model is not
+evidence of a production speedup. No API or schema baseline was changed.
+
+**Completion baseline (2026-11-21):** Starting revision
+`726c3e590912f125e3bceec2d7e204cf2a84ab2a` had a clean worktree. PHP 8.5.13
+CLI NTS, Composer 2.9.7 and the installed, ignored lockfile and vendor tree were
+used without a dependency update. Direct installed and locked versions matched;
+`composer check-platform-reqs` passed. PCOV, Swoole and OpenTelemetry were loaded;
+OpenSwoole was unavailable. Focused buffer, flush-observer and pipeline tests
+passed respectively with 60/301, 3/11 and 5/8 tests/assertions. The pipeline
+result alone did not prove delivery because the existing test checked another sink.
+`php tests/target-policy-regressions.php` exited 1 with 21 non-buffer failures
+in sampling, redaction, delivery and recursive health reporting; it reported no
+buffer failures. Provenance health notices also appeared. These are target-policy
+results, not evidence that all unrelated targets match the current default stack.
+
+The expanded buffer matrix covers all five strategies at count, byte, combined,
+exact and near-fit boundaries, zero-size eviction and mixed-priority fallback.
+The pipeline regression now uses its wired sink and attested, classified artifacts,
+including delivery controls around fail-open and fail-closed buffer overflow.
+On PHP 8.5.13 and 8.6.0 the focused buffer, observer and pipeline tests passed
+with 88/649, 3/11 and 7/31 tests/assertions respectively. PHP 8.6 emitted
+Codeception `spl_object_hash()` deprecations. PHP 8.4.28 could not start the
+pipeline test because the installed dependency set requires PHP >= 8.5; no PHP
+8.4 pass is claimed. The separate PHP 8.5 `composer api:check` exited 0 without
+detected breaks. No API or schema baseline was changed.
+
+On the resulting PHP 8.5 worktree, `composer test` passed all four suites and
+`COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet` exited 0 after fixing
+new test-only Rector, PHPStan and line-length findings. The separate benchmark
+samples and their concurrent-load limitations are in `docs/benchmarks.md`.
+No queue candidate was compared; depth-sensitive results warrant a controlled
+comparison, so the representation decision and Phase 3 remain open. The expanded
+matrix does not cross every strategy with zero-byte capacity or `PHP_INT_MAX`;
+selected existing tests cover those boundaries. Downstream checks remain deferred.
+
 **Oversized-item decision (2026-11-13):** Reject an incoming item whose
 nonnegative estimate exceeds the entire byte limit without evicting existing
 items. `Fail` reports and throws; the other strategies report and immediately
@@ -1824,6 +1915,137 @@ flush-observer and pipeline suites passed; PHP 8.6 and OpenSwoole were unavailab
 Phase 3 remains open pending the remaining lifecycle, timeout and performance
 evaluation and full verification; no queue representation change has been made.
 
+**Additional lifecycle regressions (2026-11-20):** Deterministic blocking tests
+now cover projected-byte timeout and admission only after two batch drains free
+enough capacity. A throwing inner publisher test verifies that the attempted item
+is removed and its estimate deducted before the original exception propagates,
+while the next item and its accounting remain intact. On PHP 8.5.13 the focused
+`BufferingTest` passed with 50 tests and 203 assertions. This is partial coverage,
+not completion of the lifecycle or performance checklist. Oversized and zero-item
+capacity rejections still return before the interval-flush check; the ordinary
+overflow rejection regression does not cover those early-return paths. On the same
+runtime, `composer test --quiet`, `composer analyse`, `composer cs:check` and
+`composer api:check` also passed; the quiet test run does not report skip counts.
+
+**Current verification note (2026-11-21):** On PHP 8.5.13 the target-policy
+regression harness still exits 1 with 21 sampling, redaction and recursive-health
+failures and no reported buffer failures. Integration, conformance and concurrency
+suites passed (11, 52 and 11 tests respectively). `composer api:check` exits 1
+because two pre-existing untracked public symbols are detected as additions;
+no baseline was changed. `composer validate --strict` reports an out-of-date local
+lock file. `composer lint:length` reports the existing 123-column line in
+`BufferingTest.php:153`. Architecture checks passed. These results do not establish
+Phase 3 completion.
+
+Additional deterministic tests exercise close interrupted by a throwing drop
+reporter, subsequent and repeated close, and a throwing observer after a partial
+flush. They check exception identity, deliveries, drop counts and retained-byte
+accounting. The focused `BufferingTest` passed with 52 tests and 225 assertions;
+the separate flush-observer suite passed with 3 tests and 11 assertions. The full
+unit suite passed (1,312 tests, 8,383 assertions), as did Rector dry-run. PHP 8.6
+passed the focused suite with Codeception deprecation warnings; PHP 8.4 could not
+start because the installed dependency set requires PHP 8.5 or later. PHPStan
+reports two errors in the pre-existing untracked `Hash.php`, and style checking
+reports both untracked files. Full `composer quality` was not run because its
+prerequisites already fail. Two corrected-buffer benchmark runs and their
+non-comparable baseline limitations are recorded in `docs/benchmarks.md`; they do
+not isolate queue costs or justify a representation change.
+
+**Further characterization (2026-11-21):** With a retained item and an elapsed
+interval, oversized rejection returns without flushing; explicit flush later
+delivers the retained item. A partial close drain removes the failed sink attempt
+without counting or reporting it as a buffer drop, propagates the same exception,
+and skips remainder dropping and observer notification. Retrying close applies a
+fresh budget to FIFO survivors; a further empty close still notifies the observer.
+The focused `BufferingTest` passed with 54 tests and 254 assertions. Zero-item
+capacity's elapsed-interval path, broader lifecycle combinations, performance
+evaluation and full Phase 3 verification remained open; these tests do not settle
+whether the characterized behavior should change.
+
+**Additional characterization (2026-11-21):** Zero item capacity rejects an
+item after the flush interval without invoking the flush observer; explicit flush
+does invoke it. Expiration uses a strict age boundary: an item at the maximum age
+is published, while one second older is dropped. Expired entries do not consume
+the flush batch's successful-publication budget; the regression checks reporting,
+FIFO delivery, observer counts and retained-byte accounting. The focused buffer
+suite passed on PHP 8.4, 8.5 and 8.6 with 58 tests and 276 assertions each;
+Codeception emits deprecation warnings on PHP 8.6. These are observations of
+existing behavior, not approval to change lifecycle semantics. The separate
+target-policy harness still reports 21 non-buffer failures. Further lifecycle
+combinations and Phase 3 exit verification remain open.
+
+On PHP 8.5, `composer quality` passed after correcting a pre-existing long
+assertion in the buffer test; it includes `composer test` and `composer api:check`.
+The benchmark added during that run was checked separately for style and line
+length. The quality result does not cover the separate target-policy harness or
+benchmark measurements.
+
+The queue-scaling benchmark now exercises close and eviction at three depths,
+with untimed delivery and accounting checks. Both runs show depth-sensitive
+costs, but include other publisher work and ran during quality checks; see
+`docs/benchmarks.md` for measurements and limitations. They warrant further
+investigation, not a claim that an alternative representation is faster.
+
+**Expiration reporter interruption (2026-11-21):** A deterministic flush test
+now covers a throwing health reporter while an expired entry is removed. The
+original exception propagates, the expired entry is counted and its bytes are
+deducted, and the fresh FIFO survivor remains buffered. Retrying flush publishes
+the survivor and notifies the observer. The focused buffer suite passed with
+59 tests and 289 assertions. This characterizes existing behavior; the remaining
+lifecycle and Phase 3 exit checks are not thereby complete. The publisher class
+description also now distinguishes estimated bytes from process memory. On PHP
+8.5.13, `COMPOSER_PROCESS_TIMEOUT=1200 composer quality` passed, including all
+four test suites, API checking, security audits, examples and dogfood. The new
+test was not separately run on PHP 8.4 or 8.6 in this increment; no independent
+benchmark comparison was performed.
+
+**Automatic flush interruption (2026-11-21):** A deterministic regression covers
+a sink failure during an interval-triggered flush. The attempted item is removed
+without a buffer-drop count, the admitted survivor remains accounted for, and the
+flush interval has already reset. A subsequent publish within that interval does
+not retry; after another interval, the survivors drain in FIFO order. This records
+existing behavior, not a decision to change retry semantics. Lifecycle coverage,
+an independent representation comparison and Phase 3 exit verification remain open.
+The focused buffer suite passed on PHP 8.5.13 (60 tests, 301 assertions) and on
+PHP 8.6 with Codeception deprecation warnings. PHP 8.4.28 could not start the
+suite because the installed dependencies require PHP 8.5 or later. On PHP 8.5,
+the `composer quality` run reported all four suites and 10 dogfood tools passing,
+including Rector, style, analysis, architecture and API checks; the process monitor
+did not expose the final exit code. No independent queue comparison was run.
+
+**Further lifecycle verification (2026-11-21):** On the clean starting revision
+`35c2f799`, the buffer tests gained explicit byte-bound assertions after timeout,
+partial flush, expiry, sink and observer failures, and interrupted close. The
+focused suite passed on PHP 8.5.13 (93 tests, 796 assertions) and PHP 8.6.0
+(with Codeception deprecation warnings). PHP 8.4.28 could not start it because
+the installed dependency set requires PHP 8.5 or later. `composer prohibits php
+8.4.28` identifies installed `it-pack/derive-it` 1.1.2, `it-pack/disenchant-it`
+1.1.1 and `it-pack/hash-it` 1.1.1 as requiring PHP ^8.5. The local ignored
+lockfile metadata was refreshed with `composer update --lock --no-install`;
+installed packages were not updated. The separate target-policy harness still
+reports 21 non-buffer failures. These assertions supplement existing
+exact accounting checks; they do not by themselves resolve the remaining queue
+representation evaluation or establish Phase 3 completion.
+
+**Integrated queue evaluation (2026-11-21):** The publisher now uses an indexed
+array, compacts after at least 1,024 holes when holes are at least as numerous as
+live entries, compacts before index exhaustion, and resets indexes when empty.
+Removal and byte accounting precede callbacks. Focused tests cover churn, index
+exhaustion, distinct FIFO and priority survivors through compaction, reentrant
+sink publication and a bounded reentrant health callback; the queue suite passed
+with 4 tests and 24 assertions, and the buffer suite with 93 and 796. An independent
+review found no queue regression but identified an existing limitation: a health
+reporter that refills on every drop can keep overflow or close loops running. This
+is not resolved by the queue change. See `docs/benchmarks.md` for real-publisher
+comparisons, including small-queue regression, variance and memory limitations.
+On PHP 8.5.13, `composer test --quiet`, `composer quality --quiet` and separate
+`composer api:check` passed after refreshing local lock metadata. The queue suite
+also passed on PHP 8.6 with Codeception deprecation warnings. OpenSwoole was not
+available, and no downstream migration checks were run. Phase 3 remains open:
+the reentrant-reporter termination case and comprehensive lifecycle invariant
+coverage still need resolution; the measurements do not establish a process-memory
+bound or persistent-worker memory behavior.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which
@@ -1885,14 +2107,14 @@ evaluation and full verification; no queue representation change has been made.
    the new invariant as current until implemented and verified.
 
 - [x] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
-- [ ] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
+- [x] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
 - [x] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
-- [ ] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after each removal. Assert `estimatedBytes() <= maxEstimatedBytes` after every accepted operation; note estimates are not exact process-memory limits.
-- [ ] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
-- [ ] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.
-- [ ] Update buffer and performance documentation, including oversized-item behavior and the distinction between estimated and actual memory.
+- [x] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after removals and interruptions. The deterministic lifecycle and admission tests assert retained byte totals and capacity bounds; estimates are not exact process-memory limits.
+- [x] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
+- [x] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.
+- [x] Update buffer and performance documentation, including oversized-item behavior and the distinction between estimated and actual memory.
 
-**Exit:** admission invariants and all overflow tests pass; benchmark evidence and any remaining performance tradeoff are recorded.
+**Exit:** admission invariants and all overflow tests pass; benchmark evidence and any remaining performance tradeoff are recorded. **Phase 3 complete (2026-11-21)**, with the PHP 8.4 dependency-set, OpenSwoole, downstream and unrelated target-policy limitations recorded above. The wider health-reporting policy remains Phase 4 work.
 
 ## Phase 4: Failure handling and lifecycle outcomes
 
