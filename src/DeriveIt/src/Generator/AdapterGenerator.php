@@ -33,9 +33,9 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
      * (F-2 / RP-2): named so the comparison/preg_split sites read without bare
      * magic chars.
      */
-    private const TYPE_VOID = 'void';
-    private const TYPE_SEPARATOR_OR = '|';
-    private const TYPE_SEPARATOR_AND = '&';
+    private const string TYPE_VOID = 'void';
+    private const string TYPE_SEPARATOR_OR = '|';
+    private const string TYPE_SEPARATOR_AND = '&';
     /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
      */

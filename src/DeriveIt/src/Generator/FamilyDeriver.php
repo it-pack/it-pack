@@ -139,7 +139,8 @@ final class FamilyDeriver implements FamilyDeriverInterface
 
         $byNamespace = [];
         foreach ($reflections as $reflection) {
-            $byNamespace[$reflection->getNamespaceName()][] = $interfaces[$reflection->getName()];
+            $byNamespace[$this->config->effectiveNamespace($reflection->getNamespaceName())][] =
+                $interfaces[$reflection->getName()];
         }
 
         $file = new PhpFile();
@@ -168,7 +169,10 @@ final class FamilyDeriver implements FamilyDeriverInterface
     {
         $map = [];
         foreach ($reflections as $reflection) {
-            $map[$reflection->getName()] = Naming::derivedInterfaceFqcn($reflection);
+            $map[$reflection->getName()] = Naming::derivedInterfaceFqcn(
+                $reflection,
+                $this->config->effectiveNamespace($reflection->getNamespaceName()),
+            );
         }
         $map = $this->transitiveClosure($map);
         $configHash = $this->configHash($map, $namespacePrefixMap);
@@ -201,11 +205,15 @@ final class FamilyDeriver implements FamilyDeriverInterface
      */
     private function deriveMember(ReflectionClass $reflection, array $map, array $namespacePrefixMap): InterfaceType
     {
-        Naming::assertNoCollision($reflection);
+        $namespace = $this->config->effectiveNamespace($reflection->getNamespaceName());
+        Naming::assertNoCollision($reflection, $namespace);
 
-        $selfFqcn = Naming::derivedInterfaceFqcn($reflection);
+        $selfFqcn = Naming::derivedInterfaceFqcn($reflection, $namespace);
         $parent = $reflection->getParentClass();
-        $parentFqcn = $parent !== false ? Naming::derivedInterfaceFqcn($parent) : null;
+        $parentFqcn = $parent !== false ? Naming::derivedInterfaceFqcn(
+            $parent,
+            $this->config->effectiveNamespace($parent->getNamespaceName()),
+        ) : null;
 
         $substitutor = new TypeSubstitutor($map, $selfFqcn, $parentFqcn, $namespacePrefixMap);
 

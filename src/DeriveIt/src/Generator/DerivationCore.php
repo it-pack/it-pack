@@ -111,10 +111,14 @@ final readonly class DerivationCore
     {
         $typeMap = $this->config->typeSubstitutionMap;
         if ($this->config->substituteSelfStatic) {
-            $typeMap[$reflection->getName()] = Naming::derivedInterfaceFqcn($reflection);
+            $ns = $this->config->effectiveNamespace($reflection->getNamespaceName());
+            $typeMap[$reflection->getName()] = Naming::derivedInterfaceFqcn($reflection, $ns);
             $parent = $reflection->getParentClass();
             if ($parent !== false) {
-                $typeMap[$parent->getName()] = Naming::derivedInterfaceFqcn($parent);
+                $typeMap[$parent->getName()] = Naming::derivedInterfaceFqcn(
+                    $parent,
+                    $this->config->effectiveNamespace($parent->getNamespaceName()),
+                );
             }
         }
 
@@ -127,10 +131,11 @@ final readonly class DerivationCore
      */
     public function createTypeSubstitutor(ReflectionClass $reflection): TypeSubstitutor
     {
-        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
+        $ns = $this->config->effectiveNamespace($reflection->getNamespaceName());
+        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection, $ns) : null;
         $parent = $reflection->getParentClass();
         $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
-            ? Naming::derivedInterfaceFqcn($parent)
+            ? Naming::derivedInterfaceFqcn($parent, $this->config->effectiveNamespace($parent->getNamespaceName()))
             : null;
 
         return new TypeSubstitutor($this->seedTypeMap($reflection), $selfFqcn, $parentFqcn);

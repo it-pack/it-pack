@@ -94,7 +94,7 @@ final class DeriveIt
             $interface = $derived[$reflection->getName()];
             $result[$reflection->getName()] = self::factory($config)
                 ->sourceRenderer()
-                ->render($interface, $reflection->getNamespaceName())
+                ->render($interface, $config->effectiveNamespace($reflection->getNamespaceName()))
             ;
         }
 
@@ -177,7 +177,7 @@ final class DeriveIt
             $reflection = new ReflectionClass($fqcn);
             $result[$fqcn] = self::factory($config)
                 ->sourceRenderer()
-                ->render($interface, $reflection->getNamespaceName())
+                ->render($interface, $config->effectiveNamespace($reflection->getNamespaceName()))
             ;
         }
 

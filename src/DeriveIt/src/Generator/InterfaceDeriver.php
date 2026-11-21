@@ -93,7 +93,7 @@ final readonly class InterfaceDeriver
 
         return new DerivationResult(
             interface: $meta->interface,
-            fqcn: Naming::derivedInterfaceFqcn($reflection),
+            fqcn: Naming::derivedInterfaceFqcn($reflection, $this->resolveNamespace($reflection)),
             shortName: Naming::derivedInterfaceShortName($reflection),
             source: $source,
             methods: $meta->methods,
@@ -114,7 +114,7 @@ final readonly class InterfaceDeriver
 
         return new DerivationResult(
             interface: $meta->interface,
-            fqcn: Naming::derivedInterfaceFqcn($reflection),
+            fqcn: Naming::derivedInterfaceFqcn($reflection, $this->resolveNamespace($reflection)),
             shortName: Naming::derivedInterfaceShortName($reflection),
             source: null,
             methods: $meta->methods,
@@ -152,7 +152,8 @@ final readonly class InterfaceDeriver
         ?TypeSubstitutor $substitutor = null,
         array $allowedNamespaces = [],
     ): BuildMeta {
-        Naming::assertNoCollision($reflection);
+        $namespace = $this->resolveNamespace($reflection);
+        Naming::assertNoCollision($reflection, $namespace);
 
         $target = ['target' => $reflection->getName()];
         $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_STARTED, $target);
@@ -316,13 +317,13 @@ final readonly class InterfaceDeriver
             return false;
         }
 
-        return array_all($value, fn($item) => is_scalar($item) || $item === null);
+        return array_all($value, fn ($item) => is_scalar($item) || $item === null);
 
     }
 
     private function resolveNamespace(ReflectionClass $reflection): string
     {
-        return $this->core->config()->namespace ?? $reflection->getNamespaceName();
+        return $this->core->config()->effectiveNamespace($reflection->getNamespaceName());
     }
 
     public function render(BuildMeta $meta, ReflectionClass $reflection): string
@@ -332,7 +333,8 @@ final readonly class InterfaceDeriver
             ->render(
                 $meta->interface,
                 $this->resolveNamespace($reflection)
-            );
+            )
+        ;
         return $source;
     }
 

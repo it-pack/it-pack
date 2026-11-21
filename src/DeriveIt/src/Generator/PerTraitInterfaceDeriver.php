@@ -241,7 +241,7 @@ final readonly class PerTraitInterfaceDeriver
 
         $source = $this->core->renderer()->renderMany(
             [...array_values($traitInterfaces), $main],
-            $reflection->getNamespaceName(),
+            $this->core->config()->effectiveNamespace($reflection->getNamespaceName()),
         );
         $this->core->events()->measured(
             DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
