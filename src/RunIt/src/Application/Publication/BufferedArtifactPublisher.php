@@ -22,8 +22,8 @@ use Throwable;
 /**
  * Artifact publisher that buffers artifacts and flushes them in bounded batches.
  *
- * The buffer is hard-bounded by item count and estimated bytes, so memory never grows
- * without limit under sustained load. When it is full the configured {@see OverflowStrategy}
+ * The buffer is bounded by item count and estimated bytes, not actual process memory.
+ * When it is full the configured {@see OverflowStrategy}
  * decides what to drop. Flush emits at most `batchSize` non-expired artifacts; `close()`
  * flushes within `shutdownFlushBudget` and drops whatever remains. Dropped and expired
  * artifacts are reported to the internal health reporter so loss stays observable without

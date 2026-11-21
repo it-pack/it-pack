@@ -106,8 +106,9 @@ arbitrary artifact contents.
 
 ## Buffering and backpressure
 
-An individually oversized artifact is reported and rejected before the interval
-flush check. Even when the interval has elapsed, retained entries remain buffered
+An individually oversized artifact or an artifact offered to a zero-item-capacity
+buffer is reported and rejected before the interval flush check. Even when the
+interval has elapsed, retained entries remain buffered
 until a later operation triggers a flush or the caller explicitly flushes or closes.
 Ordinary non-throwing overflow handling instead reaches the interval check.
 
@@ -179,6 +180,12 @@ actual process-memory measurements. When an item does not fit, the configured
 - **BlockWithTimeout** — wait briefly for space, then drop newest.
 - **Fail** — throw `BufferOverflowException` so the surrounding failure policy decides.
 
+An entry expires only when its age exceeds `maxAgeSeconds`; an entry exactly at
+the boundary remains eligible for publication. Expired entries are removed and
+reported without consuming the successful-publication batch budget.
+If their health reporter throws, the removed entry is already counted as dropped
+and deducted from the estimate; the exception interrupts the flush and its
+observer, while later entries remain available for a retry.
 `flush()` emits at most `batchSize` non-expired artifacts; `close()` flushes within
 `shutdownFlushBudget` and drops whatever remains. Dropped and expired artifacts are
 reported to the internal health reporter so loss stays observable without re-entering the

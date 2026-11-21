@@ -1220,6 +1220,71 @@ final class BufferingTest extends Unit
         self::assertSame(0, $buffer->estimatedBytes());
     }
 
+    public function testFlushCanBeRetriedAfterExpiredItemReporterThrows(): void
+    {
+        $failure = new RuntimeException('health failure');
+        $health = new class ($failure) implements InternalHealthReporterInterface {
+            /** @var list<?ExecutionArtifactInterface> */
+            public array $reported = [];
+
+            public function __construct(private readonly RuntimeException $failure)
+            {
+            }
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = $artifact;
+                throw $this->failure;
+            }
+        };
+        $observer = new class () implements BatchFlushObserverInterface {
+            /** @var list<array{int, int}> */
+            public array $reports = [];
+
+            public function onFlush(int $flushedCount, int $durationMicroseconds, int $remainingBuffered): void
+            {
+                $this->reports[] = [$flushedCount, $remainingBuffered];
+            }
+        };
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            new BufferConfiguration(3, 100, 60, 1, 0, 3, OverflowStrategy::DropNewest),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(20, ['fresh' => 30]),
+            $health,
+            $observer,
+        );
+        $expired = $this->artifact(id: 'expired');
+        $fresh = $this->artifact(id: 'fresh');
+        $buffer->publish($expired);
+        $clock->advanceSeconds(61);
+        $buffer->publish($fresh);
+
+        try {
+            $buffer->flush();
+            self::fail('The reporter failure must propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame([$expired], $health->reported);
+        self::assertSame([], $sink->published());
+        self::assertSame([], $observer->reports);
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(30, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+
+        $buffer->flush();
+        self::assertSame([$fresh], $sink->published());
+        self::assertSame([$expired], $health->reported);
+        self::assertSame([[1, 0]], $observer->reports);
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+    }
+
     public function testExpiredItemsDoNotConsumeFlushBatchBudget(): void
     {
         $clock = new DeterministicMonotonicClock(1_000, 0);

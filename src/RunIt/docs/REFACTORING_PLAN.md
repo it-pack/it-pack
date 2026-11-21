@@ -1895,6 +1895,19 @@ costs, but include other publisher work and ran during quality checks; see
 `docs/benchmarks.md` for measurements and limitations. They warrant further
 investigation, not a claim that an alternative representation is faster.
 
+**Expiration reporter interruption (2026-11-21):** A deterministic flush test
+now covers a throwing health reporter while an expired entry is removed. The
+original exception propagates, the expired entry is counted and its bytes are
+deducted, and the fresh FIFO survivor remains buffered. Retrying flush publishes
+the survivor and notifies the observer. The focused buffer suite passed with
+59 tests and 289 assertions. This characterizes existing behavior; the remaining
+lifecycle and Phase 3 exit checks are not thereby complete. The publisher class
+description also now distinguishes estimated bytes from process memory. On PHP
+8.5.13, `COMPOSER_PROCESS_TIMEOUT=1200 composer quality` passed, including all
+four test suites, API checking, security audits, examples and dogfood. The new
+test was not separately run on PHP 8.4 or 8.6 in this increment; no independent
+benchmark comparison was performed.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which
