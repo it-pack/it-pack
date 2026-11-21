@@ -984,6 +984,64 @@ final class BufferingTest extends Unit
         self::assertSame(0, $buffer->bufferedCount());
     }
 
+    public function testFailedIntervalFlushResetsIntervalBeforeRetry(): void
+    {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $failure = new RuntimeException('sink failure');
+        $sink = new class ($failure) implements ArtifactPublisherInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $attempts = [];
+
+            public function __construct(private readonly RuntimeException $failure)
+            {
+            }
+
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                $this->attempts[] = $artifact;
+                if (count($this->attempts) === 1) {
+                    throw $this->failure;
+                }
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(4, OverflowStrategy::DropNewest, maxBytes: 100),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator(20),
+        );
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $third = $this->artifact(id: 'third');
+        $fourth = $this->artifact(id: 'fourth');
+        $buffer->publish($first);
+        $clock->advanceSeconds(5);
+
+        try {
+            $buffer->publish($second);
+            self::fail('The sink failure must propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame([$first], $sink->attempts);
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(20, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+
+        $buffer->publish($third);
+        self::assertSame([$first], $sink->attempts);
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(40, $buffer->estimatedBytes());
+
+        $clock->advanceSeconds(5);
+        $buffer->publish($fourth);
+        self::assertSame([$first, $second, $third, $fourth], $sink->attempts);
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+    }
+
     public function testFlushIntervalRunsAfterOverflowReplacementAdmission(): void
     {
         $clock = new DeterministicMonotonicClock(1_000, 0);

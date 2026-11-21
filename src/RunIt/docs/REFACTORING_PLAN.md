@@ -1908,6 +1908,20 @@ four test suites, API checking, security audits, examples and dogfood. The new
 test was not separately run on PHP 8.4 or 8.6 in this increment; no independent
 benchmark comparison was performed.
 
+**Automatic flush interruption (2026-11-21):** A deterministic regression covers
+a sink failure during an interval-triggered flush. The attempted item is removed
+without a buffer-drop count, the admitted survivor remains accounted for, and the
+flush interval has already reset. A subsequent publish within that interval does
+not retry; after another interval, the survivors drain in FIFO order. This records
+existing behavior, not a decision to change retry semantics. Lifecycle coverage,
+an independent representation comparison and Phase 3 exit verification remain open.
+The focused buffer suite passed on PHP 8.5.13 (60 tests, 301 assertions) and on
+PHP 8.6 with Codeception deprecation warnings. PHP 8.4.28 could not start the
+suite because the installed dependencies require PHP 8.5 or later. On PHP 8.5,
+the `composer quality` run reported all four suites and 10 dogfood tools passing,
+including Rector, style, analysis, architecture and API checks; the process monitor
+did not expose the final exit code. No independent queue comparison was run.
+
 1. **Re-establish the baseline.** Record the starting revision, worktree state,
    PHP and Composer versions, extensions and installed dependencies. Run the
    focused `BufferingTest`, flush-observer and pipeline tests, and identify which
