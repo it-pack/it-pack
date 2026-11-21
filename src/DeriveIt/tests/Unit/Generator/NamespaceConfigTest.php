@@ -228,4 +228,39 @@ final class NamespaceConfigTest extends Unit
         verify($source)->stringContainsString('class FamBetaAdapter');
         verify($source)->stringNotContainsString('namespace ' . $ns . ';');
     }
+
+    public function testPerTraitLeakageAuditAllowsConfiguredNamespaceSelfReturn(): void
+    {
+        $ns = 'PtLeakNs' . uniqid();
+        eval(
+            'namespace ' . $ns .
+            '; trait SelfTrait { public function getSelf(): static { return new static(); } }' .
+            ' class SelfClass { use SelfTrait; }'
+        );
+
+        $config = new DeriveConfig()
+            ->withNamespace('Custom\\PtLeak')
+            ->withAuditLeakage(true)
+        ;
+
+        $source = new PerTraitInterfaceDeriver(config: $config)
+            ->deriveSource($ns . '\SelfClass')
+        ;
+
+        verify($source)->stringContainsString('namespace Custom\\PtLeak;');
+        verify($source)->stringContainsString('interface SelfClassInterface');
+    }
+
+    public function testFamilyDuplicateDerivedFqcnThrowsNamingCollision(): void
+    {
+        $ns1 = 'DupNs1' . uniqid();
+        $ns2 = 'DupNs2' . uniqid();
+        eval('namespace ' . $ns1 . '; class DupFoo { public function foo(): string { return \'x\'; } }');
+        eval('namespace ' . $ns2 . '; class DupFoo { public function foo(): string { return \'x\'; } }');
+
+        $config = new DeriveConfig()->withNamespace('Custom\\Dup');
+
+        $this->expectException(NamingCollisionException::class);
+        new FamilyDeriver($config)->deriveSource([$ns1 . '\DupFoo', $ns2 . '\DupFoo']);
+    }
 }

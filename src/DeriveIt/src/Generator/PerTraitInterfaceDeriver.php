@@ -64,7 +64,7 @@ final readonly class PerTraitInterfaceDeriver
 
         $allowedNamespaces = LeakageAuditor::allowedNamespaces(
             $reflection->getNamespaceName(),
-            $this->core->config()->typeSubstitutionMap,
+            $this->core->seedTypeMap($reflection),
             [],
         );
 
@@ -216,7 +216,7 @@ final readonly class PerTraitInterfaceDeriver
             $reflection->getNamespaceName(),
             LeakageAuditor::allowedNamespaces(
                 $reflection->getNamespaceName(),
-                $this->core->config()->typeSubstitutionMap,
+                $this->core->seedTypeMap($reflection),
                 [],
             ),
             $this->core->config()->auditLeakage,

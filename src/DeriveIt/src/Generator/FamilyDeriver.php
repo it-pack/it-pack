@@ -10,6 +10,7 @@ use ItPack\DeriveIt\Contract\Telemetry\DeriveEvents;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveMeasurements;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveUnits;
+use ItPack\DeriveIt\Exception\NamingCollisionException;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
@@ -168,11 +169,17 @@ final class FamilyDeriver implements FamilyDeriverInterface
     private function deriveReflections(array $reflections, array $namespacePrefixMap): array
     {
         $map = [];
+        $seen = [];
         foreach ($reflections as $reflection) {
-            $map[$reflection->getName()] = Naming::derivedInterfaceFqcn(
+            $derived = Naming::derivedInterfaceFqcn(
                 $reflection,
                 $this->config->effectiveNamespace($reflection->getNamespaceName()),
             );
+            if (isset($seen[$derived]) && $seen[$derived] !== $reflection->getName()) {
+                throw NamingCollisionException::forFqcn($derived);
+            }
+            $seen[$derived] = $reflection->getName();
+            $map[$reflection->getName()] = $derived;
         }
         $map = $this->transitiveClosure($map);
         $configHash = $this->configHash($map, $namespacePrefixMap);
