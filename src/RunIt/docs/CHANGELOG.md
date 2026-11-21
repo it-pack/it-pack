@@ -28,6 +28,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Expanded buffer and pipeline regression coverage; the pipeline checks use the
+  actual wired sink and verified artifacts. These test changes do not change the
+  public API or buffer behavior.
 - Buffer admission now enforces projected item and estimated-byte limits, including
   repeated eviction and blocking paths. Oversized items are reported and rejected
   without eviction or waiting; `Fail` throws. Negative numeric buffer configuration

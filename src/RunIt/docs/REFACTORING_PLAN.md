@@ -1741,6 +1741,39 @@ The representation and delivery decisions remain open.
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
 
+**Completion baseline (2026-11-21):** Starting revision
+`726c3e590912f125e3bceec2d7e204cf2a84ab2a` had a clean worktree. PHP 8.5.13
+CLI NTS, Composer 2.9.7 and the installed, ignored lockfile and vendor tree were
+used without a dependency update. Direct installed and locked versions matched;
+`composer check-platform-reqs` passed. PCOV, Swoole and OpenTelemetry were loaded;
+OpenSwoole was unavailable. Focused buffer, flush-observer and pipeline tests
+passed respectively with 60/301, 3/11 and 5/8 tests/assertions. The pipeline
+result alone did not prove delivery because the existing test checked another sink.
+`php tests/target-policy-regressions.php` exited 1 with 21 non-buffer failures
+in sampling, redaction, delivery and recursive health reporting; it reported no
+buffer failures. Provenance health notices also appeared. These are target-policy
+results, not evidence that all unrelated targets match the current default stack.
+
+The expanded buffer matrix covers all five strategies at count, byte, combined,
+exact and near-fit boundaries, zero-size eviction and mixed-priority fallback.
+The pipeline regression now uses its wired sink and attested, classified artifacts,
+including delivery controls around fail-open and fail-closed buffer overflow.
+On PHP 8.5.13 and 8.6.0 the focused buffer, observer and pipeline tests passed
+with 88/649, 3/11 and 7/31 tests/assertions respectively. PHP 8.6 emitted
+Codeception `spl_object_hash()` deprecations. PHP 8.4.28 could not start the
+pipeline test because the installed dependency set requires PHP >= 8.5; no PHP
+8.4 pass is claimed. The separate PHP 8.5 `composer api:check` exited 0 without
+detected breaks. No API or schema baseline was changed.
+
+On the resulting PHP 8.5 worktree, `composer test` passed all four suites and
+`COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet` exited 0 after fixing
+new test-only Rector, PHPStan and line-length findings. The separate benchmark
+samples and their concurrent-load limitations are in `docs/benchmarks.md`.
+No queue candidate was compared; depth-sensitive results warrant a controlled
+comparison, so the representation decision and Phase 3 remain open. The expanded
+matrix does not cross every strategy with zero-byte capacity or `PHP_INT_MAX`;
+selected existing tests cover those boundaries. Downstream checks remain deferred.
+
 **Oversized-item decision (2026-11-13):** Reject an incoming item whose
 nonnegative estimate exceeds the entire byte limit without evicting existing
 items. `Fail` reports and throws; the other strategies report and immediately
@@ -1983,9 +2016,9 @@ did not expose the final exit code. No independent queue comparison was run.
    the new invariant as current until implemented and verified.
 
 - [x] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
-- [ ] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
+- [x] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).
 - [x] Implement capacity checks on every append, including all replacement and timeout paths. Evict enough eligible entries where the approved strategy permits; otherwise drop/fail without violating the bound. Preserve priority, FIFO ordering, health notifications, counts, and exception behavior.
-- [ ] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after each removal. Assert `estimatedBytes() <= maxEstimatedBytes` after every accepted operation; note estimates are not exact process-memory limits.
+- [ ] Test flush, expiration, failed inner publication, timeout, close budget, repeated close, observer callbacks, and accounting after each removal. Assert `estimatedBytes() <= maxEstimatedBytes` after every accepted operation; note estimates are not exact process-memory limits. The focused matrix checks bounds after its admissions, but does not independently assert them after every operation across all lifecycle cases.
 - [ ] Benchmark existing drain/close with representative sizes and overflow/priority patterns using `composer benchmark` or a focused PHPBench benchmark. Compare a head-index or queue implementation only after preserving observable ordering and eviction behavior.
 - [ ] If measurements justify it, replace repeated array shifting with an internal representation that preserves the tested behavior; benchmark again and record environment, results, and regressions. Do not claim a speedup without measurements.
 - [ ] Update buffer and performance documentation, including oversized-item behavior and the distinction between estimated and actual memory.

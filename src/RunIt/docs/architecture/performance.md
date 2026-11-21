@@ -42,7 +42,10 @@ flowchart LR;
 
 `BufferedArtifactPublisher` is hard-bounded by item count and estimated bytes. Its
 `OverflowStrategy` (`DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`,
-`Fail`) decides what to drop when full, so a slow adapter cannot exhaust memory.
+`Fail`) decides what to drop when full. Estimated bytes are not a bound on actual
+process memory: the estimator can undercount, and queue, object and runtime overhead
+are excluded. The default JSON estimator returns zero on encoding failure; callers
+that require a different estimate can configure an estimator for the buffer.
 `flush()` emits at most `batchSize` non-expired artifacts; `close()` flushes within
 `shutdownFlushBudget` and reports whatever remains to the health reporter. Dropped
 and expired artifacts stay observable without re-entering the guarded pipeline.

@@ -35,6 +35,51 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Phase 3 Completion Samples (2026-11-21)
+
+At starting revision `726c3e590912f125e3bceec2d7e204cf2a84ab2a`, with test
+and documentation edits in progress but unchanged publisher and benchmark code,
+the following command ran twice on PHP 8.5.13 CLI NTS and PHPBench 1.7.0:
+
+```bash
+vendor/bin/phpbench run benchmarks/BufferedAdmissionBench.php benchmarks/BufferedMixedOverflowBench.php benchmarks/BufferedOverflowBench.php benchmarks/BufferedFlushBench.php benchmarks/BufferedQueueScalingBench.php --config=phpbench.json --report=aggregate
+```
+
+All 22 subjects and their verification hooks passed in each run. The Linux x86-64
+WSL2 host had four visible CPUs on an Intel i7-9700; CLI OPcache and JIT were
+disabled, Xdebug absent, and PHP memory limit unlimited. Focused tests, graph work
+and possibly the full suite overlapped timing; the host was not isolated. Admission
+used five iterations of 100 revolutions and two warmups; other subjects used ten
+one-revolution iterations without warmup. Setup and verification were untimed.
+Modes below are microseconds per operation or indicated batch; parentheses are
+within-run relative standard deviations, not confidence intervals.
+
+| Workload | Run 1 | Run 2 |
+| --- | ---: | ---: |
+| Small / large admission | 6.61 (15.97%) / 25.79 (27.11%) | 6.48 (26.14%) / 24.70 (16.27%) |
+| Count / byte overflow, 128 publishes | 1,246 (15.36%) / 1,254 (8.81%) | 1,245 (12.44%) / 1,316 (20.20%) |
+| Mixed byte / priority, 128 publishes | 2,169 (18.76%) / 10,890 (12.12%) | 1,948 (7.83%) / 10,722 (6.97%) |
+| Flush 256 / close 1,024 | 700 (14.14%) / 2,135 (39.86%) | 718 (100.53%) / 2,005 (36.89%) |
+| Four flushes / limited close, 1,024 | 2,364 (36.25%) / 1,776 (30.14%) | 1,974 (12.05%) / 1,783 (17.88%) |
+| Full close, 256 / 1,024 / 4,096 | 279 / 1,734 / 20,797 | 269 / 1,749 / 20,535 |
+| Zero-budget close, 256 / 1,024 / 4,096 | 174 / 1,403 / 20,225 | 171 / 1,466 / 20,389 |
+| DropOldest, 64 publishes, 256 / 1,024 / 4,096 | 569 / 677 / 1,062 | 522 / 658 / 1,141 |
+| Priority search, 64 publishes, 256 / 1,024 / 4,096 | 1,918 / 5,446 / 22,476 | 1,739 / 5,202 / 20,501 |
+
+Scaling-row RSD ranged from 6.92% to 96.82%. Overflow fixtures prefill 1,024
+items. The mixed-size byte fixture exercises repeated eviction, but its hooks
+check aggregate accounting and survivors rather than each publish's eviction
+count. Priority searches begin with a high-priority prefix occupying half the
+queue. Limited close delivers 256 and drops 768. The scaling measurements include
+publisher and sink work, not just queue operations. Peak process memory was about
+8.4-10.3 MB including runtime and fixtures; estimated bytes are not a memory bound.
+
+The depth trend warrants an isolated comparison of an internal candidate, including
+normal admission, multiple evictions, priority removal, FIFO drain and retained
+memory, with the complete regression matrix against both implementations. No
+alternative was tested here. Retain the current array pending such evidence; these
+contended results neither establish a bottleneck nor demonstrate a speedup.
+
 ## Phase 3 Queue Scaling (2026-11-21)
 
 Two sequential runs used the production source at clean starting revision

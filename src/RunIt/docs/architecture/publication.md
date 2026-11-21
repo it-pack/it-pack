@@ -175,8 +175,10 @@ actual process-memory measurements. When an item does not fit, the configured
 
 - **DropNewest** — discard the incoming artifact.
 - **DropOldest** — discard oldest buffered artifacts until the incoming item fits.
-- **DropLowPriority** — discard a low-priority artifact (high-priority = error observations
-  and terminal snapshots win); a high-priority incoming item may require multiple evictions.
+- **DropLowPriority** — reject a low-priority incoming artifact when it does not fit.
+  For a high-priority incoming artifact, repeatedly evict the oldest low-priority
+  entry, or the oldest entry if none is low priority, until the incoming item fits.
+  Error observations and terminal snapshots are high priority; survivors retain FIFO order.
 - **BlockWithTimeout** — wait briefly for space, then drop newest.
 - **Fail** — throw `BufferOverflowException` so the surrounding failure policy decides.
 

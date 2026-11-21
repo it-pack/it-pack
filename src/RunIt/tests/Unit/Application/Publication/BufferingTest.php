@@ -132,6 +132,158 @@ final class BufferingTest extends Unit
         yield 'DropLowPriority' => [OverflowStrategy::DropLowPriority];
     }
 
+    /** @return iterable<string, array{OverflowStrategy, int, int, int, int, bool}> */
+    public static function admissionBoundaryCases(): iterable
+    {
+        foreach (OverflowStrategy::cases() as $strategy) {
+            yield $strategy->name . ' count' => [$strategy, 1, 100, 20, 20, true];
+            yield $strategy->name . ' bytes' => [$strategy, 3, 100, 60, 41, true];
+            yield $strategy->name . ' both' => [$strategy, 1, 100, 60, 41, true];
+            yield $strategy->name . ' exact fit' => [$strategy, 2, 100, 60, 40, false];
+            yield $strategy->name . ' near fit' => [$strategy, 3, 100, 60, 39, false];
+        }
+    }
+
+    #[DataProvider('admissionBoundaryCases')]
+    public function testAdmissionBoundariesAndDropNotifications(
+        OverflowStrategy $strategy,
+        int $maxItems,
+        int $maxBytes,
+        int $firstSize,
+        int $incomingSize,
+        bool $overflow,
+    ): void {
+        $clock = new DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<array{Throwable, ?ExecutionArtifactInterface}> */
+            public array $reported = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = [$error, $artifact];
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config($maxItems, $strategy, maxBytes: $maxBytes),
+            $sink,
+            $clock,
+            new DeterministicArtifactByteEstimator($firstSize, ['incoming' => $incomingSize]),
+            $health,
+            sleep: static function (int $microseconds) use ($clock): void {
+                $clock->advanceNanoseconds($microseconds * 1_000);
+            },
+        );
+        $first = $this->artifact(id: 'first');
+        $incoming = $this->artifact('error', 'incoming');
+        $buffer->publish($first);
+        $thrown = null;
+        try {
+            $buffer->publish($incoming);
+        } catch (BufferOverflowException $bufferOverflowException) {
+            $thrown = $bufferOverflowException;
+        }
+
+        $replacement = $overflow && in_array(
+            $strategy,
+            [OverflowStrategy::DropOldest, OverflowStrategy::DropLowPriority],
+            true,
+        );
+        $retained = !$overflow ? [$first, $incoming] : ($replacement ? [$incoming] : [$first]);
+        $bytes = !$overflow ? $firstSize + $incomingSize : ($replacement ? $incomingSize : $firstSize);
+        self::assertSame($overflow && $strategy === OverflowStrategy::Fail, $thrown instanceof BufferOverflowException);
+        self::assertSame(count($retained), $buffer->bufferedCount());
+        self::assertSame($bytes, $buffer->estimatedBytes());
+        self::assertLessThanOrEqual($maxItems, $buffer->bufferedCount());
+        self::assertLessThanOrEqual($maxBytes, $buffer->estimatedBytes());
+        self::assertSame((int) $overflow, $buffer->droppedCount());
+        self::assertCount((int) $overflow, $health->reported);
+        if ($overflow) {
+            self::assertInstanceOf(BufferOverflowException::class, $health->reported[0][0]);
+            self::assertSame($replacement ? $first : $incoming, $health->reported[0][1]);
+        }
+
+        $buffer->flush();
+        self::assertSame($retained, $sink->published());
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    #[DataProvider('replacementStrategies')]
+    public function testReplacementEvictsZeroSizedItemsAndPreservesSurvivorOrder(OverflowStrategy $strategy): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<?ExecutionArtifactInterface> */
+            public array $reported = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = $artifact;
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(4, $strategy, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(0, ['sized' => 60, 'survivor' => 20, 'incoming' => 60]),
+            $health,
+        );
+        $zero = $this->artifact(id: 'zero');
+        $sized = $this->artifact(id: 'sized');
+        $survivor = $this->artifact('error', 'survivor');
+        $incoming = $this->artifact('error', 'incoming');
+        $buffer->publish($zero);
+        $buffer->publish($sized);
+        $buffer->publish($survivor);
+        $buffer->publish($incoming);
+
+        self::assertSame([$zero, $sized], $health->reported);
+        self::assertSame(2, $buffer->droppedCount());
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(80, $buffer->estimatedBytes());
+        $buffer->flush();
+        self::assertSame([$survivor, $incoming], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
+    public function testPriorityEvictionSkipsHighPriorityAndFallsBackInFifoOrder(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<?ExecutionArtifactInterface> */
+            public array $reported = [];
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = $artifact;
+            }
+        };
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(4, OverflowStrategy::DropLowPriority, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(30, ['incoming' => 70]),
+            $health,
+        );
+        $first = $this->artifact('error', 'first');
+        $low = $this->artifact(id: 'low');
+        $last = $this->artifact('error', 'last');
+        $incoming = $this->artifact('error', 'incoming');
+        $buffer->publish($first);
+        $buffer->publish($low);
+        $buffer->publish($last);
+        $buffer->publish($incoming);
+
+        self::assertSame([$low, $first], $health->reported);
+        self::assertSame(2, $buffer->droppedCount());
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(100, $buffer->estimatedBytes());
+        $buffer->flush();
+        self::assertSame([$last, $incoming], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
+    }
+
     #[DataProvider('negativeConfigurationFields')]
     public function testNegativeConfigurationValuesAreRejectedIndividually(int $index): void
     {
