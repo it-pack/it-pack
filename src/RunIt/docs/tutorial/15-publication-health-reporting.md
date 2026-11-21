@@ -14,17 +14,12 @@ through `RunItBuilder` without a handler. The original business result or
 exception is always preserved.
 
 ```php
-use ItPack\RunIt\Application\Publication\FailOpenPolicy;
-use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
 // No handler: publication failures reach the SDK error-log default sink.
 $runtime = RunItBuilder::create()
-    ->withPublisher(new FailSafeArtifactPublisher(
-        new ThrowingPublisher(),
-        new FailOpenPolicy(),
-    ))
+    ->withPublisher(new ThrowingPublisher())
     ->withClock(new SystemMonotonicClock())
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
