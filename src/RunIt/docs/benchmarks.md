@@ -37,6 +37,14 @@ harnesses rather than the checked-in PHPBench suite.
 
 ## Phase 3 Representation Comparison (2026-11-21)
 
+At starting revision `08eada2b`, `composer benchmark -- --filter=BufferedQueueScalingBench`
+on PHP 8.5.13 produced modes of 366, 1,101 and 5,228 microseconds for close at
+256, 1,024 and 4,096 items, respectively. The corresponding 64 priority-eviction
+modes were 1,752, 5,286 and 24,885 microseconds. Ten iterations were run with CLI
+opcache disabled; reported deviations ranged from 10% to 180% across the twelve
+subjects. This unisolated run is not a controlled comparison or a process-memory
+measurement, and does not resolve the small-queue tradeoff below.
+
 An integrated head-index candidate was compared against the existing publisher
 with the same PHPBench subjects on PHP 8.5.13, CLI opcache disabled, ten
 iterations and one revolution. Baseline and candidate modes in microseconds

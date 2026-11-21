@@ -28,6 +28,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Added lifecycle regressions for interrupted priority eviction and close observer
+  failure, including retained-byte accounting and retry behavior. These tests do not
+  change the public API or resolve reentrant drop-reporter termination.
 - Added explicit estimated-byte-bound checks for interrupted and partial buffer
   lifecycle operations; these are test-only checks, not a process-memory guarantee.
 - Replaced repeated buffer array shifts with an internally compacted indexed queue.

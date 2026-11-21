@@ -1741,6 +1741,22 @@ The representation and delivery decisions remain open.
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
 
+**Further lifecycle audit (2026-11-21):** Starting revision `08eada2b` had a
+clean worktree. New focused regressions cover a throwing reporter after non-head
+priority eviction and a throwing close observer after budgeted delivery and
+remainder drops, including exact accounting, identities and retry. Phase 3 remains
+open: a drop reporter that repeatedly refills the same buffer can prevent overflow
+eviction or close from terminating. Preventing this requires a decision about how
+recursive publications and their drop reports behave; silently suppressing reports
+would change the existing reporting contract. The lifecycle matrix also does not
+establish invariants after every operation in every overflow and interruption path.
+The target-policy harness still reports 21 non-buffer failures. On PHP 8.5.13,
+the two new tests passed (2 tests, 27 assertions), `composer test --quiet` passed
+before the additions, and `COMPOSER_PROCESS_TIMEOUT=1200 composer quality --quiet`
+passed after them, including all test suites. A separate `composer api:check`
+passed. Downstream checks, PHP 8.4 with a compatible dependency set, and
+OpenSwoole remain unverified.
+
 **Further work (2026-11-21):** A data-provider lifecycle sequence checks retained
 bytes, delivery, drops and observer counts across all five strategy configurations
 through admission, partial flush, expiration and repeated close. The focused buffer
