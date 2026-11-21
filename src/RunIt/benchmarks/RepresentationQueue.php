@@ -142,6 +142,7 @@ foreach ([256, 1024, 4096] as $depth) {
 
 foreach ($kinds as $kind) {
     gc_collect_cycles();
+    unset($queue);
     $before = memory_get_usage(false);
     $queue = fixture($kind, 4096, 'oldest');
     $filled = memory_get_usage(false) - $before;

@@ -86,6 +86,8 @@ use RuntimeException;
 #[UsesClass(OccurrenceType::class)]
 #[UsesClass(AttributeCollection::class)]
 #[UsesClass(Instant::class)]
+#[UsesClass(ProvenanceAuthority::class)]
+#[UsesClass(BufferOverflowException::class)]
 final class PublicationPipelineTest extends Unit
 {
     private MonotonicClockInterface $clock;
@@ -151,6 +153,62 @@ final class PublicationPipelineTest extends Unit
             [],
             $sink->published(),
             'sampling dropped everything before the sink'
+        );
+    }
+
+    public function testBufferingHoldsAcceptedAndRejectedUntilFlush(): void
+    {
+        $sampler = new class () implements SamplingPolicyInterface {
+            private bool $acceptNext = true;
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $decision = $this->acceptNext;
+                $this->acceptNext = !$this->acceptNext;
+                return $decision;
+            }
+        };
+
+        $sink = new InMemoryArtifactPublisher();
+        $pipeline = new PublicationPipeline(
+            sink: $sink,
+            clock: $this->clock,
+            byteEstimator: $this->estimator,
+            sampling: $sampler,
+            buffer: new BufferConfiguration(
+                maxItems: 8,
+                maxEstimatedBytes: 10_000,
+                maxAgeSeconds: 60,
+                batchSize: 4,
+                flushIntervalSeconds: 0,
+                shutdownFlushBudget: 1024,
+                overflow: OverflowStrategy::DropOldest,
+            ),
+            stackFactory: new UnsafePipelineTestStackFactory(),
+        )->build();
+
+        $first = $this->observation();
+        $second = Observation::info(ObservationId::fromString('second'), ExecutionId::fromString('exec-1'), 'second');
+
+        $pipeline->publish($first);
+        $pipeline->publish($second);
+
+        self::assertSame([], $sink->published(), 'Neither artifact reaches the sink before flush.');
+
+        self::assertInstanceOf(FlushablePublisherInterface::class, $pipeline);
+        $pipeline->flush();
+
+        self::assertCount(1, $sink->published(), 'Only the accepted artifact reaches the sink after flush.');
+        self::assertSame(
+            [$first->normalize()['id'] ?? null],
+            array_map(
+                static function (ExecutionArtifactInterface $artifact): mixed {
+                    $normalized = $artifact->normalize();
+
+                    return is_array($normalized) ? ($normalized['id'] ?? null) : null;
+                },
+                $sink->published(),
+            ),
         );
     }
 
@@ -227,6 +285,68 @@ final class PublicationPipelineTest extends Unit
         $pipeline->flush();
         self::assertCount(2, $sink->published());
         self::assertSame([$firstId, $secondId], array_map(
+            static function (ExecutionArtifactInterface $artifact): mixed {
+                $normalized = $artifact->normalize();
+
+                return is_array($normalized) ? ($normalized['id'] ?? null) : null;
+            },
+            $sink->published(),
+        ));
+    }
+
+    public function testBufferedOverflowDefaultPolicyDoesNotThrow(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $first = $this->observation();
+        $second = Observation::info(ObservationId::fromString('second'), ExecutionId::fromString('exec-1'), 'second');
+        $firstId = $authority->bindArtifact('observation', 'observation', 'exec-1', 'obs', 'execution-observation');
+        $secondId = $authority->bindArtifact(
+            'observation',
+            'observation',
+            'exec-1',
+            'second',
+            'execution-observation',
+        );
+        self::assertTrue($authority->attest($first, $firstId));
+        self::assertTrue($authority->attest($second, $secondId));
+
+        $sink = new InMemoryArtifactPublisher();
+        $pipeline = new PublicationPipeline(
+            sink: $sink,
+            clock: $this->clock,
+            byteEstimator: $this->estimator,
+            buffer: new BufferConfiguration(
+                maxItems: 1,
+                maxEstimatedBytes: 10_000,
+                maxAgeSeconds: 60,
+                batchSize: 1,
+                flushIntervalSeconds: 0,
+                shutdownFlushBudget: 1,
+                overflow: OverflowStrategy::Fail,
+            ),
+            stackFactory: new VerifiedPipelineTestStackFactory($authority),
+        )->build();
+
+        $pipeline->publish($first);
+        self::assertSame([], $sink->published(), 'The first artifact is buffered, not immediately delivered.');
+
+        $failure = null;
+        try {
+            $pipeline->publish($second);
+        } catch (BufferOverflowException $bufferOverflowException) {
+            $failure = $bufferOverflowException;
+        }
+
+        self::assertNull($failure, 'The default failure policy must not throw on overflow.');
+
+        self::assertSame([], $sink->published());
+
+        self::assertInstanceOf(FlushablePublisherInterface::class, $pipeline);
+        $pipeline->flush();
+        self::assertCount(1, $sink->published());
+        self::assertSame([$firstId], array_map(
             static function (ExecutionArtifactInterface $artifact): mixed {
                 $normalized = $artifact->normalize();
 

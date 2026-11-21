@@ -16,12 +16,18 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 use Throwable;
 
 #[CoversClass(BufferedArtifactPublisher::class)]
+#[UsesClass(BufferConfiguration::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
+#[UsesClass(ExecutionId::class)]
 final class BufferedLifecycleInvariantTest extends Unit
 {
     public function testThrowingReporterAfterNonHeadPriorityEvictionCanBeRetried(): void

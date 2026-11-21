@@ -83,7 +83,7 @@ At revision `86a13a9cf86b87c2a13f31fc26ab01f556a90781`, the production
 publisher was unchanged. Two sequential invocations on PHP 8.5.13 CLI NTS used:
 
 ```bash
-php8.5 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 benchmarks/queue-representation.php
+php8.5 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 benchmarks/RepresentationQueue.php
 ```
 
 The standalone harness compares a packed array with `array_shift` and reindexing
@@ -122,13 +122,14 @@ the head candidate. The unpinned, unisolated WSL2 host was not controlled for
 other activity; no other benchmark was deliberately run concurrently. These are
 synthetic wall-clock samples, not confidence intervals or production throughput.
 
-PHP-accounted live-memory deltas for 4,096 tuples were 819,200 bytes for the
-array and 954,584 for either sparse candidate; after removing half, deltas were
-376,864 and 512,216 respectively, in both invocations. This includes tuple and
+PHP-accounted live-memory deltas for 4,096 tuples were 954,584 bytes for all
+three candidates; after removing half, deltas were 512,248 for the array and
+512,216 for either sparse candidate, in both invocations. This includes tuple and
 queue allocations, not RSS, allocator peaks or production artifact memory. The
-head candidate has no compaction or index-overflow policy, and long-running
-churn and peak retention were not measured. Estimated byte limits are not
-process-memory limits.
+previous queue is released before the baseline is recorded so all candidates
+share a common starting point. The head candidate has no compaction or
+index-overflow policy, and long-running churn and peak retention were not
+measured. Estimated byte limits are not process-memory limits.
 
 The model supports investigating head indexing, especially for deep drains,
 but is not a safe production replacement. Its priority scan uses `foreach`,
