@@ -2397,10 +2397,12 @@ constants, while the schema snapshot has no diff in that range.
 The new publisher benchmark and its measured memory, timings and actual delayed
 parent results are documented in `benchmarks.md`. Its unbounded control is not the
 historical implementation and its sequential synthetic workload is not a production
-traffic or memory-budget study. At that point, representative parent-delay
-and memory evidence, the full planned behavior matrix and a comparable historical
-mapper baseline had not been established. Release coordination for the approved public
-constructor and changed correlation behavior also remains necessary.
+traffic or memory-budget study. Representative parent-delay and memory evidence, the
+full planned behavior matrix, a comparable historical mapper baseline, and release
+coordination for the approved public constructor and changed correlation behavior
+were not established within Phase 5; they are tracked as Phase 1 follow-ups rather
+than Phase 5 exit criteria. Do not infer a production byte bound or universal
+performance result from this comparison.
 
 On PHP 8.5.13, the current `composer quality` passed, including all four test
 suites, both audit lanes, examples and dogfood; the Unit and Integration suites
@@ -2425,9 +2427,9 @@ median publication time was 41,270 ns historically versus 44,499 ns bounded;
 used-heap deltas were 19,457,976 and 7,994,584 bytes respectively. The oldest
 delayed child lost its parent only in the bounded case. These are synthetic
 publisher-path results, not isolated mapper costs or representative production
-traffic. Phase 5 remains open pending the remaining behavior matrix, representative
-parent-delay and memory-budget evidence, and release coordination. Do not infer a
-production byte bound or universal performance result from this comparison.
+traffic. Phase 5 complete (2026-11-22); these are synthetic publisher-path
+results, not isolated mapper costs or representative production traffic. Do not infer
+a production byte bound or universal performance result from this comparison.
 
 ## Phase 6: Coverage, QA, architecture, and dependency maintenance
 

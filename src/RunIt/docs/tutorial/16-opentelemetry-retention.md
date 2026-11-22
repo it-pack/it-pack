@@ -94,7 +94,7 @@ php examples/opentelemetry-retention.php
 
 - [`docs/integrations/opentelemetry.md#span-context-retention`](../integrations/opentelemetry.md)
   — operational guidance and cardinality considerations.
-- [`docs/recipes/opentelemetry.md`](../../recipes/opentelemetry.md) — bounded
+- [`docs/recipes/opentelemetry.md`](../recipes/opentelemetry.md) — bounded
   retention in the context of a full bridge wiring.
 - [`examples/opentelemetry-retention.php`](../../examples/opentelemetry-retention.php)
   — runnable demonstration of custom capacity and eviction.

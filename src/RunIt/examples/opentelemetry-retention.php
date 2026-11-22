@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use OpenTelemetry\API\Trace\SpanContextInterface;
 
 /**
@@ -50,7 +51,7 @@ use OpenTelemetry\SDK\Trace\TracerProvider;
 $spanExporter = new TraceInMemoryExporter();
 $tracerProvider = new TracerProvider(new SimpleSpanProcessor($spanExporter));
 
-// Phase 5: custom capacity — 20,000 entries across executions and activities combined.
+// custom capacity — 20,000 entries across executions and activities combined.
 $store = new InMemoryExecutionSpanStore(20000);
 
 $config = new BridgeConfigBuilder()
@@ -69,37 +70,46 @@ $runtime = RunItBuilder::create()
     ->build()
 ;
 
-$result = $runtime->run(
-    ExecutionDefinition::create(
-        ExecutionName::fromString('checkout.process'),
-        ExecutionKind::fromString('operation'),
-    ),
-    static fn (): array => ['status' => 'ok'],
-);
-
-// Publish 25,000 execution/activity pairs through the bounded store (capacity 20,000).
-// The first 5,000 execution contexts will be evicted (oldest-write-first).
-for ($i = 0; $i < 25000; ++$i) {
-    $executionId = 'exec-' . $i;
-    $otelPublisher->publish(Execution::start(
-        ExecutionId::fromString($executionId),
+try {
+    $result = $runtime->run(
         ExecutionDefinition::create(
             ExecutionName::fromString('checkout.process'),
             ExecutionKind::fromString('operation'),
         ),
-        Instant::now(),
-    ));
+        static fn(): array => ['status' => 'ok'],
+    );
 
-    $otelPublisher->publish(Activity::start(
-        ActivityId::fromString('act-' . $i),
-        ExecutionId::fromString($executionId),
-        ActivityDefinition::create(
-            ActivityName::fromString('parse'),
-            ActivityKind::fromString('internal'),
-        ),
-        Instant::now(),
-    )->complete(ActivityStatus::Succeeded, null, Instant::now()));
+
+    // Publish 25,000 execution/activity pairs through the bounded store (capacity 20,000).
+    // Only the newest 20,000 entries (the last 10,000 pairs) survive; exec-0..exec-14999
+    // (15,000 execution contexts) are evicted oldest-write-first.
+    for ($i = 0; $i < 25000; ++$i) {
+        $executionId = 'exec-' . $i;
+        $otelPublisher->publish(Execution::start(
+            ExecutionId::fromString($executionId),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('checkout.process'),
+                ExecutionKind::fromString('operation'),
+            ),
+            Instant::now(),
+        ));
+
+        $otelPublisher->publish(Activity::start(
+            ActivityId::fromString('act-' . $i),
+            ExecutionId::fromString($executionId),
+            ActivityDefinition::create(
+                ActivityName::fromString('parse'),
+                ActivityKind::fromString('internal'),
+            ),
+            Instant::now(),
+        )->complete(ActivityStatus::Succeeded, null, Instant::now()));
+    }
+
+} catch (InvalidValueExceptionInterface|Throwable $e) {
+    echo $e->getMessage();
+    exit(1);
 }
+
 
 // The earliest execution context (exec-0) should have been evicted once we passed
 // 20,000 writes (25,000 executions + 25,000 activities = 50,000 > 20,000 capacity).
