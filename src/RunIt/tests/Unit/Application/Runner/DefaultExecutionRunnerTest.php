@@ -11,6 +11,7 @@ use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
 use ItPack\RunIt\Application\Policy\FailExecutionOnOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
+use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
@@ -32,6 +33,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
@@ -622,6 +624,52 @@ final class DefaultExecutionRunnerTest extends Unit
         ));
         self::assertCount(2, $activities);
         self::assertSame('succeeded', $activities[1]->status()->label());
+    }
+
+    public function testOpenActivityAtCompletionFailsExecution(): void
+    {
+        $kit = new RunItTestKit(
+            completionPolicy: new FailExecutionOnOpenActivitiesPolicy(),
+        );
+        $definition = $this->definition();
+        $activityDef = ActivityDefinition::create(
+            ActivityName::fromString('load'),
+            ActivityKind::fromString('io')
+        );
+
+        $kit->runner->run($definition, function ($scope) use ($activityDef): string {
+            /** @var ExecutionScope $scope */
+            $scope->activities()->run($activityDef, static fn (): string => 'inner');
+
+            // Manually track an additional activity as open without completing it,
+            // so it remains open when the execution completes.
+            $openActivity = $this->createMock(ActivityInterface::class);
+            $openActivity->method('status')->willReturn(ActivityStatus::Running);
+
+            $scope->trackOpenActivity($openActivity);
+
+            return 'result';
+        });
+
+        $executions = array_values(array_filter(
+            $kit->artifacts(),
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        /** @var ExecutionInterface $execution */
+        $execution = end($executions);
+        self::assertSame('failed', $execution->status()->label());
+
+        $observations = array_values(array_filter(
+            $kit->artifacts(),
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface,
+        ));
+        self::assertNotEmpty($observations);
+        $hasCritical = array_any(
+            $observations,
+            fn (ObservationInterface $observation): bool => $observation->severity()->label() === 'critical',
+        );
+        self::assertTrue($hasCritical, 'Expected a critical observation for open activity');
     }
 
     public function testIssueExportIdCapacityThrowsWhenNotDuplicate(): void

@@ -57,7 +57,7 @@ final class ObservationSeverityPredicateTest extends Unit
 
     public function testTrustedProjectionObservationAtFloorPasses(): void
     {
-        $predicate = new ObservationSeverityPredicate(4);
+        $predicate = new ObservationSeverityPredicate(2);
         $artifact = new class () implements ExecutionArtifactInterface, TrustedArtifactProjectionInterface {
             public function artifactType(): string
             {
@@ -66,7 +66,7 @@ final class ObservationSeverityPredicateTest extends Unit
 
             public function normalize(): array
             {
-                return ['level' => 4, 'severity' => 'warning'];
+                return ['severity' => 3];
             }
         };
 

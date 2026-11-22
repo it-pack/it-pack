@@ -1570,6 +1570,10 @@ final class TelemetryPublisherTest extends Unit
         $ref2 = new ReflectionMethod(TelemetryPublisher::class, 'writeHealthFallback');
         $ref2->invoke($publisher);
 
+        self::assertTrue(
+            $ref->getValue($publisher),
+            'writingHealthFallback must remain true after no-op guard returns',
+        );
     }
 
     /**

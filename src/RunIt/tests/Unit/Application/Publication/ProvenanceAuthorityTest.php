@@ -12,6 +12,7 @@ use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use Random\RandomException;
@@ -982,12 +983,37 @@ final class ProvenanceAuthorityTest extends Unit
     public function testReleaseExecutionReEntryIsNoop(): void
     {
         $authority = new ProvenanceAuthority();
-        $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        $artifact = new class () implements RedactedArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'execution';
+            }
+
+            public function normalize(): array
+            {
+                return ['id' => 'exec-1', 'execution_id' => 'exec-1'];
+            }
+        };
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        self::assertTrue($authority->attest($artifact, $exportId));
+
+        // Set the releasing flag before invoking release: the guard should return early.
+        $releasingRef = new ReflectionProperty(ProvenanceAuthority::class, 'releasing');
+        $releasingRef->setValue($authority, true);
 
         $ref = new ReflectionMethod(ProvenanceAuthority::class, 'releaseExecution');
         $ref->invoke($authority, 'exec-1');
 
-        // Re-entry: calling again while releasing flag is set
+        // The issued record must remain valid: no release happened.
+        self::assertSame($exportId, $authority->exportIdForArtifact($artifact));
+
+        // Clear the flag and invoke normal release: it should invalidate the record.
+        $releasingRef->setValue($authority, false);
+        $ref->invoke($authority, 'exec-1');
+
+        self::assertNull($authority->exportIdForArtifact($artifact));
+
+        // Re-entry while releasing: should return early without error.
         $ref->invoke($authority, 'exec-1');
     }
 

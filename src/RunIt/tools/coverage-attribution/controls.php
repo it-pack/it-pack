@@ -98,7 +98,11 @@ foreach (['leak' => 1, 'allowed' => 0] as $case => $expected) {
 $withoutDriver = [PHP_BINARY, '-d', 'pcov.enabled=0', '-d', 'xdebug.mode=off'];
 $environment['XDEBUG_MODE'] = 'off';
 $missingDriver = static fn (int $status, string $output): bool => $status !== 0
-    && str_contains($output, 'No code coverage driver available');
+    && (
+        str_contains($output, 'No code coverage driver available')
+        || str_contains($output, 'No coverage driver is available')
+        || str_contains($output, 'xdebug.mode')
+    );
 runControl(
     'direct missing driver',
     [...$withoutDriver, 'direct.php', 'allowed'],

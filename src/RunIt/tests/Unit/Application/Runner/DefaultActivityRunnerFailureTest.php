@@ -78,6 +78,9 @@ final class DefaultActivityRunnerFailureTest extends Unit
         $context = $this->createMock(ExecutionContextInterface::class);
         $scope = $kit->buildScope($execution, $context);
 
+        $priorActivityId = ActivityId::fromString('prior-act');
+        $scope->setCurrentActivityId($priorActivityId);
+
         $runner = new DefaultActivityRunner(
             $scope,
             $scope->execution()->executionId(),
@@ -96,9 +99,13 @@ final class DefaultActivityRunnerFailureTest extends Unit
             ActivityKind::fromString('task'),
         );
 
-        $result = $runner->run($activity, static fn (): string => 'result');
+        $result = $runner->run($activity, static function () use ($scope): string {
+            self::assertNotSame(ActivityId::fromString('prior-act'), $scope->currentActivityId());
+            return 'result';
+        });
 
         self::assertSame('result', $result);
+        self::assertSame($priorActivityId, $scope->currentActivityId());
     }
 
     public function testFailedNestedAttachSuppressesOuterAndOverlappingRecordingsUntilRestored(): void

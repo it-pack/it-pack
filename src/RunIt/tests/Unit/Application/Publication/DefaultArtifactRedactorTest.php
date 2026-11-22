@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
@@ -37,6 +38,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionMethod;
+use ReflectionProperty;
 use RuntimeException;
 use Throwable;
 
@@ -477,69 +479,66 @@ final class DefaultArtifactRedactorTest extends Unit
         );
 
         $ref = new ReflectionMethod(DefaultArtifactRedactor::class, 'reportTruncation');
+        $publishingRef = new ReflectionProperty(DefaultArtifactRedactor::class, 'publishingHealthReport');
+        $publishingRef->setValue($redactor, true);
+
         $ref->invoke($redactor);
 
-        self::assertCount(1, $reports);
+        self::assertCount(0, $reports);
     }
 
     public function testThrowableClassChangedIsDetected(): void
     {
         $redactor = new DefaultArtifactRedactor();
-        $artifact = new class () implements ExecutionArtifactInterface {
-            public function artifactType(): string
-            {
-                return 'execution';
-            }
+        $definition = ExecutionDefinition::create(
+            ExecutionName::fromString('op'),
+            ExecutionKind::fromString('task')
+        );
+        $execution = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            $definition,
+            Instant::of(1000)
+        )->beginRunning()->complete(
+            ExecutionFailure::of(
+                ExecutionStatus::Failed,
+                ThrowableDescription::create('OriginalClass', 'msg', 1, null, null)
+            ),
+            Instant::of(2000)
+        );
 
-            public function normalize(): array
-            {
-                return [
-                    'result' => [
-                        'throwable' => [
-                            'class' => 'OriginalClass',
-                            'message' => 'msg',
-                            'code' => 1,
-                            'previous' => null,
-                            'trace' => null,
-                        ],
-                    ],
-                ];
-            }
-        };
+        $result = $redactor->redact($execution);
 
-        $result = $redactor->redact($artifact);
-
-        self::assertSame($artifact, $result);
+        self::assertInstanceOf(RedactedArtifact::class, $result);
+        /** @var array{result: array{throwable: array{class: string|int|null}}} $normalized */
+        $normalized = $result->normalize();
+        self::assertSame('OriginalClass', $normalized['result']['throwable']['class'] ?? null);
     }
 
     public function testThrowableCodeChangedIsDetected(): void
     {
         $redactor = new DefaultArtifactRedactor();
-        $artifact = new class () implements ExecutionArtifactInterface {
-            public function artifactType(): string
-            {
-                return 'execution';
-            }
+        $definition = ExecutionDefinition::create(
+            ExecutionName::fromString('op'),
+            ExecutionKind::fromString('task')
+        );
+        $execution = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            $definition,
+            Instant::of(1000)
+        )->beginRunning()->complete(
+            ExecutionFailure::of(
+                ExecutionStatus::Failed,
+                ThrowableDescription::create('X', 'msg', 1, null, null)
+            ),
+            Instant::of(2000)
+        );
 
-            public function normalize(): array
-            {
-                return [
-                    'result' => [
-                        'throwable' => [
-                            'class' => 'X',
-                            'message' => 'msg',
-                            'code' => 1,
-                            'previous' => null,
-                            'trace' => null,
-                        ],
-                    ],
-                ];
-            }
-        };
+        $result = $redactor->redact($execution);
 
-        $result = $redactor->redact($artifact);
-
-        self::assertSame($artifact, $result);
+        self::assertInstanceOf(RedactedArtifact::class, $result);
+        /** @var array{result: array{throwable: array{code: string|int|null}}} $normalized */
+        $normalized = $result->normalize();
+        self::assertSame(1, $normalized['result']['throwable']['code'] ?? null);
     }
 
     public function testThrowableMessageChangedIsDetected(): void

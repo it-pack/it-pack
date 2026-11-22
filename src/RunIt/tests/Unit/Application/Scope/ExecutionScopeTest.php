@@ -317,7 +317,36 @@ final class ExecutionScopeTest extends Unit
         );
 
         $context = $this->createMock(ExecutionContextInterface::class);
-        $scope = $kit->buildScope($execution, $context);
+        $scope = new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            onActivityContextFailure: static function (string $reason): never {
+                throw new RuntimeException('callback must not be invoked during guard');
+            },
+        );
 
         $reportingRef = new ReflectionProperty(ExecutionScope::class, 'activityContextFailureReporting');
         $reportingRef->setValue($scope, 1);
@@ -325,8 +354,8 @@ final class ExecutionScopeTest extends Unit
         $reportRef = new ReflectionMethod(ExecutionScope::class, 'reportActivityContextFailure');
         $reportRef->invoke($scope, 'test-reason');
 
+        self::assertSame(1, $reportingRef->getValue($scope));
         $reportingRef->setValue($scope, 0);
-        self::assertSame(0, $reportingRef->getValue($scope));
     }
 
     public function testShouldDropThrowsOnActivityContextChangedWithThrowPolicy(): void
