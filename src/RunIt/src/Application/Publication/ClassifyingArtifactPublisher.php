@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Application\Publication;
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
@@ -101,7 +102,7 @@ final class ClassifyingArtifactPublisher implements
      * @var array<string, list<string>>
      */
     private const array FIELD_ALLOWLIST = [
-        'execution' => [
+        ArtifactType::EXECUTION => [
             'id', 'name', 'kind', 'status', 'started_at', 'ended_at',
             'parent_execution_id', 'linked_execution_ids', 'sequence',
             'context', 'result',
@@ -109,27 +110,27 @@ final class ClassifyingArtifactPublisher implements
         'execution_definition' => [
             'name', 'kind', 'parent_execution_id', 'linked_execution_ids', 'context',
         ],
-        'activity' => [
+        ArtifactType::ACTIVITY => [
             'id', 'execution_id', 'name', 'kind', 'status', 'started_at',
             'ended_at', 'parent_activity_id', 'sequence', 'attributes', 'throwable', 'duration_ns',
         ],
         'activity_definition' => [
             'name', 'kind', 'parent_activity_id',
         ],
-        'measurement' => [
+        ArtifactType::MEASUREMENT => [
             'name', 'kind', 'unit', 'value', 'execution_id', 'activity_id',
             'timestamp', 'sequence', 'attributes',
         ],
-        'observation' => [
+        ArtifactType::OBSERVATION => [
             'id', 'execution_id', 'activity_id', 'severity', 'level', 'message',
             'diagnostic_code', 'sequence', 'timestamp', 'attributes', 'throwable',
         ],
-        'occurrence' => [
+        ArtifactType::OCCURRENCE => [
             'id', 'execution_id', 'activity_id', 'type', 'version', 'source',
             'subject', 'time', 'data', 'data_schema', 'content_type',
             'extension_attributes', 'sequence',
         ],
-        'snapshot' => [
+        ArtifactType::SNAPSHOT => [
             'id', 'execution_id', 'activity_id', 'type', 'classification',
             'schema_version', 'created_at', 'content_type', 'content_hash',
             'predecessor_id', 'sequence', 'payload', 'attributes',
@@ -143,25 +144,25 @@ final class ClassifyingArtifactPublisher implements
      * @var array<string, list<string>>
      */
     private const array REQUIRED_FIELDS = [
-        'execution' => [
+        ArtifactType::EXECUTION => [
             'id',
         ],
-        'activity' => [
-            'id',
-            'execution_id',
-        ],
-        'measurement' => [
-            'execution_id',
-        ],
-        'observation' => [
+        ArtifactType::ACTIVITY => [
             'id',
             'execution_id',
         ],
-        'occurrence' => [
+        ArtifactType::MEASUREMENT => [
+            'execution_id',
+        ],
+        ArtifactType::OBSERVATION => [
             'id',
             'execution_id',
         ],
-        'snapshot' => [
+        ArtifactType::OCCURRENCE => [
+            'id',
+            'execution_id',
+        ],
+        ArtifactType::SNAPSHOT => [
             'id',
             'execution_id',
         ],
@@ -173,14 +174,7 @@ final class ClassifyingArtifactPublisher implements
      *
      * @var list<string>
      */
-    private const array SUPPORTED_KINDS = [
-        'execution',
-        'activity',
-        'measurement',
-        'observation',
-        'occurrence',
-        'snapshot',
-    ];
+    private const array SUPPORTED_KINDS = ArtifactType::TYPES;
 
     private int $totalBytes = 0;
 
@@ -267,7 +261,7 @@ final class ClassifyingArtifactPublisher implements
         array $normalized,
         ExecutionArtifactInterface $artifact,
     ): bool {
-        return $kind === 'snapshot'
+        return $kind === ArtifactType::SNAPSHOT
             && !array_key_exists(ArtifactField::PAYLOAD, $normalized)
             && !array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
             && ($artifact instanceof RedactedArtifactInterface || $artifact instanceof VerifiedArtifactProjection);
@@ -280,10 +274,10 @@ final class ClassifyingArtifactPublisher implements
     {
         $payloadBytes = 0;
         if (!$omittedSnapshotPayload
-            && $kind === 'snapshot'
+            && $kind === ArtifactType::SNAPSHOT
             && array_key_exists(ArtifactField::PAYLOAD, $normalized)
             && !$this->validSnapshotPayload($normalized[ArtifactField::PAYLOAD], 1, $payloadBytes)) {
-            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+            $this->reportMissingRequiredField(ArtifactType::SNAPSHOT, 'unchanged payload and content_hash');
 
             return false;
         }
@@ -302,7 +296,7 @@ final class ClassifyingArtifactPublisher implements
         bool $omittedSnapshotPayload,
         ExecutionArtifactInterface $artifact,
     ): bool {
-        if (!$omittedSnapshotPayload && $kind === 'snapshot'
+        if (!$omittedSnapshotPayload && $kind === ArtifactType::SNAPSHOT
             && (!array_key_exists(ArtifactField::PAYLOAD, $normalized)
                 || !array_key_exists(ArtifactField::PAYLOAD, $projected)
                 || $normalized[ArtifactField::PAYLOAD] !== $projected[ArtifactField::PAYLOAD]
@@ -311,7 +305,7 @@ final class ClassifyingArtifactPublisher implements
                         || $normalized[ArtifactField::CONTENT_HASH] !== $projected[ArtifactField::CONTENT_HASH]))
                 || (!array_key_exists(ArtifactField::CONTENT_HASH, $normalized)
                     && !$artifact instanceof RedactedArtifactInterface))) {
-            $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
+            $this->reportMissingRequiredField(ArtifactType::SNAPSHOT, 'unchanged payload and content_hash');
 
             return false;
         }
@@ -346,13 +340,17 @@ final class ClassifyingArtifactPublisher implements
         ExecutionArtifactInterface $artifact,
     ): ExecutionArtifactInterface {
         return match ($kind) {
-            'measurement' => $this->typedMeasurement($projected),
-            'occurrence' => $this->typedOccurrence($projected),
-            'observation' => $this->typedObservation($projected, $artifact instanceof RedactedArtifactInterface),
-            'activity' => $this->typedActivity($projected),
-            'snapshot' => $this->typedSnapshot($projected),
+            ArtifactType::MEASUREMENT => $this->typedMeasurement($projected),
+            ArtifactType::OCCURRENCE => $this->typedOccurrence($projected),
+            ArtifactType::OBSERVATION => $this->typedObservation(
+                $projected,
+                $artifact instanceof RedactedArtifactInterface
+            ),
+            ArtifactType::ACTIVITY => $this->typedActivity($projected),
+            ArtifactType::SNAPSHOT => $this->typedSnapshot($projected),
             default => $this->typedExecution($projected),
-        } ?? new ClassifiedArtifact($projected, $kind);
+        }
+        ?? new ClassifiedArtifact($projected, $kind);
     }
 
     private function wrapRedactedClassified(
@@ -377,8 +375,8 @@ final class ClassifyingArtifactPublisher implements
     private function structuralFieldsIntact(array $original, array $projected, string $kind): bool
     {
         $field = match ($kind) {
-            'observation', 'activity' => 'throwable',
-            'execution' => 'result',
+            ArtifactType::OBSERVATION, ArtifactType::ACTIVITY => 'throwable',
+            ArtifactType::EXECUTION => 'result',
             default => null,
         };
 
@@ -1380,27 +1378,27 @@ final class ClassifyingArtifactPublisher implements
     private function artifactKind(ExecutionArtifactInterface $artifact): string
     {
         if ($artifact instanceof ObservationInterface) {
-            return 'observation';
+            return ArtifactType::OBSERVATION;
         }
 
         if ($artifact instanceof ActivityInterface) {
-            return 'activity';
+            return ArtifactType::ACTIVITY;
         }
 
         if ($artifact instanceof MeasurementInterface) {
-            return 'measurement';
+            return ArtifactType::MEASUREMENT;
         }
 
         if ($artifact instanceof OccurrenceInterface) {
-            return 'occurrence';
+            return ArtifactType::OCCURRENCE;
         }
 
         if ($artifact instanceof ExecutionInterface) {
-            return 'execution';
+            return ArtifactType::EXECUTION;
         }
 
         if ($artifact instanceof SnapshotInterface) {
-            return 'snapshot';
+            return ArtifactType::SNAPSHOT;
         }
 
         if ($artifact instanceof VerifiedArtifactProjection) {
@@ -1445,11 +1443,11 @@ final class ClassifyingArtifactPublisher implements
                 continue;
             }
 
-            $projected = $kind === 'snapshot' && $key === 'payload'
+            $projected = $kind === ArtifactType::SNAPSHOT && $key === 'payload'
                 ? $val : $this->projectValue($val, $depth + 1);
 
             $this->totalBytes += strlen($key);
-            if ($kind !== 'snapshot' || $key !== 'payload') {
+            if ($kind !== ArtifactType::SNAPSHOT || $key !== 'payload') {
                 $this->totalBytes += $this->byteLength($projected);
             }
 
