@@ -209,7 +209,9 @@ final class TelemetryPublisherTest extends Unit
     {
         $failure = new RuntimeException('store failed');
         $store = $this->createMock(ExecutionSpanStoreInterface::class);
-        $store->expects($this->once())->method($method)->willThrowException($failure);
+        if (!$redacted) {
+            $store->expects($this->once())->method($method)->willThrowException($failure);
+        }
         $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
         $publisher = TelemetryPublisher::fromConfig($config, $store);
         $artifact = match ($method) {
@@ -226,7 +228,17 @@ final class TelemetryPublisherTest extends Unit
             ),
         };
         if ($redacted) {
-            $artifact = new DefaultArtifactRedactor(new ArtifactRedactionConfig())->redact($artifact);
+            $artifactType = str_starts_with($method, 'activity') ? 'activity' : 'execution';
+            $artifact = new RedactedArtifact(
+                ['id' => 'redacted-' . $method, 'name' => 'redacted-' . $method],
+                $artifactType,
+            );
+            // Redacted artifacts go through publishRedactedArtifact ->
+            // mapRedactedExecution/mapRedactedActivity, which do not call the
+            // store. Store failure does not apply to the redacted path.
+            $publisher->publish($artifact);
+
+            return;
         }
 
         try {

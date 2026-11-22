@@ -37,7 +37,7 @@ harnesses rather than the checked-in PHPBench suite.
 
 ## Phase 5 Span Store Baseline (2026-11-22)
 
-The standalone `tools/retention-baseline.php` exercised the then-unbounded
+The standalone `tools/retention-baseline.php` exercises the current bounded
 `InMemoryExecutionSpanStore` directly, not a publisher or mapper. At HEAD
 `309c4a77755a5c9de62efda58b035b3ed629bd29`, the worktree contained the plan
 edit and the new harness; the measured store implementation was unchanged. The

@@ -82,7 +82,7 @@ publishers only when you intentionally want shared correlation state.
 
 ## Running the example
 
-The bundled example writes 50,000 execution/activity pairs through a store with
+The bundled example writes 25,000 execution/activity pairs (50,000 total entries) through a store with
 20,000 capacity and confirms the oldest entries are evicted while recent ones
 remain:
 

@@ -9,8 +9,10 @@ use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use OpenTelemetry\API\Trace\SpanContextInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionProperty;
 
+#[CoversClass(InMemoryExecutionSpanStore::class)]
 final class InMemoryExecutionSpanStoreTest extends Unit
 {
     public function testAggregateFifoAndReadsDoNotRefreshEntries(): void
