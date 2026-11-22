@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\OpenTelemetry;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
@@ -59,8 +60,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionProperty;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 use Throwable;
 
@@ -195,6 +198,117 @@ final class TelemetryPublisherTest extends Unit
         $publisher = TelemetryPublisher::fromConfig($config, $store);
         $publisher->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'));
         $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'missing'));
+    }
+
+    /** @param 'recordExecution'|'executionContext'|'recordActivity'|'activityContext' $method */
+    #[DataProvider('storeFailureCases')]
+    public function testDirectPublisherPropagatesInjectedStoreFailure(string $method, bool $redacted): void
+    {
+        $failure = new RuntimeException('store failed');
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->once())->method($method)->willThrowException($failure);
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $artifact = match ($method) {
+            'recordExecution' => RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'),
+            'executionContext' => RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded', 'parent'),
+            'recordActivity' => RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded'),
+            'activityContext' => RunItArtifactFactory::activity(
+                'act',
+                'exec',
+                'act',
+                'internal',
+                'succeeded',
+                'parent',
+            ),
+        };
+        if ($redacted) {
+            $artifact = new DefaultArtifactRedactor(new ArtifactRedactionConfig())->redact($artifact);
+        }
+
+        try {
+            $publisher->publish($artifact);
+            self::fail('The direct publisher must propagate the store failure.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+    }
+
+    /** @return array<string, array{'recordExecution'|'executionContext'|'recordActivity'|'activityContext', bool}> */
+    public static function storeFailureCases(): array
+    {
+        return [
+            'typed execution write' => ['recordExecution', false],
+            'redacted execution write' => ['recordExecution', true],
+            'typed execution lookup' => ['executionContext', false],
+            'redacted execution lookup' => ['executionContext', true],
+            'typed activity write' => ['recordActivity', false],
+            'redacted activity write' => ['recordActivity', true],
+            'typed activity lookup' => ['activityContext', false],
+            'redacted activity lookup' => ['activityContext', true],
+        ];
+    }
+
+    #[DataProvider('businessOutcomeCases')]
+    public function testRunnerPreservesBusinessOutcomeWhenInjectedStoreFails(bool $businessFails): void
+    {
+        $failure = new RuntimeException('store failed');
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->exactly(2))->method('recordExecution')->willThrowException($failure);
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $reports = [];
+        $kit = new RunItTestKit(
+            publisher: TelemetryPublisher::fromConfig($config, $store),
+            onPublicationFailure: static function (Throwable $error) use (&$reports): void {
+                $reports[] = $error;
+            },
+        );
+        $result = new stdClass();
+        $original = new RuntimeException('business failed');
+        $caught = null;
+        $actual = null;
+        try {
+            $actual = $kit->runner->run(
+                ExecutionDefinition::create(ExecutionName::fromString('test'), ExecutionKind::fromString('internal')),
+                static function () use ($businessFails, $original, $result): object {
+                    if ($businessFails) {
+                        throw $original;
+                    }
+
+                    return $result;
+                },
+            );
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertSame($businessFails ? $original : null, $caught);
+        self::assertSame($businessFails ? null : $result, $actual);
+        self::assertSame([$failure, $failure], $reports);
+        self::assertNull($kit->storage->current());
+    }
+
+    /** @return array<string, array{bool}> */
+    public static function businessOutcomeCases(): array
+    {
+        return ['result' => [false], 'exception' => [true]];
+    }
+
+    public function testInjectedStoreControlsWhichParentContextIsReturned(): void
+    {
+        $chosen = $this->kit->tracerProvider->getTracer('test')->spanBuilder('chosen')->startSpan();
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->once())->method('executionContext')->with('parent')->willReturn($chosen->getContext());
+        $store->expects($this->once())->method('recordExecution');
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        TelemetryPublisher::fromConfig($config, $store)->publish(
+            RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'parent'),
+        );
+        $chosen->end();
+
+        $spans = $this->kit->spans();
+        self::assertSame($chosen->getContext()->getSpanId(), $spans[0]->getParentSpanId());
+        self::assertSame($chosen->getContext()->getTraceId(), $spans[0]->getContext()->getTraceId());
     }
 
     public function testBoundedStoreRefreshesReplacementAndFallsBackFromEvictedActivity(): void

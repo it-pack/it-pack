@@ -122,6 +122,36 @@ substantial write-cost tradeoff in this synthetic overflow workload, not a contr
 mapper benchmark or a representative production budget. Entry count does not bound
 the size of individual IDs, contexts or trace state.
 
+### Publisher Retention Comparison (2026-11-22)
+
+`tools/retention-mapper-benchmark.php` compares the bounded store with a simple
+unbounded custom store through the same publisher, default mappers and OpenTelemetry
+SDK tracer. Run each sample in a fresh process, for example:
+
+```bash
+php tools/retention-mapper-benchmark.php bounded 10000 10000
+php tools/retention-mapper-benchmark.php unbounded 10000 10000
+```
+
+On PHP 8.5.13, three sequential alternating samples each published 10,000
+executions and 10,000 immediate child activities. After warmup, bounded times were
+96,007.585, 93,958.040 and 93,944.455 ns/publication; unbounded times were
+93,532.580, 94,705.840 and 89,325.515 ns/publication. Used heap deltas were
+7,914,584 and 7,005,120 bytes respectively. Each sample matched all 10,000
+immediate execution parents. A newest delayed activity matched its parent in both
+modes; an oldest delayed activity matched in the unbounded mode and was a root in
+the bounded mode. The newest probe itself writes an entry before the oldest probe.
+
+A single 30,000-execution sample per mode measured 91,679.622 ns/publication,
+7,994,584 bytes used-heap delta and 109,740 KiB RSS bounded, versus 86,422.568 ns,
+19,778,008 bytes and 120,632 KiB unbounded, with the same probe outcomes and all
+30,000 immediate parents matched. These are synthetic uncontrolled-host samples,
+not production estimates. Timings include artifact construction, SDK and processor
+work and correlation checks; the control is not the historical store. RSS is
+whole-process and heap includes harness state. The workload uses unique IDs, no
+exporter or network, sequential publication and only two delayed probes; it does
+not establish real-world correlation-loss rates, concurrency safety or a memory budget.
+
 ## Phase 3 Guard Sample (2026-11-21)
 
 On PHP 8.5, the `Buffered(Admission|Overflow|Flush)Bench` filter ran eight

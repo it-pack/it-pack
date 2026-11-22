@@ -61,6 +61,7 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
         if (isset($this->contexts[$key])) {
             $this->remove($key);
         }
+
         if (count($this->contexts) >= $this->capacity && $this->oldest !== null) {
             $this->remove($this->oldest);
         }
@@ -70,6 +71,7 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
         if ($this->newest !== null) {
             $this->order[$this->newest]['next'] = $key;
         }
+
         if ($this->newest === null) {
             $this->oldest = $key;
         }
@@ -84,6 +86,7 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
         if ($previous !== null) {
             $this->order[$previous]['next'] = $next;
         }
+
         if ($previous === null) {
             $this->oldest = $next;
         }
@@ -91,6 +94,7 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
         if ($next !== null) {
             $this->order[$next]['previous'] = $previous;
         }
+
         if ($next === null) {
             $this->newest = $previous;
         }

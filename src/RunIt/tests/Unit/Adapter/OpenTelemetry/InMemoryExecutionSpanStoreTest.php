@@ -9,6 +9,7 @@ use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use OpenTelemetry\API\Trace\SpanContextInterface;
+use ReflectionProperty;
 
 final class InMemoryExecutionSpanStoreTest extends Unit
 {
@@ -55,6 +56,83 @@ final class InMemoryExecutionSpanStoreTest extends Unit
             'execution' => [true],
             'activity' => [false],
         ];
+    }
+
+    #[DataProvider('kinds')]
+    public function testCapacityOneReplacementAndCrossKindEviction(bool $execution): void
+    {
+        $store = new InMemoryExecutionSpanStore(1);
+        $original = self::createStub(SpanContextInterface::class);
+        $replacement = self::createStub(SpanContextInterface::class);
+        $record = $execution ? $store->recordExecution(...) : $store->recordActivity(...);
+        $lookup = $execution ? $store->executionContext(...) : $store->activityContext(...);
+        $otherRecord = $execution ? $store->recordActivity(...) : $store->recordExecution(...);
+        $otherLookup = $execution ? $store->activityContext(...) : $store->executionContext(...);
+
+        $record('same', $original);
+        $record('same', $replacement);
+        self::assertSame($replacement, $lookup('same'));
+        $otherRecord('same', $original);
+        self::assertNull($lookup('same'));
+        self::assertSame($original, $otherLookup('same'));
+        $record('same', $replacement);
+        self::assertNull($otherLookup('same'));
+        self::assertSame($replacement, $lookup('same'));
+    }
+
+    #[DataProvider('replacementPositions')]
+    public function testReplacementPositionDeterminesEviction(bool $execution, string $replaced, string $evicted): void
+    {
+        $store = new InMemoryExecutionSpanStore(3);
+        $original = self::createStub(SpanContextInterface::class);
+        $replacement = self::createStub(SpanContextInterface::class);
+        $record = $execution ? $store->recordExecution(...) : $store->recordActivity(...);
+        $lookup = $execution ? $store->executionContext(...) : $store->activityContext(...);
+        $record('oldest', $original);
+        $record('middle', $original);
+        $record('newest', $original);
+        $record($replaced, $replacement);
+        $record('added', $original);
+
+        self::assertNull($lookup($evicted));
+        self::assertSame($replacement, $lookup($replaced));
+        self::assertSame($original, $lookup('added'));
+    }
+
+    /** @return array<string, array{bool, string, string}> */
+    public static function replacementPositions(): array
+    {
+        return [
+            'execution oldest' => [true, 'oldest', 'middle'],
+            'execution middle' => [true, 'middle', 'oldest'],
+            'execution newest' => [true, 'newest', 'oldest'],
+            'activity oldest' => [false, 'oldest', 'middle'],
+            'activity middle' => [false, 'middle', 'oldest'],
+            'activity newest' => [false, 'newest', 'oldest'],
+        ];
+    }
+
+    public function testUniqueAndDuplicateChurnKeepsOrderingMetadataBounded(): void
+    {
+        $store = new InMemoryExecutionSpanStore(3);
+        $context = self::createStub(SpanContextInterface::class);
+        $replacement = self::createStub(SpanContextInterface::class);
+        for ($i = 0; $i < 2000; ++$i) {
+            $store->recordExecution((string) $i, $context);
+            $store->recordActivity('retained', $replacement);
+        }
+
+        self::assertNull($store->executionContext('1997'));
+        self::assertSame($context, $store->executionContext('1998'));
+        self::assertSame($context, $store->executionContext('1999'));
+        self::assertSame($replacement, $store->activityContext('retained'));
+        $order = new ReflectionProperty($store, 'order')->getValue($store);
+        self::assertIsArray($order);
+        self::assertCount(3, $order);
+
+        $store->recordActivity('new', $context);
+        self::assertNull($store->executionContext('1998'));
+        self::assertSame($replacement, $store->activityContext('retained'));
     }
 
     #[DataProvider('invalidCapacities')]
