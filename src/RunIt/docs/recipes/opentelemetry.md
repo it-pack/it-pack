@@ -79,3 +79,44 @@ To publish unredacted (not recommended), opt out explicitly with
 `withRedactor(null)` — the choice is recorded rather than falling back to
 defaults. Occurrence extension attributes exported to logs can additionally be
 restricted through `BridgeConfigBuilder::withOccurrenceLogAttributeAllowList()`.
+
+## Bounded span-context retention (Phase 5)
+
+The default in-memory span-context store retains at most **10,000 execution and
+activity entries combined**, evicting the oldest entry on overflow. Replacing an
+entry refreshes its insertion age; lookups do not. This bounds memory for
+long-lived workers while keeping parent correlation available for the retention
+window.
+
+Choose a different positive capacity by injecting a sized store:
+
+```php
+use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
+use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+
+$otelPublisher = TelemetryPublisher::fromConfig(
+    $config,
+    new InMemoryExecutionSpanStore(20000),
+);
+```
+
+Or supply a fully custom `ExecutionSpanStoreInterface` implementation to define
+your own retention, duplicate handling, and concurrency policy:
+
+```php
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+
+$otelPublisher = TelemetryPublisher::fromConfig($config, $customStore);
+```
+
+Eviction can cause late children to lose parent correlation and fall back to
+ambient OpenTelemetry context. Default stores are isolated per publisher —
+separate `fromConfig()` calls do not share correlation even with the same tracer
+provider. Share one injected store between publishers only when you want shared
+correlation state. Size the capacity against worker memory and expected parent
+delay; an entry count bound is not a byte bound.
+
+See [`../integrations/opentelemetry.md#span-context-retention`](../integrations/opentelemetry.md)
+and [`examples/opentelemetry-retention.php`](../../examples/opentelemetry-retention.php)
+for a runnable demonstration.

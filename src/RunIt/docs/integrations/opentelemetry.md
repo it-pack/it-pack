@@ -123,6 +123,11 @@ including measured delayed-parent loss and its limitations, see
 [benchmarks](../benchmarks.md#historical-store-comparison-2026-11-22). It is not
 a substitute for measuring the application's own worker memory and parent delays.
 
+For a hands-on walkthrough of bounded retention, custom capacity, and custom
+store injection, see
+[Tutorial 16 — OpenTelemetry span-context retention](../tutorial/16-opentelemetry-retention.md)
+and [`examples/opentelemetry-retention.php`](../../examples/opentelemetry-retention.php).
+
 Each mapper looks up a parent before starting its span and records its own context
 after ending the span. Child executions look up their parent execution. Activities look
 up their parent activity first, then their execution if that lookup misses. If no stored

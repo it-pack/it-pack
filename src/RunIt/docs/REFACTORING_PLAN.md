@@ -2379,7 +2379,7 @@ waived by this plan.
    complete only after the approved design, bounded-growth evidence, tests and
    remaining validation limitations are recorded.
 
-**Exit:** store growth is demonstrably bounded under the agreed policy (10,000 entries across both kinds, oldest-write-first eviction), parent behavior is tested (lookup before and after eviction, ambient fallback, injected/custom stores), and measurements are recorded in `docs/benchmarks.md`. Phase 5 complete (2026-11-22).
+**Exit:** store growth is demonstrably bounded under the agreed policy (10,000 entries across both kinds, oldest-write-first eviction), parent behavior is tested (lookup before and after eviction, ambient fallback, injected/custom stores), and measurements are recorded in `docs/benchmarks.md`. Tutorial 16 (`docs/tutorial/16-opentelemetry-retention.md`), the recipe addition in `docs/recipes/opentelemetry.md`, the updated `docs/integrations/opentelemetry.md`, and `examples/opentelemetry-retention.php` document the bounded store, custom capacity, custom store injection, and eviction tradeoffs. Phase 5 complete (2026-11-22).
 
 **Additional validation (2026-11-22):** The store tests now cover capacity one,
 both kinds, replacement at each ordering position, and 2,000 iterations mixing
