@@ -13,8 +13,9 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
  *
  * The activity runtime closes activities it opened, so by completion the open set is
  * typically empty. When an activity is nonetheless still open, this policy records a
- * warning observation documenting it and lets the runtime auto-resolve the activity.
- * Stricter policies (fail-execution, auto-cancel) refine this in a later milestone.
+ * critical observation documenting it and lets the runtime auto-resolve the activity.
+ * The operation-derived terminal status is preserved; use an explicit policy to alter
+ * the terminal outcome.
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
@@ -28,7 +29,7 @@ final class AutoFailOpenActivitiesPolicy implements ExecutionCompletionPolicyInt
                     self::OPEN_ACTIVITY_MESSAGE_PREFIX . ' and was auto-resolved.',
                     $activity->definition()->name()->toString(),
                 ),
-                ObservationSeverity::Warning,
+                ObservationSeverity::Critical,
             );
         }
     }

@@ -151,7 +151,7 @@ verification. The unchecked design details below must still be resolved where ap
 - [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
-- [ ] Choose the publication-health default destination and resolve nullable callback API compatibility in Phase 4.
+- [x] Choose the publication-health default destination and resolve nullable callback API compatibility in Phase 4: a null or omitted callback selects the PHP error log; a no-op callback opts out of the runner health path. The nullable signature is unchanged and delivery is best effort.
 
 **Phase 2 boundary decisions (approved 2026-11-14):**
 
@@ -2120,13 +2120,14 @@ bound or persistent-worker memory behavior.
 
 **Depends on:** Phase 0; open-activity behavior additionally depends on its decision gate. **Review:** silent failure, lost terminal execution, ambiguous open-activity policy.
 
-**Preparatory characterization:** `OpenActivityPolicyTest` exercises a runner
+**Historical preparatory characterization:** Before the Phase 4 implementation,
+`OpenActivityPolicyTest` exercised a runner
 with `FailExecutionOnOpenActivitiesPolicy` and an open activity. The critical
 diagnostic says the execution is flagged as failed, but its published terminal
 status remains succeeded or failed according to the business operation. Both the
 returned object and thrown exception are preserved by identity, and the context
-is detached. This describes current behavior, not the approved configurable
-outcome; the misleading diagnostic and policy implementation remain open.
+was detached. This described the old behavior, not the approved configurable
+outcome implemented below.
 
 On PHP 8.5.12, the full `composer test -- --silent` run passed. The previous
 PHP 8.4 direct-run claim is qualified by the refreshed Phase 0 results above.
@@ -2137,25 +2138,100 @@ stopped at the existing Rector callable-fixture suggestion; the independent
 line-length check reported 26 violations outside these changes. Silent test runs
 do not establish coverage for unavailable OpenSwoole or Swow extensions.
 
-- [ ] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
-- [ ] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
+- [x] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
+- [x] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
 - [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard fallback reporting and verify runner outcomes and context restoration when it fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback now also uses fixed payload-free diagnostics and no longer normalizes the artifact.
 - [x] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration. On the worktree based on `0b072d80`, the focused suite passed on PHP 8.5.12 (25 tests, 116 assertions), and the separate target-policy harness passed on PHP 8.4.27 and 8.5.12. Execution publication now also precedes snapshot factory invocation; failing publishers cannot guarantee delivery.
 - On that worktree, `composer quality --quiet` passed on PHP 8.5.12. It does not
   include the standalone target-policy harness, API checks, coverage, or benchmarks.
   The API checker still reports the previously committed OpenTelemetry interface
   additions as breaks; no baseline was changed.
-- [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
-- [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
+- [x] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
+- [x] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
 
-**Exit:** terminal outcomes remain observable and health failures are reported unless explicitly disabled, without masking business results; lifecycle and failure-injection tests pass under the approved policy.
+### Phase 4 completion plan
 
-The callback reporter fix is limited to its own secondary failure path. On PHP
+This completion plan addressed the discrepancy found in the earlier
+characterization. It does not close or waive the outstanding Phase 1 and Phase 2
+follow-ups. The default runner now marks an otherwise successful execution failed
+when the explicitly selected `FailExecutionOnOpenActivitiesPolicy` sees open
+activities. With maintainer approval, the required throwable-description class is
+the fixed `open_activity_policy` marker, not a thrown business exception. The
+default policy and public signatures remain unchanged; explicit-policy consumers
+must account for the changed terminal status.
+
+1. **Re-characterize and resolve the policy gap.** Inspect the completion policy
+   contract, runner, lifecycle coordinator, existing policy tests and lifecycle
+   documentation. Cover default diagnostic-only behavior and the explicitly
+   selected failure outcome for both successful and throwing operations, including
+   result and exception identity. Determine how the policy communicates its
+   outcome without breaking existing implementations. Review status, diagnostic,
+   public-contract and consumer compatibility; obtain maintainer approval before
+   any material contract or behavioral change not already authorized. Implement
+   the approved semantics and correct misleading messages and documentation only
+   after that review. Do not mark this work complete based on characterization
+   alone.
+2. **Exercise combined lifecycle failures.** Extend the relevant runner,
+   lifecycle and integration tests with named, independently asserted scenarios
+   combining nested executions, open activities and repeated completion with
+   publisher/adapter and health-reporter failures. Cover successful and throwing
+   business operations, same and conflicting terminal completions, reporter
+   failure and re-entry, and snapshot creation/publication failures as applicable.
+   Assert terminal status and at-most-once transitions, execution-before-snapshot
+   attempts, bounded reporting or explicit silence, exact result or original
+   exception identity, and restoration of the parent context. Distinguish an
+   attempted publication from delivery and avoid assertions inside test loops.
+3. **Reconcile documentation and decisions.** Update `docs/architecture/lifecycle.md`
+   and affected publication, upgrade and changelog documentation to match verified
+   behavior and any approved compatibility impact. In particular, reconcile its
+   callback-conditional snapshot-failure wording with the default error-log health
+   sink and explicit silence. Verify the implemented default destination and
+   nullable callback behavior against the decision record before resolving the
+   remaining publication-health design-detail checkbox. Record any limitations
+   of the fallback sink, failure isolation and completion guarantees.
+4. **Validate and record evidence.** Run focused policy, runner and lifecycle
+   tests first, then the relevant integration and full test suites and
+   `composer quality`, which currently includes `composer api:check`. Run that
+   check separately if an earlier quality step stops the gate. Run the separate
+   target-policy harness where applicable and
+   check PHP 8.4 and supported newer environments where available. Record exact
+   commands, results, skips and dependency or extension limitations. Investigate
+   failures rather than regenerating API/schema baselines or hiding failures;
+   use the approved contract-change process if a baseline update is warranted.
+   Update the Phase 4 checklist and exit statement only when the required evidence
+   and decisions are complete.
+
+**Exit:** terminal publication is attempted and health reporting is best effort
+unless explicitly disabled, without masking business results; failures in the
+transition, storage, publisher or log destination can prevent observation or
+delivery. Phase 4 implementation and lifecycle failure tests are complete, with
+the validation limitations below.
+
+**Phase 4 evidence (PHP 8.5.13, 2026-11-21 UTC):** `composer test -- --silent`,
+`composer analyse -- --no-progress`, `composer refactor:dry -- --no-progress-bar`,
+`composer cs:check -- --quiet`, `composer architecture`, `composer lint:length`,
+`composer api:check`, and the runtime and full security audits passed. The full
+audit reported the already tracked abandoned development dependency
+`doctrine/annotations`, not a vulnerability advisory. The combined lifecycle test
+has three cases (42 assertions), including snapshot factory failure and unbounded
+health-callback re-entry; publisher and runner guards are instance-wide and may
+suppress interleaved independent reports. PHP 8.4.28 passed the focused policy,
+combined lifecycle and health-reporting tests and the terminal-publication
+target-policy harness; the latter also passed on PHP 8.5.13. No full PHP 8.4
+dependency-matrix or unavailable OpenSwoole/Swow extension run is claimed.
+`composer quality` stopped at `composer validate --strict` because the existing
+ignored lockfile is out of date with `composer.json`; the existing lockfile was
+not refreshed. Checks later in that gate not individually listed above, including
+examples and dogfood, were not independently rerun as quality steps. These are
+validation limitations, not evidence that the complete quality gate passed.
+
+The earlier callback reporter fix was limited to its own secondary failure path. On PHP
 8.5.12, the focused publication and runner tests passed, as did `composer
 quality`; the focused tests also passed on
 PHP 8.4.27. The system error log may fail silently, and a throwing system-log
-destination was not reproduced. Recursive callback publication and the runner's
-independent reporting path remain open; this change does not complete Phase 4.
+destination was not reproduced. At that point recursive callback publication and
+the runner's independent reporting path remained open; they were addressed by the
+subsequent Phase 4 work above.
 The ten-subject benchmark suite passed without a controlled before/after
 comparison and does not characterize this exceptional path.
 

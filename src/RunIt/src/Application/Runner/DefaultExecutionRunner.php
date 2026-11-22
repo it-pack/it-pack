@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Runner;
 
+use ArrayObject;
 use Closure;
 use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
+use ItPack\RunIt\Application\Policy\FailExecutionOnOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Propagation\StackActivityContextStorage;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
-use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
@@ -27,6 +29,7 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
@@ -113,6 +116,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
     private ExecutionEngineInterface  $engine;
 
+    /** @var ArrayObject<string, bool> */
+    private ArrayObject $healthState;
+
     public function __construct(
         private CurrentExecutionInterface              $currentExecution,
         private ContextStorageInterface                $contextStorage,
@@ -147,9 +153,18 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         private string                                $activityContextPolicy = 'fallback',
         private bool                                  $runOnActivityContextAttachFailure = false,
     ) {
-        $health = $this->onPublicationFailure instanceof Closure
-            ? new CallbackHealthReporter($this->onPublicationFailure)
-            : null;
+        $this->healthState = new ArrayObject(['reporting' => false]);
+        $health = new readonly class (fn (Throwable $failure, ExecutionArtifactInterface $artifact) =>
+            $this->reportFailure($failure, $artifact)) implements InternalHealthReporterInterface {
+                public function __construct(private Closure $reportCallback)
+                {
+                }
+
+                public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+                {
+                    ($this->reportCallback)($error, $artifact);
+                }
+            };
         $bounded = new BoundedArtifactPublisher(
             $this->limits,
             $this->publisher,
@@ -411,14 +426,26 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
     private function completeSuccess(ExecutionInterface $execution, ExecutionScope $scope): void
     {
+        $openActivities = $scope->openActivities();
+        $failOnOpenActivities = $openActivities !== []
+            && $this->completionPolicy instanceof FailExecutionOnOpenActivitiesPolicy;
         try {
-            $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
+            $this->completionPolicy->resolveOpenActivities($scope, $openActivities);
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
         }
 
         try {
-            $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), $this->now());
+            $outcome = $failOnOpenActivities
+                ? ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create(
+                    'open_activity_policy',
+                    'Execution failed because activities remained open at completion.',
+                    0,
+                    null,
+                    null,
+                ))
+                : ExecutionSuccess::create();
+            $completed = $this->coordinator->transition($execution, $outcome, $this->now());
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
 
@@ -606,26 +633,76 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
     }
 
+    /** @noinspection PhpSecondWriteToReadonlyPropertyInspection */
     private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
     {
-        if (!$this->onPublicationFailure instanceof Closure) {
+        if ($this->healthState['reporting'] ?? false) {
+            $this->reportPublicationFailureToFallback();
+
             return;
         }
 
+        $this->healthState['reporting'] = true;
         try {
-            ($this->onPublicationFailure)($failure);
-        } catch (Throwable $throwable) {
-            // A throwing health callback must never replace the business
-            // outcome: both faults land in the last-resort fallback sink.
-            $artifactId = null;
-
-            if ($artifact instanceof ExecutionArtifactInterface) {
-                $id = $artifact->normalize()[ArtifactField::ID] ?? null;
-                $artifactId = is_string($id) ? $id : null;
-            }
-
-            new FallbackErrorLogReporter()->report($failure, $throwable, $artifactId);
+            $this->reportFailureOnce($failure, $artifact);
+        } finally {
+            $this->healthState['reporting'] = false;
         }
+    }
+
+    private function reportFailureOnce(Throwable $failure, ?ExecutionArtifactInterface $artifact): void
+    {
+        if ($this->onPublicationFailure instanceof Closure) {
+            try {
+                ($this->onPublicationFailure)($failure);
+
+                return;
+            } catch (Throwable) {
+                $this->reportPublicationFailureToFallback();
+
+                return;
+            }
+        }
+
+        // No callback configured: the replaceable SDK default reports to the
+        // PHP error log so a broken publisher stays observable even when the
+        // runner is constructed directly without a health handler. An explicit
+        // opt-out is a no-op closure passed as the handler, which reaches this
+        // branch as a Closure and reports nothing.
+        $this->reportToDefaultErrorLog($failure, $artifact);
+    }
+
+    private function reportToDefaultErrorLog(Throwable $failure, ?ExecutionArtifactInterface $artifact): void
+    {
+        $artifact ??= $this->placeholderArtifact();
+
+        try {
+            new ErrorLogHealthReporter($this->throwableMapper)->report($failure, $artifact);
+        } catch (Throwable) {
+            $this->reportPublicationFailureToFallback();
+        }
+    }
+
+    private function reportPublicationFailureToFallback(): void
+    {
+        try {
+            new FallbackErrorLogReporter()->report(
+                new RuntimeException(FallbackErrorLogReporter::FALLBACK_PRIMARY_MESSAGE),
+                new RuntimeException(FallbackErrorLogReporter::FALLBACK_HANDLER_FAULT_MESSAGE),
+            );
+        } catch (Throwable) {
+            // No further independent sink remains; preserve the business outcome.
+        }
+    }
+
+    private function placeholderArtifact(): ExecutionArtifactInterface
+    {
+        return new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [];
+            }
+        };
     }
 
     /**

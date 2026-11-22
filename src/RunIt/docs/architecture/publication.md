@@ -94,15 +94,22 @@ arbitrary artifact contents.
 
 ## Failure policies
 
-`FailSafeArtifactPublisher` catches the original adapter exception and hands it to a
-`PublicationFailurePolicyInterface`:
+`FailSafeArtifactPublisher` reports an adapter exception to its optional health
+reporter before handing it to a `PublicationFailurePolicyInterface`. A throwing
+reporter is contained with a fixed, payload-free fallback log notice and the
+policy still runs; a standalone publisher has no default reporter:
 
-- **FailOpenPolicy** — swallows the error (default). Publication must never replace the
-  operation's business result or business exception.
+- **FailOpenPolicy** — swallows the adapter error when the policy is reached; the
+  runner uses this policy with its own health reporting.
 - **FailClosedPolicy** — rethrows the *original* adapter error unchanged.
 - **CollectAndContinuePolicy** — forwards the error and artifact to a collector.
 - **ReportToFallbackPolicy** — republishes the artifact to a separate fallback publisher;
   a fallback failure is caught and routed to the health reporter instead of recursing.
+
+The fail-safe guard blocks a nested publish. A nested publish that arrives while
+the reporter is active is dropped with a fixed fallback notice, and the reporter is
+not called again. Reporters should still not republish through the same instance.
+See [self-instrumentation](self-instrumentation.md).
 
 ## Buffering and backpressure
 

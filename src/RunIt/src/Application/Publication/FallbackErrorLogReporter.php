@@ -27,6 +27,10 @@ use Throwable;
  */
 final readonly class FallbackErrorLogReporter
 {
+    public const string FALLBACK_PRIMARY_MESSAGE = 'Publication health reporting failed';
+
+    public const string FALLBACK_HANDLER_FAULT_MESSAGE = 'Health reporter failed';
+
     /**
      * Maximum bytes of any single message segment inside the fallback line.
      */

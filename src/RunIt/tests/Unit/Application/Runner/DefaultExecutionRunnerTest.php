@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Runner;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -45,9 +50,9 @@ final class DefaultExecutionRunnerTest extends Unit
     {
         $source = $this->definition();
         $definition = $this->createMock(ExecutionDefinitionInterface::class);
-        $definition->expects(self::once())->method('name')->willReturn($source->name());
-        $definition->expects(self::once())->method('kind')->willReturn($source->kind());
-        $definition->expects(self::once())->method('context')->willReturn($source->context());
+        $definition->expects($this->once())->method('name')->willReturn($source->name());
+        $definition->expects($this->once())->method('kind')->willReturn($source->kind());
+        $definition->expects($this->once())->method('context')->willReturn($source->context());
 
         $kit = new RunItTestKit();
 
@@ -223,6 +228,64 @@ final class DefaultExecutionRunnerTest extends Unit
             'The health callback must receive the publication failure.'
         );
         self::assertSame('publisher down', $captured->getMessage());
+    }
+
+    /** @return iterable<string, array{bool}> */
+    public static function businessOutcomes(): iterable
+    {
+        yield 'success' => [false];
+        yield 'failure' => [true];
+    }
+
+    #[DataProvider('businessOutcomes')]
+    public function testHealthCallbackPublishingFailureIsBoundedAndGuardResets(bool $fails): void
+    {
+        $publisher = new class () implements ArtifactPublisherInterface {
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                if ($artifact instanceof ObservationInterface) {
+                    throw new RuntimeException('sensitive publisher failure');
+                }
+            }
+        };
+        $snapshotFactory = self::createStub(ExecutionSnapshotFactoryInterface::class);
+        $snapshotFactory->method('terminal')->willThrowException(new RuntimeException('snapshot failed'));
+        $reports = 0;
+        $kit = null;
+        $kit = new RunItTestKit(
+            publisher: $publisher,
+            onPublicationFailure: static function (Throwable $failure) use (&$reports, &$kit): void {
+                ++$reports;
+                if ($kit instanceof RunItTestKit) {
+                    $kit->storage->current()?->observations()->record('health callback');
+                }
+            },
+            snapshotFactory: $snapshotFactory,
+        );
+        $businessError = new RuntimeException('business failed');
+        $operation = static function () use ($fails, $businessError): string {
+            if ($fails) {
+                throw $businessError;
+            }
+
+            return 'business result';
+        };
+        $caught = null;
+        $result = null;
+        try {
+            $result = $kit->runner->run($this->definition(), $operation);
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertSame($fails ? $businessError : null, $caught);
+        self::assertSame($fails ? null : 'business result', $result);
+        self::assertNull($kit->storage->current());
+        $firstReports = $reports;
+        $kit->runner->run($this->definition(), static fn (): string => 'second');
+        self::assertGreaterThan(0, $firstReports);
+        self::assertSame($firstReports + 1, $reports);
+        self::assertNull($kit->storage->current());
     }
 
     /**

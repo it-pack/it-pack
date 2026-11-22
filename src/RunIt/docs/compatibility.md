@@ -154,9 +154,9 @@ enforced structurally by the aggregate:
   and bound-exceeded drops are now reported through the configured publication
   failure handler as `BoundDropException` notices. Both are behavior additions;
   no signatures changed.
-- Health-callback faults are contained: a throwing handler can no longer affect
-  business flow; primary failure plus handler fault land in a bounded fallback
-  error-log line.
+- Runner health-callback faults are contained with best-effort fixed, payload-free
+  fallback logging, as in `CallbackHealthReporter`. Neither fallback guarantees
+  delivery.
 
 ### Refactoring plan Phase 1 (2026-08-24) changes
 

@@ -50,6 +50,13 @@ milestone M15.
 
 ## Upgrade steps
 
+If you explicitly select `FailExecutionOnOpenActivitiesPolicy` with the default
+runner, successful operations with open activities now publish a failed terminal
+status. Adjust status-based alerts and consumers accordingly, or select the default
+`AutoFailOpenActivitiesPolicy` to retain operation-derived status. The fixed
+`open_activity_policy` failure-description class is a policy marker, not a thrown
+business exception. Returned values and original business exceptions are unchanged.
+
 1. Read [`docs/CHANGELOG.md`](docs/CHANGELOG.md) for the target version.
 2. Run `composer update it-pack/run-it` and review the dependency diff.
 3. Run `composer api:check` (or rely on CI) to detect public-API breaks.
@@ -70,3 +77,28 @@ OpenTelemetry, CloudEvents, PSR, Swoole, and OpenSwoole are optional adapters. A
 upgrade may change an adapter's package or version constraint; core RunIt never
 requires them. See [`docs/compatibility.md`](docs/compatibility.md) for the
 integration compatibility matrix.
+
+## Behavior changes
+
+- An omitted or `null` `onPublicationFailure` publication-failure handler now
+  reports to the replaceable SDK default health sink (the PHP error log) instead
+  of being silent, including when a `DefaultExecutionRunner` is constructed
+  directly. This is the default destination selected for Phase 4. No public
+  signature changed (`onPublicationFailure` remains `?Closure`).
+- Explicit silence is opted into by passing a no-op closure as the publication
+  failure handler, e.g. `withPublicationFailureHandler(static function (): void
+  {})` or `onPublicationFailure: static function (Throwable $e): void {}`. The
+  runner invokes it directly and reports nothing on that path; independent
+  health paths may still report.
+- `FailExecutionOnOpenActivitiesPolicy` with the default runner now marks an
+  otherwise successful execution `Failed` when activities remain open. The fixed
+  `open_activity_policy` failure-description class is a policy marker, not a
+  thrown business exception. Returned values and original business exceptions are
+  unchanged. Select the default `AutoFailOpenActivitiesPolicy` to retain
+  operation-derived status.
+- Fallback diagnostics are now fixed and payload-free: the runner's direct
+  reporting path and the publisher's re-entry fallback no longer carry the
+  original publication failure or reporting-fault context. Operators should not
+  correlate a fallback notice to a specific cause from its contents.
+- Neither open-activity policy itself closes the activity. See
+  `architecture/lifecycle.md` for current limitations.

@@ -182,14 +182,16 @@ The standalone redactor traverses array snapshot payloads to find throwable-shap
 arrays even without configured sensitive keys; this does not make those payloads
 safe. The SDK projection instead omits snapshot payload and hash.
 
-When a publication health callback fails, fallback diagnostics are fixed and
-payload-free; configured callbacks still receive their original arguments and must
-be treated as a sensitive boundary.
+When `CallbackHealthReporter`'s callback fails, its fallback diagnostics are fixed
+and payload-free. The runner's fallback also uses fixed payload-free diagnostics
+for reporter failures and suppressed recursive reports. The default error-log reporter uses the configured
+throwable mapper's description, so its message safety depends on that mapper.
+Configured callbacks receive their original arguments and are a sensitive boundary.
 
 Do not publish through the same fail-safe publisher from its health reporter.
-The recursion guard reports each nested attempt through that reporter, which can
-reenter it repeatedly. A bounded test demonstrates repeated reporter invocation;
-it does not establish a safe recursion limit for an unbounded callback.
+Nested publication while health reporting is active is dropped without another
+reporter invocation. The instance-wide guard can also suppress independent calls
+that interleave while the reporter is active; it is not concurrency isolation.
 
 Apply and verify an appropriate independent sanitization policy before data
 reaches a sampler or external sink.
