@@ -23,7 +23,9 @@ Domain
 Infrastructure Adapters ──► Ports ◄── Application
 ```
 
-In dependency terms:
+The following describes the historical conceptual model, not the exact current
+PHPArkitect selectors. In particular, Behavior components are omitted here and
+the current gate does not separate `Contract\Port` from `Contract`:
 
 | Layer | May depend on |
 |---|---|
@@ -58,10 +60,11 @@ flowchart TD;
     style InfraAdapter fill:#5a2f2f,color:#fff;
 ```
 
-The full, machine-generated layer graph with edge counts is maintained in
-[`dependency-graph.md`](dependency-graph.md) (generated from `deptrac.yaml` via
-`vendor/bin/deptrac analyse --formatter=mermaidjs`). `composer architecture`
-reproduces the zero-violation report that enforces these edges.
+The current executable component rules, representative observed edges and
+unresolved boundary decisions are recorded in
+[`dependency-graph.md`](dependency-graph.md). `composer architecture` runs
+PHPArkitect, not DepTrac; a passing report does not establish all boundaries in
+this conceptual diagram.
 
 An interactive, component-level view of this model — runtime components, the primary
 request path, ports/adapters, and the external-integration trust boundary — is
@@ -104,9 +107,11 @@ never reaches into the domain for runtime state.
 - Application must not depend on SDK or any adapter.
 - External adapters must not be depended on by Domain or Application.
 
-These are DepTrac rules, not optional style. See
-[`dependency-graph.md`](dependency-graph.md) for the enforced rules and the
-reviewed uncovered edges.
+The current PHPArkitect rules prohibit dependencies on the corresponding declared
+components, but do not independently constrain external or unclassified
+namespaces. See [`dependency-graph.md`](dependency-graph.md) for the exact scope
+and outstanding decisions. This documentation does not change the intended
+architecture or approve a rule change.
 
 ## Vocabulary
 

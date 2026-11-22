@@ -1,90 +1,80 @@
-# RunIt Architecture Dependency Graph
+# RunIt Architecture Dependency Inventory
 
-This diagram is generated from `deptrac.yaml` (DepTrac 4) via:
+This is a source-based inventory, not a generated dependency graph or a new
+architecture policy. The executable rules are in `phparkitect.php`; the shared
+helper is `../../tools/qa/phparkitect/base.php` relative to the package root.
+`composer architecture` analyzes `src/` only, not tests or examples.
 
-```bash
-vendor/bin/deptrac analyse --no-progress --formatter=mermaidjs
-```
+## Effective Component Rules
 
-`A --> B` means **layer `A` depends on layer `B`**. The graph is the
-architecture-enforcement source of truth for the dependency rules below and for
-the M13.3 DepTrac completion milestone.
+The table describes permitted dependencies, not necessarily actual edges. Same-component
+dependencies are also permitted. `Contract` includes `Contract\Port`; adapters
+are one component, and `Conformance` is production source, not test support.
 
-```mermaid
-flowchart TD;
-    External Adapter -->|141| Contract;
-    External Adapter -->|57| Domain;
-    External Adapter -->|14| Port;
-    Common Adapter -->|39| Contract;
-    Common Adapter -->|14| Port;
-    Common Adapter -->|6| Domain;
-    Application -->|517| Contract;
-    Application -->|89| Domain;
-    Application -->|106| Port;
-    Domain -->|793| Contract;
-    Domain -->|61| Common;
-    Domain -->|1| Port;
-    Test Support -->|38| Contract;
-    Test Support -->|29| Domain;
-    Test Support -->|19| Port;
-    Contract -->|47| Common;
-    Port -->|6| Contract;
-    SDK -->|31| Port;
-    SDK -->|58| Contract;
-    SDK -->|10| Application;
-    SDK -->|15| Domain;
-```
+| Component | Other declared components allowed by the current gate |
+|---|---|
+| Common | none |
+| Contract | Common |
+| Domain | Common, Contract, BehaviorDomain |
+| BehaviorDomain | Common, Contract, Domain |
+| Application | Common, Contract, Domain, BehaviorDomain, BehaviorApplication |
+| BehaviorApplication | Common, Contract, Domain, BehaviorDomain, Application |
+| SDK | Common, Contract, Domain, BehaviorDomain, Application, BehaviorApplication |
+| Adapter | Common, Contract, Domain, BehaviorDomain |
+| Conformance | all other declared components |
 
-## Layers
+The helper uses PHPArkitect's `mayDependOnComponents`: the installed
+implementation generates prohibitions against the *other declared components*.
+It does not use `shouldOnlyDependOnComponents`. Consequently a green run does
+not prove that dependencies on external namespaces or undeclared RunIt namespaces
+are absent, nor that every source class is selected by a component. It also does
+not distinguish dependencies between ports and other contracts. The table does
+not claim enforcement of the stronger vendor-neutrality policy in the architecture
+prose. PHPStan has additional import rules; their scope is separate from this gate.
 
-| Layer | Source directory | Role |
-|---|---|---|
-| `Common` | `src/Common` | Shared, dependency-free value-object contracts and primitives. |
-| `Contract` | `src/Contract` (excl. `Port`) | Public domain, application, and exception interfaces. |
-| `Port` | `src/Contract/Port` | External-effect ports (time, identity, serialization, publication, storage). |
-| `Domain` | `src/Domain`, `src/Behavior/Domain` | Immutable execution-model artifacts and validators. |
-| `Application` | `src/Application` | Lifecycle runtime, scopes, recorders, policies. |
-| `SDK` | `src/SDK` | Programmatic builders, decorators, and attributes. |
-| `Common Adapter` | `src/Adapter/{Null,Memory,Fiber,Common}` | First-party, dependency-free adapters. |
-| `External Adapter` | `src/Adapter/{OpenTelemetry,CloudEvents,Psr,Swoole}` | Vendor-integration adapters. |
-| `Test Support` | `src/Conformance` | Framework-neutral conformance harness (fixtures, verifiers, results). |
+## Observed Edges And Open Decisions
 
-## Enforced dependency rules
+Representative source imports, checked on 2026-11-22, demonstrate why the
+layer decision must precede changes to the rules:
 
-- `Common` depends on nothing.
-- `Contract` → `Common`.
-- `Port` → `Common`, `Contract`.
-- `Domain` → `Common`, `Contract`, `Port`.
-- `Application` → `Common`, `Contract`, `Port`, `Domain`.
-- `SDK` → `Common`, `Contract`, `Port`, `Domain`, `Application`.
-- `Common Adapter` → `Common`, `Contract`, `Port`, `Domain`.
-- `External Adapter` → `Common`, `Contract`, `Port`, `Domain`.
-- `Test Support` → everything (conformance harness only).
+- `Domain/Execution/ExecutionId.php` imports
+  `Behavior\Domain\ValidatedStringIdentifierBehavior`, which imports
+  `Domain\Shared\StringIdentifierValidator` and
+  `Domain\Exception\InvalidIdentifierException`: both directions exist.
+- `Application/Publication/DefaultObservationClassifier.php` imports
+  `Behavior\Application\Publication\DropsWithHealthReport`, which imports
+  `Application\Factory\RedactedRedactedArtifactFactory` and
+  `Application\Publication\FallbackErrorLogReporter`: both directions exist.
+- `Contract/Support/ActivityContextStorage.php` imports three `Contract\Port`
+  interfaces. The former diagram's separate Contract and Port directions cannot
+  be assumed to describe the current code or current enforcement.
+- `Adapter/OpenTelemetry/BridgeConfig.php` imports OpenTelemetry APIs, and
+  `Adapter/CloudEvents/Sink/Psr18CloudEventSink.php` imports PSR HTTP APIs.
+  These are examples, not a complete external-dependency inventory.
 
-## Prohibitions (architecture boundaries)
+Decisions remain open on whether ports should be an independently constrained
+component, whether Behavior namespaces are separate layers or parts of their
+corresponding layers, and how vendor and unclassified-namespace boundaries should
+be enforced. Assess actual dependencies, compatibility and ADRs before changing
+policy. Negative architectural regression fixtures are still needed once the
+intended rules are agreed; a passing current-source scan is not a negative test.
 
-- **Domain must not depend on Application, SDK, or any adapter.** Enforced by
-  omitting those layers from `Domain`'s allowed set.
-- **Application must not depend on SDK, Common Adapter, or External Adapter.**
-  Enforced by omitting `SDK` and both adapter layers from `Application`'s allowed
-  set.
-- **External Adapter must not be depended on by Domain or Application.** Enforced
-  by the rules above; only `Common Adapter`, other adapters, and `Test Support`
-  may reference it.
+## Evidence
 
-## Uncovered dependencies (reviewed)
+On 2026-11-22, `composer architecture` with PHPArkitect 1.3.1.0 analyzed
+443 classes and reported no violations under the current rules. The historical
+DepTrac diagram, edge counts and uncovered-dependency count were removed because
+they are not a current PHPArkitect report.
 
-DepTrac reports 134 "uncovered" dependencies. Every one is an in-project class
-depending on a class that is **not part of the project** — specifically the
-vendor integration points inside `External Adapter` (and a small `Psr` HTTP sink
-in `Common Adapter`) referencing `OpenTelemetry\*`, `Psr\*`, `CloudEvents\*`, and
-Swoole/OpenSwoole `*`. These are the intended, adapter-confined external effects
-required by ADR-006 ("External standards are adapters") and ADR-010 ("Core has no
-mandatory external integration"). They are reviewed and accepted; they are not
-architecture violations and are not suppressed via skips.
+On the installed dependency set, `composer audit` and `composer audit --no-dev`
+reported no security advisories. The full audit reported abandoned
+`doctrine/annotations` 2.0.2, with no suggested replacement. `composer why
+doctrine/annotations --tree` traced it through `phpbench/phpbench` 1.7.1 and
+`just-bases/php-qa-base` 1.0.9, a RunIt development dependency. The configured
+`composer security:audit:full` also passed while reporting abandonment. An
+abandoned package is a maintenance concern, not itself a vulnerability; reassess
+the upstream dependency chain on future updates rather than adding an unsupported
+pin. These results are time- and installed-dependency-specific.
 
-Run `composer architecture` to reproduce the zero-violation report.
-
-For a component-level runtime view — the primary request path, ports, adapters, and
-the external-integration trust boundary — see
+For a component-level runtime view, see
 [`runit-runtime.html`](../diagram/runit-runtime.html).

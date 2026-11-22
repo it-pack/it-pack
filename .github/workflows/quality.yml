@@ -86,6 +86,10 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress  ${{ matrix.composer_args }}
 
+      - name: Check RunIt API compatibility
+        if: matrix.pkg == 'RunIt'
+        run: composer api:check
+
       - name: Build Codeception actors
         run: vendor/bin/codecept build
 

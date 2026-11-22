@@ -142,6 +142,18 @@ bootstrap, modules, autoload, generators, failure cleanup, skips, subprocesses,
 missing-driver handling and collector interference remain incompletely tested.
 No attribution or threshold gate was installed.
 
+On 2026-11-22 the diagnostic reproduced those ten observations again. Two
+additional subprocess controls disable PCOV and Xdebug and require both the
+direct collector and Codeception coverage run to fail with a missing-driver
+error. These controls test driver absence only; they do not repair the known
+leaks or establish discovery-time isolation. The 95% threshold checker has 17
+synthetic boundary and invalid-input controls, but its Clover input does not
+prove suite provenance and must not be used alone as a CI isolation gate.
+On PHP 8.5.13 with PCOV, `composer coverage` produced a Unit-only aggregate
+of 6,151 covered out of 6,753 executable statements (91.09%; 1,438 tests,
+9,424 assertions). This is below the 95% target and is not an isolated result
+because the attribution and discovery leaks described above remain unresolved.
+
 At revision `f1debe4a`, a separate temporary provider control executed an
 undeclared production collaborator during discovery; a marker confirmed the
 execution, but the strict Codeception coverage run exited 0. Per-test collection
@@ -376,13 +388,13 @@ misplaced — move it in the same PR that adds it.
    rule packages were added; the rules live in the repository.
 
 `composer quality` runs strict Composer validation, Rector's dry run,
-PHP-CS-Fixer's check, PHPStan, phparkitect, the line-length check, all four
-configured test suites, the production-only security audit, and the full
-dependency audit, in that order. Composer stops the sequence on failure. The
+PHP-CS-Fixer's check, PHPStan, PHPArkitect, API compatibility, the line-length
+check, all four configured test suites, the production-only security audit, the
+full dependency audit, examples, and dogfood, in that order. Composer stops the sequence on failure. The
 full audit also checks development dependencies. It reports abandoned packages
 without failing solely because of abandonment; security advisories still fail
 the audit. The production-only audit retains Composer's default abandonment
-policy. Coverage, API compatibility, mutation tests, and benchmarks are separate
+policy. Coverage, mutation tests, and benchmarks are separate
 checks.
 
 ## Rector
@@ -413,7 +425,7 @@ to closures can remove coverage of array-specific behavior.
 | `no-mutable-static`                     | Static properties must be `readonly`; no assignments to static properties.                                                                                                       | Prohibits global mutable state.                                                                                                                                                     |
 | `forbid-arbitrary-object-serialization` | No `serialize()` / `unserialize()` of objects.                                                                                                                                   | "Arbitrary PHP object serialization is prohibited."                                                                                                                                 |
 | `forbid-direct-wall-clock`              | No `time()` / `date()` / `new DateTime` / … outside `Adapter` (plus a small allowlist).                                                                                          | Time comes from the `MonotonicClockInterface` port.                                                                                                                                 |
-| `forbid-domain-imports-adapters`        | Core layers must not `use` adapter implementations.                                                                                                                              | Hexagonal boundary (also enforced by DepTrac in M13.3).                                                                                                                             |
+| `forbid-domain-imports-adapters`        | Core layers must not `use` adapter implementations.                                                                                                                              | Hexagonal boundary (also checked by PHPArkitect for declared components).                                                                                                           |
 | `no-empty-catch`                        | No empty `catch` blocks (swallowed exceptions).                                                                                                                                  | ADR-008: preserve the original failure.                                                                                                                                             |
 | `require-initialized-properties`        | Properties are `readonly`, defaulted, or assigned in the class.                                                                                                                  | src-scoped equivalent of `checkUninitializedProperties`.                                                                                                                            |
 | `require-readonly-artifact`             | Domain artifacts (`Execution`, `Activity`, `Measurement`, `Observation`, `Occurrence`, `Snapshot`) are `readonly`.                                                               | ADR-002: artifacts are immutable.                                                                                                                                                   |
@@ -681,10 +693,15 @@ failure; the rule only forbids the empty/swallowing form.
 informational job: it surfaces next-version PHPStan findings without gating
 `composer quality`.
 
-## Historical DepTrac layering (M13.3)
+## Architecture Gate
+
+`composer architecture` runs PHPArkitect using `phparkitect.php`. The current
+component rules, their limitations, and unresolved layering decisions are
+documented in [`architecture/dependency-graph.md`](architecture/dependency-graph.md).
+They do not enforce a separate `Contract\Port` component or independently forbid
+dependencies on external or undeclared namespaces.
 
 The following describes the former DepTrac setup, not the current gate.
-`composer architecture` now runs phparkitect using `phparkitect.php`.
 The former configuration enforced the hexagonal dependency direction from `AGENTS.md`
 with the following layers: `Common`, `Contract`, `Port`, `Domain`, `Application`,
 `SDK`, `Common Adapter`, `External Adapter`, `Test Support`.
@@ -700,18 +717,8 @@ Key boundaries:
 - `External Adapter` is reachable only from `Common Adapter`, the other adapters,
   and `Test Support`; the core layers never import it.
 
-`Port` is a deliberately exclusive subset of `src/Contract/Port` (the `Contract`
-collector uses `src/Contract/(?!Port/).*` so no token is assigned to two layers);
-this keeps DepTrac warnings at zero. No `skip` rules are used, so "zero
-unexplained skips" is met by having no skips.
-
-The report is **0 violations / 0 skipped / 0 warnings**. DepTrac reports 134
-uncovered dependencies; every one is an adapter class depending on a vendor
-library (`OpenTelemetry*`, `Psr*`, `CloudEvents*`, Swoole/OpenSwoole `*`). These
-are the external integration points permitted by ADR-006 and ADR-010, confined to
-the adapter layers, and are reviewed and accepted rather than suppressed. The
-approved architecture diagram is `docs/architecture/dependency-graph.md`,
-generated from `deptrac.yaml` via `deptrac analyse --formatter=mermaidjs`.
+The former Port collector was exclusive of the Contract collector. Historical
+DepTrac counts and diagrams are not evidence of current PHPArkitect enforcement.
 
 ## Coding style (M13.4)
 
