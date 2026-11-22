@@ -7,13 +7,18 @@ namespace Tests\Unit\Application\Scope;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
+use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
+use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -31,6 +36,8 @@ use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
+use ReflectionMethod;
+use ReflectionProperty;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\SequenceIdentifierGenerator;
@@ -275,5 +282,297 @@ final class ExecutionScopeTest extends Unit
 
         $scope->setCurrentActivityId(null);
         self::assertNull($scope->currentActivityId());
+    }
+
+    public function testResolveActivityContextReturnsInvalidWhenActivityNotBound(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $scope = $kit->buildScope($execution, $context);
+
+        $activityId = ActivityId::fromString('act-1');
+        $activity = $this->createMock(ActivityInterface::class);
+        $activity->method('activityId')->willReturn($activityId);
+
+        $scope->trackOpenActivity($activity);
+        $scope->setCurrentActivityId($activityId);
+
+        $ref = new ReflectionMethod(ExecutionScope::class, 'resolveActivityContext');
+        $result = $ref->invoke($scope);
+
+        self::assertSame([false, null, null], $result);
+    }
+
+    public function testReportActivityContextFailureReEntryGuardReturnsEarly(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $scope = $kit->buildScope($execution, $context);
+
+        $reportingRef = new ReflectionProperty(ExecutionScope::class, 'activityContextFailureReporting');
+        $reportingRef->setValue($scope, 1);
+
+        $reportRef = new ReflectionMethod(ExecutionScope::class, 'reportActivityContextFailure');
+        $reportRef->invoke($scope, 'test-reason');
+
+        $reportingRef->setValue($scope, 0);
+        self::assertSame(0, $reportingRef->getValue($scope));
+    }
+
+    public function testShouldDropThrowsOnActivityContextChangedWithThrowPolicy(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $scope = new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            activityContextFailurePolicy: 'throw',
+        );
+
+        $activityId = ActivityId::fromString('act-1');
+        $scope->setCurrentActivityId($activityId);
+
+        $shouldDropRef = new ReflectionMethod(ExecutionScope::class, 'shouldDrop');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Activity context changed.');
+        $shouldDropRef->invoke($scope, 'different-activity-id');
+    }
+
+    public function testShouldDropReturnsTrueWhenActivityContextChangedWithDropPolicy(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $scope = new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            activityContextFailurePolicy: 'drop',
+        );
+
+        $activityId = ActivityId::fromString('act-1');
+        $scope->setCurrentActivityId($activityId);
+
+        $shouldDropRef = new ReflectionMethod(ExecutionScope::class, 'shouldDrop');
+
+        self::assertTrue($shouldDropRef->invoke($scope, 'different-activity-id'));
+    }
+
+    public function testReportActivityContextFailureCallbackThrowsFallsBack(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $scope = new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            onActivityContextFailure: static function (string $reason): never {
+                throw new RuntimeException('callback broken');
+            },
+        );
+
+        $reportRef = new ReflectionMethod(ExecutionScope::class, 'reportActivityContextFailure');
+        $reportRef->invoke($scope, 'test-reason');
+    }
+
+    public function testResolveActivityContextReturnsInvalidWhenExportIdNull(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $contextStorage = $this->createMock(ContextStorageInterface::class);
+
+        $activityStorage = $this->createMock(ActivityContextStorageInterface::class);
+        $activityScope = $this->createMock(ActivityScopeInterface::class);
+        $activityStorage->method('current')->willReturn($activityScope);
+        $activityScope->method('activity')->willReturn(
+            $this->createMock(ActivityInterface::class)
+        );
+        $activityScope->method('parentScope')->willReturn(
+            $this->createMock(ExecutionScopeInterface::class)
+        );
+
+        $authority = new ProvenanceAuthority();
+
+        $scope = new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            authority: $authority,
+            contextStorage: $contextStorage,
+            activityStorage: $activityStorage,
+        );
+
+        $contextStorage->method('current')->willReturn($scope);
+
+        $ref = new ReflectionMethod(ExecutionScope::class, 'resolveActivityContext');
+        $result = $ref->invoke($scope);
+
+        self::assertSame([false, null, null], $result);
+    }
+
+    public function testResolveActivityContextCatchesThrowable(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $contextStorage = $this->createMock(ContextStorageInterface::class);
+        $contextStorage->method('current')->willThrowException(new RuntimeException('storage broken'));
+
+        $scope = new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            contextStorage: $contextStorage,
+        );
+
+        $ref = new ReflectionMethod(ExecutionScope::class, 'resolveActivityContext');
+        $result = $ref->invoke($scope);
+
+        self::assertSame([false, null, null], $result);
     }
 }

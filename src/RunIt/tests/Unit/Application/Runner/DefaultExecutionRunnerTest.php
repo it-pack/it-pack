@@ -624,6 +624,17 @@ final class DefaultExecutionRunnerTest extends Unit
         self::assertSame('succeeded', $activities[1]->status()->label());
     }
 
+    public function testIssueExportIdCapacityThrowsWhenNotDuplicate(): void
+    {
+        $authority = new ProvenanceAuthority(null, 1, 10, 1024, 1);
+        $authority->issueExportId('execution', 'execution', 'other-exec', 'other-exec');
+
+        $kit = new RunItTestKit(authority: $authority);
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
+    }
+
     private function definition(): ExecutionDefinitionInterface
     {
         return ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch'));

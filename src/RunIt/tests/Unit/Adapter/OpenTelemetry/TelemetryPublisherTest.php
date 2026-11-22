@@ -62,6 +62,7 @@ use OpenTelemetry\SDK\Metrics\Data\Sum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\Exception;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 use RuntimeException;
@@ -207,7 +208,6 @@ final class TelemetryPublisherTest extends Unit
 
     /**
      * @param 'recordExecution'|'executionContext'|'recordActivity'|'activityContext' $method
-     * @param bool $redacted
      * @throws Throwable
      * @throws Exception
      */
@@ -1529,7 +1529,7 @@ final class TelemetryPublisherTest extends Unit
     }
 
     /**
-     * @throws \ReflectionException
+     * @throws ReflectionException
      */
     public function testReportRedactedDropReEntryGuardCallsWriteHealthFallback(): void
     {
@@ -1551,7 +1551,7 @@ final class TelemetryPublisherTest extends Unit
     }
 
     /**
-     * @throws \ReflectionException
+     * @throws ReflectionException
      */
     public function testWriteHealthFallbackReEntryGuardIsNoop(): void
     {
@@ -1573,7 +1573,7 @@ final class TelemetryPublisherTest extends Unit
     }
 
     /**
-     * @throws \ReflectionException
+     * @throws ReflectionException
      */
     public function testWriteHealthFallbackErrorLogFailureIsContained(): void
     {
