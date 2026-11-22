@@ -6,6 +6,8 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry;
 
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use OpenTelemetry\API\Trace\SpanContextInterface;
 
 /**
@@ -19,6 +21,14 @@ use OpenTelemetry\API\Trace\SpanContextInterface;
  */
 final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
 {
+    public const int DEFAULT_CAPACITY = 10000;
+    public const int MIN_CAPACITY = 1;
+
+    private const string PREFIX_ACTIVITY_ID = 'a:';
+    private const string PREFIX_EXECUTION_ID = 'e:';
+    private const string KEY_PREVIOUS = 'previous';
+    private const string KEY_NEXT = 'next';
+
     /** @var array<string, SpanContextInterface> */
     private array $contexts = [];
 
@@ -29,31 +39,31 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
 
     private ?string $newest = null;
 
-    public function __construct(private readonly int $capacity = 10000)
+    public function __construct(private readonly int $capacity = self::DEFAULT_CAPACITY)
     {
-        if ($capacity < 1) {
+        if ($capacity < self::MIN_CAPACITY) {
             throw new InvalidArgumentException('Span context capacity must be positive.');
         }
     }
 
-    public function recordExecution(string $executionId, SpanContextInterface $context): void
+    public function recordExecution(string|ExecutionIdInterface $executionId, SpanContextInterface $context): void
     {
-        $this->record('e:' . $executionId, $context);
+        $this->record(self::executionKey($executionId), $context);
     }
 
-    public function recordActivity(string $activityId, SpanContextInterface $context): void
+    public function recordActivity(string|ActivityIdInterface $activityId, SpanContextInterface $context): void
     {
-        $this->record('a:' . $activityId, $context);
+        $this->record(self::activityKey($activityId), $context);
     }
 
-    public function executionContext(string $executionId): ?SpanContextInterface
+    public function executionContext(string|ExecutionIdInterface $executionId): ?SpanContextInterface
     {
-        return $this->contexts['e:' . $executionId] ?? null;
+        return $this->contexts[self::executionKey($executionId)] ?? null;
     }
 
-    public function activityContext(string $activityId): ?SpanContextInterface
+    public function activityContext(string|ActivityIdInterface $activityId): ?SpanContextInterface
     {
-        return $this->contexts['a:' . $activityId] ?? null;
+        return $this->contexts[self::activityKey($activityId)] ?? null;
     }
 
     private function record(string $key, SpanContextInterface $context): void
@@ -62,14 +72,17 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
             $this->remove($key);
         }
 
-        if (count($this->contexts) >= $this->capacity && $this->oldest !== null) {
+        if ($this->oldest !== null && count($this->contexts) >= $this->capacity) {
             $this->remove($this->oldest);
         }
 
         $this->contexts[$key] = $context;
-        $this->order[$key] = ['previous' => $this->newest, 'next' => null];
+        $this->order[$key] = [
+            self::KEY_PREVIOUS => $this->newest,
+            self::KEY_NEXT => null
+        ];
         if ($this->newest !== null) {
-            $this->order[$this->newest]['next'] = $key;
+            $this->order[$this->newest][self::KEY_NEXT] = $key;
         }
 
         if ($this->newest === null) {
@@ -81,10 +94,10 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
 
     private function remove(string $key): void
     {
-        $previous = $this->order[$key]['previous'];
-        $next = $this->order[$key]['next'];
+        $previous = $this->order[$key][self::KEY_PREVIOUS];
+        $next = $this->order[$key][self::KEY_NEXT];
         if ($previous !== null) {
-            $this->order[$previous]['next'] = $next;
+            $this->order[$previous][self::KEY_NEXT] = $next;
         }
 
         if ($previous === null) {
@@ -92,7 +105,7 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
         }
 
         if ($next !== null) {
-            $this->order[$next]['previous'] = $previous;
+            $this->order[$next][self::KEY_PREVIOUS] = $previous;
         }
 
         if ($next === null) {
@@ -100,5 +113,15 @@ final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
         }
 
         unset($this->contexts[$key], $this->order[$key]);
+    }
+
+    private static function activityKey(string|ActivityIdInterface $activityId): string
+    {
+        return self::PREFIX_ACTIVITY_ID . $activityId;
+    }
+
+    private static function executionKey(string|ExecutionIdInterface $executionId): string
+    {
+        return self::PREFIX_EXECUTION_ID . $executionId;
     }
 }
