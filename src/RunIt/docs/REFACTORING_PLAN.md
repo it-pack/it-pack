@@ -2474,11 +2474,14 @@ including discovery-time execution; they do not establish isolation. The 17
 threshold-policy controls pass, but the Clover input does not establish suite
 provenance. Accordingly the coverage gate must remain disabled until the
 handoff's isolation and provenance requirements are met.
-On PHP 8.5.13 with PCOV, a fresh Unit-only `composer coverage` report after
-the focused redacted activity mapper tests recorded 6,151 of 6,753 statements
-(91.09%; 1,438 tests, 9,424 assertions). The earlier measurement was 6,092 of
-6,753 (90.21%). These aggregate figures are not isolated coverage: the known
-attribution and discovery leaks remain unresolved. The 95% target remains open.
+On PHP 8.5.13 with PCOV, a fresh Unit-only `composer coverage` report recorded 6,178 of 6,753 statements (91.48%; 1,474 tests, 9,519 assertions). The earlier measurement was 6,151 of 6,753 (91.09%; 1,438 tests, 9,424 assertions). New focused Unit tests with `CoversClass` were added:
+
+- `tests/Unit/Application/Publication/ClassifyingArtifactPublisherTest.php` — 13 tests, 39 assertions; covers all artifact kinds (execution, observation, activity, measurement, occurrence, snapshot), unknown-kind drop, missing-required-field drop, flush/close delegation, ordered publishing.
+- `tests/Unit/Application/Publication/DefaultArtifactRedactorTest.php` — 9 tests, 25 assertions; covers unchanged passthrough, sensitive attribute masking, observation message masking on/off, measurement value masking, throwable message masking, snapshot payload masking with hash omission, disabled config, unknown artifact type.
+- `tests/Unit/Application/Publication/ClassifiedRedactedObservationTest.php` — 5 tests, 13 assertions; covers artifact type, identity delegation, severity/message/diagnostic delegation, attributes/timestamp/sequence delegation, normalize delegation.
+- `tests/Unit/Application/Publication/ProvenanceAuthorityTest.php` — +9 tests (29 total, 321 assertions); covers attest successor transfer, unattested predecessor rejection, business ID/execution ID lookup, live records tracking, invalid relationship type rejection, cross-execution edge rejection, null-id bindActivityRelationship no-op, bindArtifact when releasing.
+
+Coverage remains below the 95% target. The largest uncovered statement counts are `ClassifyingArtifactPublisher` (~114 lines), `ProvenanceAuthority` (~48 lines), `DefaultExecutionRunner` (~41 lines), `DefaultArtifactRedactor` (~19 lines), `TelemetryPublisher` (~14 lines), `DefaultMeasurementInstrumentMapper` (~12 lines), `DefaultObservationRecorder` (~12 lines), and smaller gaps in `DefaultExecutionSpanMapper`, `DefaultObservationLogMapper`, `DefaultSnapshotRecorder`, and adapter classes. Most of these lines are in defensive/error-handling paths already exercised by integration tests through `RunItTestKit`; unit tests add attribution but limited new line coverage. The 95% target remains open. The coverage gate must remain disabled until isolation and provenance requirements are met.
 
 **Exit:** at least 95% isolated Unit statement coverage is enforced in CI, coverage attribution is verified by a negative control, PHPStan/style/architecture gates pass, and dependency status is current.
 

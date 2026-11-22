@@ -438,4 +438,103 @@ final class ProvenanceAuthorityTest extends Unit
             }
         }
     }
+
+    public function testAttestSuccessorTransfersBindingToNewArtifact(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $id = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $original = new RedactedArtifact(['id' => 'exec']);
+        self::assertTrue($authority->attest($original, $id));
+
+        $successor = new RedactedArtifact(['id' => 'exec']);
+        self::assertTrue($authority->attestSuccessor($original, $successor));
+        self::assertSame($id, $authority->exportIdForArtifact($successor));
+    }
+
+    public function testAttestSuccessorRejectsUnattestedPrevious(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $previous = new RedactedArtifact(['id' => 'exec']);
+        $successor = new RedactedArtifact(['id' => 'exec']);
+        self::assertFalse($authority->attestSuccessor($previous, $successor));
+    }
+
+    public function testBusinessIdAndExecutionIdForExportId(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $id = $authority->issueExportId('observation', 'observation', 'exec', 'obs');
+
+        self::assertSame('obs', $authority->businessIdForExportId($id));
+        self::assertSame('exec', $authority->executionIdForExportId($id));
+        self::assertNull($authority->businessIdForExportId('unknown'));
+        self::assertNull($authority->executionIdForExportId('unknown'));
+    }
+
+    public function testHasLiveRecordsTracksUnreleasedRecords(): void
+    {
+        $authority = new ProvenanceAuthority();
+        self::assertFalse($authority->hasLiveRecords('exec'));
+
+        $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        self::assertTrue($authority->hasLiveRecords('exec'));
+
+        $authority->releaseExecution('exec');
+        self::assertFalse($authority->hasLiveRecords('exec'));
+    }
+
+    public function testRegisterRelationshipRejectsInvalidRelationshipType(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $from = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $to = $authority->issueExportId('execution', 'execution', 'exec', 'exec2');
+
+        self::assertFalse($authority->registerRelationship($from, $to, 'invalid-type'));
+        self::assertSame([], $authority->allRecords()[$from]['relationships']);
+    }
+
+    public function testRegisterRelationshipRejectsDifferentExecutionForExecutionEdge(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $from = $authority->issueExportId('execution', 'execution', 'exec-a', 'exec-a');
+        $to = $authority->issueExportId('observation', 'observation', 'exec-b', 'obs');
+
+        self::assertFalse($authority->registerRelationship($from, $to, 'execution-observation'));
+        self::assertSame([], $authority->allRecords()[$from]['relationships']);
+    }
+
+    public function testBindActivityRelationshipWithNullIdsIsNoop(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->bindActivityRelationship();
+        $authority->bindActivityRelationship('some-id');
+        $authority->bindActivityRelationship(null, 'some-id');
+
+        self::assertCount(0, $authority->allRecords());
+    }
+
+    public function testBindActivityRelationshipRejectsDifferentExecution(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $target = $authority->issueExportId('observation', 'observation', 'exec-a', 'obs');
+        $activity = $authority->issueExportId('activity', 'activity', 'exec-b', 'act');
+
+        self::assertFalse($authority->registerRelationship($activity, $target, 'activity-artifact'));
+        self::assertSame([], $authority->allRecords()[$activity]['relationships']);
+    }
+
+    public function testBindArtifactReturnsNullWhenReleasing(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        $authority->releaseExecution('exec');
+
+        $result = $authority->bindArtifact(
+            'observation',
+            'observation',
+            'exec',
+            'obs',
+            'execution-observation'
+        );
+        self::assertNull($result);
+    }
 }
