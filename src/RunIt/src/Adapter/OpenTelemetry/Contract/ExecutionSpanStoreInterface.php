@@ -10,10 +10,10 @@ use OpenTelemetry\API\Trace\SpanContextInterface;
  * Remembers the OpenTelemetry span context produced for each RunIt execution and
  * activity so that child spans can be wired to the correct parent.
  *
- * The store is scoped to a single {@see \ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher}
- * instance and is intentionally bounded in practice: an execution's span context
- * is only needed while its activities are being mapped, after which it can be
- * forgotten. Implementations may evict entries to bound memory.
+ * A default store belongs to one publisher; an injected store may be shared.
+ * Retention and concurrency guarantees depend on the implementation. The default
+ * in-memory store does not evict entries. Implementations may evict contexts, so
+ * a parent lookup can return null even if the parent was previously recorded.
  *
  * @api
  */

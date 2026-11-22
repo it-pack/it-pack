@@ -197,6 +197,79 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'missing'));
     }
 
+    public function testPublishersShareInjectedStoreForParentCorrelation(): void
+    {
+        $store = new InMemoryExecutionSpanStore();
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $first = TelemetryPublisher::fromConfig($config, $store);
+        $second = TelemetryPublisher::fromConfig($config, $store);
+        $first->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'));
+        $second->publish(RunItArtifactFactory::activity('outer', 'exec', 'outer', 'internal', 'succeeded'));
+        $first->publish(RunItArtifactFactory::activity('inner', 'exec', 'inner', 'internal', 'succeeded', 'outer'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(3, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[2]->getParentSpanId());
+    }
+
+    public function testNullTracerProviderDoesNotAccessInjectedStore(): void
+    {
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->never())->method('recordExecution');
+        $store->expects($this->never())->method('recordActivity');
+        $store->expects($this->never())->method('executionContext');
+        $store->expects($this->never())->method('activityContext');
+        $publisher = TelemetryPublisher::fromConfig(BridgeConfig::default(), $store);
+        $publisher->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded', 'parent'));
+        $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'parent'));
+        self::assertCount(0, $this->kit->spans());
+    }
+
+    public function testReusedActivityIdAcrossExecutionsReplacesParentContext(): void
+    {
+        $store = new InMemoryExecutionSpanStore();
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $publisher->publish(RunItArtifactFactory::execution('first', 'first', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('shared', 'first', 'first', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::execution('second', 'second', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('shared', 'second', 'second', 'internal', 'succeeded'));
+        $publisher->publish(
+            RunItArtifactFactory::activity('child', 'first', 'child', 'internal', 'succeeded', 'shared'),
+        );
+
+        $spans = $this->kit->spans();
+        self::assertCount(5, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[2]->getContext()->getSpanId(), $spans[3]->getParentSpanId());
+        self::assertSame($spans[3]->getContext()->getSpanId(), $store->activityContext('shared')?->getSpanId());
+        self::assertSame($spans[3]->getContext()->getSpanId(), $spans[4]->getParentSpanId());
+    }
+
+    public function testMissingStoredParentsFallBackToAmbientSpan(): void
+    {
+        $publisher = $this->publisher();
+        $ambient = $this->kit->tracerProvider->getTracer('test')->spanBuilder('ambient')->startSpan();
+        $scope = $ambient->activate();
+        try {
+            $publisher->publish(RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'missing'));
+            $publisher->publish(
+                RunItArtifactFactory::activity('act', 'missing', 'act', 'internal', 'succeeded', 'missing'),
+            );
+        } finally {
+            $scope->detach();
+            $ambient->end();
+        }
+
+        $spans = $this->kit->spans();
+        self::assertCount(3, $spans);
+        self::assertSame($ambient->getContext()->getSpanId(), $spans[0]->getParentSpanId());
+        self::assertSame($ambient->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($ambient->getContext()->getTraceId(), $spans[0]->getContext()->getTraceId());
+        self::assertSame($ambient->getContext()->getTraceId(), $spans[1]->getContext()->getTraceId());
+    }
+
     public function testFailedExecutionRedactionMasksOuterThrowableInSpanEvent(): void
     {
         $this->assertFailedExecutionExport(new ArtifactRedactionConfig());

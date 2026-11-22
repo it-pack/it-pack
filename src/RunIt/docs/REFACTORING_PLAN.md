@@ -2257,10 +2257,102 @@ variation and allocator reuse; the result is not a fresh-worker RSS measure or
 an evidence-backed production limit. Selecting the default and its policy remains
 open.
 
+**Compatibility investigation (2026-11-22):** The existing injected-store seam
+allows custom retention without changing the store interface or publisher signature.
+A built-in capacity constructor, factory, or configuration method would add to the
+frozen API and requires the contract-change approval process. Eviction changes
+correlation even without a signature change: an activity first falls back from a
+missing activity parent to its execution, and an unresolved parent is left to the
+telemetry builder, which can select an ambient span. The default store remains
+unbounded; an entry limit and its policy have not been approved. The interface
+documentation now describes default and shared-store retention accurately.
+Sequential publisher characterization additionally covers shared injected stores,
+null tracer providers, activity ID reuse across executions and ambient-parent
+fallback. These cases do not demonstrate concurrency safety or bounded retention.
+`tools/retention-baseline.php` and `benchmarks.md` now provide a reproducible
+fresh-process synthetic store baseline. It does not measure mapper overhead,
+eviction loss, or representative worker traffic, and does not resolve the limit.
+The maintainer confirmed that retention should be configurable and deferred the
+default entry count and aggregate-versus-per-map decision on 2026-11-22. The
+dependent implementation and Phase 5 exit therefore remain open.
+
 - [ ] Trace `TelemetryPublisher::fromConfig()`, `InMemoryExecutionSpanStore`, execution/activity span mappers, and `ExecutionSpanStoreInterface`; characterize parent lookup order, lifetime, concurrency, and consumer-provided store behavior.
 - [ ] Add tests with many unique executions and activities, nested and late-arriving children, duplicate IDs, and a long-lived publisher. Assert the approved bound or lifecycle, parent lookup before and after eviction, and behavior of injected third-party stores.
 - [ ] Implement the approved bounded or lifecycle-aware strategy without changing a frozen contract unless explicitly authorized. Specify deterministic eviction, memory limits, and behavior for missing parents; do not retain live spans or use global state.
 - [ ] Measure persistent-worker memory and mapper overhead before and after under the same workload. Update OpenTelemetry configuration and operational documentation with the retention tradeoff.
+
+### Phase 5 completion plan
+
+This plan does not select a capacity or declare Phase 5 complete. The approved
+direction is a configurable finite default with oldest-entry eviction; the
+capacity, ordering details and compatible configuration remain decision gates.
+The Phase 0 baseline and Phase 4 evidence above have recorded environment and
+quality-gate limitations; do not mistake those historical results for a fresh
+validation of this phase. Outstanding Phase 1 and Phase 2 follow-ups are not
+waived by this plan.
+
+1. **Reproduce and characterize.** Trace default store construction, mapper
+   ownership and parent lookup, including ambient OpenTelemetry context when no
+   stored parent is set. Extend the existing characterization with named cases for
+   execution and activity IDs, duplicate writes, nested and out-of-order children,
+   long-lived publishers, shared injected stores and null providers. Determine
+   which calls can interleave and document the current concurrency guarantees;
+   do not infer thread or coroutine safety from sequential tests. Confirm that
+   only span contexts, not live spans, are retained. Reconcile the store
+   interface's claim that retention is bounded in practice with the default
+   implementation and intentionally shared stores.
+2. **Gather decision evidence.** Create a reproducible benchmark harness and run
+   the current implementation before changes. Exercise fresh persistent workers
+   with representative and explicitly labeled synthetic traffic, varying execution
+   and activity ratios, ID and trace-state sizes, duplicate rates, nesting, parent delay and store
+   sharing. Measure occupancy, parent misses and correlation loss as well as used
+   and allocated PHP memory, process RSS and peak where available, and mapper and
+   store hit/miss/write cost. Record workload assumptions, runtime, dependencies,
+   hardware, warmup, sample distributions and measurement limitations. The old
+   100,000-pair result used 200,000 entries and its temporary harness is missing;
+   it is not a reproducible baseline or a basis for selecting a limit.
+3. **Resolve the design before implementation.** Compare candidate finite
+   capacities against an explicit worker memory budget and delayed-parent loss,
+   and record the evidence and maintainer decision. Specify whether the bound is
+   aggregate or per map, how insertion age and duplicate replacements affect
+   eviction, whether lookups refresh age, interaction between execution and
+   activity entries, invalid capacity
+   handling, and expected concurrency scope. Define the configuration and default
+   construction path, custom-store ownership and sharing, and behavior on misses
+   including ambient-parent fallback. Review API and behavioral compatibility for
+   existing callers and external implementations; do not add required interface
+   methods or change a frozen contract without the approved contract-change process.
+   If representative workload evidence is unavailable, record the gap and leave
+   the default decision and dependent implementation open rather than inventing a
+   production limit. An entry-count bound alone does not prove a fixed byte bound
+   for variable IDs, contexts and trace state.
+4. **Implement and test the approved policy.** Make the smallest compatible
+   change, retaining bounded metadata as well as bounded contexts under sustained
+   unique-ID and duplicate-ID churn. Use named data-provider cases for exact-limit,
+   overflow, eviction order, replacement, both artifact kinds, typed and redacted
+   mapping, reused activity IDs across executions, delayed and nested children,
+   lookup fallback with and without ambient context, and long-lived publisher
+   behavior. Verify the bound
+   after repeated writes, custom injected stores remain in control of their own
+   policy, and eviction or telemetry failures do not change business results or
+   original exceptions through the fail-safe runtime path; separately characterize
+   direct publisher exceptions. Add concurrency tests only for guarantees actually
+   supported; document any isolation requirement instead of assuming one.
+5. **Compare, validate and document.** Repeat the baseline workload under the
+   same conditions on the changed checkout, with fresh workers and enough samples
+   to expose variability; record raw measurements, correlation loss and tradeoffs
+   in `docs/benchmarks.md`, not a performance claim based on a single run. Run
+   focused store, mapper and publisher tests, relevant integration/concurrency
+   suites, then `composer test`, `composer api:check` and `composer quality`;
+   run relevant individual gates if quality stops early. Check PHP 8.4 and newer
+   supported runtimes where available, recording commands, failures and skips.
+   Update `docs/integrations/opentelemetry.md` and `docs/CHANGELOG.md` for the
+   actual default, configuration, eviction, missing-parent and migration behavior;
+   update the store interface documentation and other affected docs for verified
+   behavior. Never regenerate API or
+   schema baselines merely to pass a check. Mark checklist items and the exit
+   complete only after the approved design, bounded-growth evidence, tests and
+   remaining validation limitations are recorded.
 
 **Exit:** store growth is demonstrably bounded under the agreed policy, parent behavior is tested, and measurements are recorded.
 

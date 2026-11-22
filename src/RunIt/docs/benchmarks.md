@@ -35,6 +35,68 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Phase 5 Span Store Baseline (2026-11-22)
+
+The standalone `tools/retention-baseline.php` exercises the current unbounded
+`InMemoryExecutionSpanStore` directly, not a publisher or mapper. At HEAD
+`309c4a77755a5c9de62efda58b035b3ed629bd29`, the worktree contained the plan
+edit and the new harness; the measured store implementation was unchanged. The
+host was unpinned, unisolated Linux x86-64 WSL2 on a Microsoft hypervisor, with
+four visible CPUs on an Intel Core i7-9700. PHP was 8.5.13 CLI NTS and
+`open-telemetry/api` was 1.12.0. Default CLI settings were used: OPcache and JIT
+disabled, PCOV and OpenTelemetry extensions loaded, and memory limit unlimited.
+Other host activity was not controlled. The reported samples below were sequential;
+earlier concurrent exploratory runs are excluded.
+
+From the package directory, with Composer dependencies installed, run:
+
+```bash
+for args in '10000 0 0 0' '10000 4 0 0' '10000 4 50 128'; do
+  for i in 1 2 3; do php tools/retention-baseline.php $args; done
+done
+```
+
+Arguments are execution count, activities per execution, duplicate percentage
+and ID padding bytes. Each invocation is a fresh process simulating one
+long-lived store: after a single autoload/store warmup, it writes all contexts,
+then looks up every execution and the first activity per execution, followed by
+intentional missing execution IDs. Every context has generated trace and span IDs
+and no trace state. A duplicate overwrites the execution and, when present, its
+last activity using the same contexts. Occupancy is the number of distinct keys
+generated, not an inspected store count. Results are emitted as JSON per process.
+
+Ranges are the minimum and maximum of three samples, not confidence intervals.
+Heap and allocated deltas are measured after writes relative to the warmed process;
+RSS is absolute process memory after lookups, from `/proc/self/status`.
+
+| Executions / activities each / duplicates / padding | Distinct entries | Used delta (bytes) | Allocated delta (bytes) | RSS (KiB) | Delayed hits |
+|---|---:|---:|---:|---:|---:|
+| 10,000 / 0 / 0% / 0 | 10,000 | 9,098,376 | 8,388,608 | 107,236-107,788 | 10,000/10,000 |
+| 10,000 / 4 / 0% / 0 | 50,000 | 45,393,112 | 44,564,480 | 142,496-142,664 | 20,000/20,000 |
+| 10,000 / 4 / 50% / 128 | 50,000 | 53,393,272 | 52,953,088 | 150,448-150,776 | 20,000/20,000 |
+
+| Workload | Generation and writes (ns/write) | Delayed lookups (ns/lookup) | Intentional misses (ns/lookup) |
+|---|---:|---:|---:|
+| 10,000 executions only | 2,767-3,136 | 284-301 | 261-314 |
+| 50,000 entries | 2,774-3,501 | 414-663 | 253-316 |
+| 50,000 entries, duplicates and padding | 2,549-3,028 | 499-691 | 335-560 |
+
+Each sample reported all 10,000 intentional misses. Write timing includes
+generation, context construction and duplicate writes, not isolated store
+operations; lookup timing includes key generation. The padded workload also
+changes duplicate rate, so it cannot isolate either effect. Peak PHP used and
+allocated memory and peak RSS are included in the JSON, but include the process
+and fixtures. RSS is not an incremental store measurement.
+
+These are synthetic store-level samples, not production traffic, mapper overhead,
+actual parent correlation or delivery-loss measurements. They do not exercise
+variable trace state, nested or out-of-order publication, shared publishers,
+concurrency, real exporters or bounded eviction. The delayed lookups test only
+the selected keys after all writes and do not establish behavior under eviction.
+Three samples and an uncontrolled host cannot establish robust performance
+distributions. Representative worker memory budgets and delayed-parent workloads
+remain necessary before choosing a default capacity or claiming Phase 5 complete.
+
 ## Phase 3 Guard Sample (2026-11-21)
 
 On PHP 8.5, the `Buffered(Admission|Overflow|Flush)Bench` filter ran eight
