@@ -633,6 +633,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
     }
 
+    /** @noinspection PhpSecondWriteToReadonlyPropertyInspection */
     private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
     {
         if ($this->healthState['reporting'] ?? false) {
