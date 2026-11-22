@@ -398,6 +398,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
     The kind/context-key value objects now also link to their SKOS schemes
     (`runit-tax:ActivityKinds`, `runit-tax:ExecutionKinds`,
     `runit-tax:ContextKeys`, `runit-tax:OccurrenceTypes`).
+- Replaced hard-coded artifact-type values and normalized artifact-field keys
+  throughout `src/RunIt/src/Application/` with the corresponding `ArtifactType`
+  enum cases/constants and `ArtifactField` interface constants. Serialized names,
+  values, public signatures, classification, provenance, redaction, dispatch
+  order, fallback behavior, and schemas are unchanged; no new serialized fields
+  were introduced.
 
 ## Unreleased — Phase 0 (P0)
 
