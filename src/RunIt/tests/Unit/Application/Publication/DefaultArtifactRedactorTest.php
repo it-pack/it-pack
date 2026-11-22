@@ -17,11 +17,16 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Occurrence\Occurrence;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
@@ -241,5 +246,133 @@ final class DefaultArtifactRedactorTest extends Unit
         self::assertIsArray($attributes);
         self::assertSame('[redacted]', $attributes['password']);
         self::assertSame('visible', $attributes['safe']);
+    }
+
+    public function testObservationMessageNotMaskedOnNonObservation(): void
+    {
+        $config = new ArtifactRedactionConfig(redactObservationMessages: true);
+        $redactor = new DefaultArtifactRedactor($config);
+        $artifact = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('op'),
+                ExecutionKind::fromString('task')
+            ),
+            Instant::of(1000)
+        )->beginRunning()->complete(
+            ExecutionSuccess::create(),
+            Instant::of(2000)
+        );
+
+        $result = $redactor->redact($artifact);
+
+        self::assertSame($artifact, $result);
+    }
+
+    public function testMeasurementValueNotMaskedOnNonMeasurement(): void
+    {
+        $config = new ArtifactRedactionConfig(
+            redactObservationMessages: false,
+            redactMeasurementValues: true
+        );
+        $redactor = new DefaultArtifactRedactor($config);
+        $artifact = Observation::info(
+            ObservationId::fromString('obs-1'),
+            ExecutionId::fromString('exec-1'),
+            'message'
+        );
+
+        $result = $redactor->redact($artifact);
+
+        self::assertSame($artifact, $result);
+    }
+
+    public function testSnapshotAttributesNotMaskedOnNonSnapshot(): void
+    {
+        $config = new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret']
+        );
+        $redactor = new DefaultArtifactRedactor($config);
+        $artifact = Observation::info(
+            ObservationId::fromString('obs-1'),
+            ExecutionId::fromString('exec-1'),
+            'message',
+            attributes: AttributeCollection::fromArray(['secret' => 'data'])
+        );
+
+        $result = $redactor->redact($artifact);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $result);
+        $normalized = $result->normalize();
+        $attributes = $normalized['attributes'];
+        self::assertIsArray($attributes);
+        self::assertSame('[redacted]', $attributes['secret']);
+    }
+
+    public function testOccurrenceDataMaskedWhenEnabled(): void
+    {
+        $config = new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['secret'],
+            redactOccurrenceData: true
+        );
+        $redactor = new DefaultArtifactRedactor($config);
+        $artifact = Occurrence::create(
+            OccurrenceId::fromString('occ-1'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.custom.v1'),
+            'source',
+            Instant::of(1000),
+            ['secret' => 'data', 'safe' => 'visible'],
+            null,
+            null,
+            null,
+            'application/json',
+            AttributeCollection::empty(),
+            ArtifactSequence::initial()
+        );
+
+        $result = $redactor->redact($artifact);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $result);
+        $normalized = $result->normalize();
+        $data = $normalized['data'];
+        self::assertIsArray($data);
+        self::assertSame('[redacted]', $data['secret']);
+        self::assertSame('visible', $data['safe']);
+    }
+
+    public function testSnapshotPayloadMaskedWhenEnabled(): void
+    {
+        $config = new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['secret'],
+            redactSnapshotPayloads: true
+        );
+        $redactor = new DefaultArtifactRedactor($config);
+        $artifact = Snapshot::create(
+            SnapshotId::fromString('snap-1'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('state.v1'),
+            1,
+            ['secret' => 'data', 'safe' => 'visible'],
+            new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return hash('sha256', $content);
+                }
+            },
+            classification: SnapshotClassification::Checkpoint,
+            createdAt: Instant::of(1000),
+            contentType: 'application/json'
+        );
+
+        $result = $redactor->redact($artifact);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $result);
+        $normalized = $result->normalize();
+        $payload = $normalized['payload'];
+        self::assertIsArray($payload);
+        self::assertSame('[redacted]', $payload['secret']);
+        self::assertSame('visible', $payload['safe']);
+        self::assertArrayNotHasKey('content_hash', $normalized);
     }
 }

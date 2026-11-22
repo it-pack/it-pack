@@ -150,8 +150,8 @@ leaks or establish discovery-time isolation. The 95% threshold checker has 17
 synthetic boundary and invalid-input controls, but its Clover input does not
 prove suite provenance and must not be used alone as a CI isolation gate.
 On PHP 8.5.13 with PCOV, `composer coverage` produced a Unit-only aggregate
-of 6,178 covered out of 6,753 executable statements (91.48%; 1,474 tests,
-9,519 assertions). This is below the 95% target and is not an isolated result
+of 6,181 covered out of 6,753 executable statements (91.52%; 1,490 tests,
+9,554 assertions). This is below the 95% target and is not an isolated result
 because the attribution and discovery leaks described above remain unresolved.
 
 At revision `f1debe4a`, a separate temporary provider control executed an

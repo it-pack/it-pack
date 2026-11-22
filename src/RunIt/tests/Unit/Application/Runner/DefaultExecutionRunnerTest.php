@@ -7,6 +7,7 @@ namespace Tests\Unit\Application\Runner;
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
+use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
@@ -21,6 +22,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -449,5 +451,41 @@ final class DefaultExecutionRunnerTest extends Unit
         $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
 
         self::assertSame('value', $result);
+    }
+
+    public function testRejectsNestedExecutionWhenCurrentExists(): void
+    {
+        $kit = new RunItTestKit(nestedPolicy: new RejectNestedPolicy());
+
+        $caught = null;
+        try {
+            $kit->runner->run($this->definition(), static function () use ($kit): string {
+                $kit->runner->run(
+                    ExecutionDefinition::create(ExecutionName::fromString('inner'), ExecutionKind::fromString('step')),
+                    static fn (): string => 'inner'
+                );
+
+                return 'outer';
+            });
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertInstanceOf(RejectedNestedExecutionException::class, $caught);
+    }
+
+    public function testPublicationFailureCallbackThrowingFallsBackAndPreservesResult(): void
+    {
+        $kit = new RunItTestKit(
+            publisher: new ThrowingArtifactPublisher(),
+            onPublicationFailure: static function (Throwable $e): never {
+                throw new RuntimeException('callback broken');
+            },
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'business-value');
+
+        self::assertSame('business-value', $result);
+        self::assertNull($kit->storage->current());
     }
 }
