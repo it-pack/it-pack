@@ -28,7 +28,9 @@ use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -472,40 +474,101 @@ final class TelemetryPublisherTest extends Unit
             /** @var array<string, SpanContextInterface> */
             public array $activities = [];
 
-            public function recordExecution(string $executionId, SpanContextInterface $context): void
-            {
-                $this->executions[$executionId] = $context;
+            public function recordExecution(
+                string|ExecutionIdInterface $executionId,
+                SpanContextInterface $context
+            ): void {
+                $this->executions[(string) $executionId] = $context;
             }
 
-            public function recordActivity(string $activityId, SpanContextInterface $context): void
-            {
-                $this->activities[$activityId] = $context;
+            public function recordActivity(
+                string|ActivityIdInterface $activityId,
+                SpanContextInterface $context
+            ): void {
+                $this->activities[(string) $activityId] = $context;
             }
 
-            public function executionContext(string $executionId): ?SpanContextInterface
+            public function executionContext(string|ExecutionIdInterface $executionId): ?SpanContextInterface
             {
-                return $this->executions[$executionId] ?? null;
+                return $this->executions[(string) $executionId] ?? null;
             }
 
-            public function activityContext(string $activityId): ?SpanContextInterface
+            public function activityContext(string|ActivityIdInterface $activityId): ?SpanContextInterface
             {
-                return $this->activities[$activityId] ?? null;
+                return $this->activities[(string) $activityId] ?? null;
             }
         };
+
         $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
         $first = TelemetryPublisher::fromConfig($config, $store);
         $second = TelemetryPublisher::fromConfig($config, $store);
-        $first->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
-        $first->publish(RunItArtifactFactory::activity('outer', 'parent', 'outer', 'internal', 'succeeded'));
+        $first->publish(
+            RunItArtifactFactory::execution(
+                'parent',
+                'parent',
+                'internal',
+                'succeeded'
+            )
+        );
+        $first->publish(
+            RunItArtifactFactory::activity(
+                'outer',
+                'parent',
+                'outer',
+                'internal',
+                'succeeded'
+            )
+        );
         for ($i = 0; $i < 100; ++$i) {
-            $first->publish(RunItArtifactFactory::execution('exec-' . $i, 'exec', 'internal', 'succeeded'));
-            $first->publish(RunItArtifactFactory::activity('act-' . $i, 'exec-' . $i, 'act', 'internal', 'succeeded'));
+            $first->publish(
+                RunItArtifactFactory::execution(
+                    'exec-' . $i,
+                    'exec',
+                    'internal',
+                    'succeeded'
+                )
+            );
+            $first->publish(
+                RunItArtifactFactory::activity(
+                    'act-' . $i,
+                    'exec-' . $i,
+                    'act',
+                    'internal',
+                    'succeeded'
+                )
+            );
         }
 
-        $second->publish(RunItArtifactFactory::activity('inner', 'parent', 'inner', 'internal', 'succeeded', 'outer'));
-        $second->publish(RunItArtifactFactory::activity('outer', 'parent', 'replacement', 'internal', 'succeeded'));
+        $second->publish(
+            RunItArtifactFactory::activity(
+                'inner',
+                'parent',
+                'inner',
+                'internal',
+                'succeeded',
+                'outer'
+            )
+        );
+        $second->publish(
+            RunItArtifactFactory::activity(
+                'outer',
+                'parent',
+                'replacement',
+                'internal',
+                'succeeded'
+            )
+        );
 
-        $first->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded', 'outer'));
+        $first->publish(
+            RunItArtifactFactory::activity(
+                'late',
+                'parent',
+                'late',
+                'internal',
+                'succeeded',
+                'outer'
+            )
+        );
         unset($store->activities['outer']);
         $second->publish(RunItArtifactFactory::activity(
             'fallback',

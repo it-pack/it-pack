@@ -5,6 +5,7 @@ declare(strict_types=1);
 // Fresh process per sample; historical mode loads the pre-change store from a file.
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\ExecutionSpanStoreBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
@@ -17,26 +18,11 @@ use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 final class UnboundedBenchmarkStore implements ExecutionSpanStoreInterface
 {
-    private array $contexts = [];
+    use ExecutionSpanStoreBehavior;
 
-    public function recordExecution(string $executionId, SpanContextInterface $context): void
+    private function record(string $key, SpanContextInterface $context): void
     {
-        $this->contexts['e:' . $executionId] = $context;
-    }
-
-    public function recordActivity(string $activityId, SpanContextInterface $context): void
-    {
-        $this->contexts['a:' . $activityId] = $context;
-    }
-
-    public function executionContext(string $executionId): ?SpanContextInterface
-    {
-        return $this->contexts['e:' . $executionId] ?? null;
-    }
-
-    public function activityContext(string $activityId): ?SpanContextInterface
-    {
-        return $this->contexts['a:' . $activityId] ?? null;
+        $this->contexts[$key] = $context;
     }
 }
 

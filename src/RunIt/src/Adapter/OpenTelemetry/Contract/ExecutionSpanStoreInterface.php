@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Contract;
 
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use OpenTelemetry\API\Trace\SpanContextInterface;
 
 /**
@@ -19,11 +21,11 @@ use OpenTelemetry\API\Trace\SpanContextInterface;
  */
 interface ExecutionSpanStoreInterface
 {
-    public function recordExecution(string $executionId, SpanContextInterface $context): void;
+    public function recordExecution(string|ExecutionIdInterface $executionId, SpanContextInterface $context): void;
 
-    public function recordActivity(string $activityId, SpanContextInterface $context): void;
+    public function recordActivity(string|ActivityIdInterface $activityId, SpanContextInterface $context): void;
 
-    public function executionContext(string $executionId): ?SpanContextInterface;
+    public function executionContext(string|ExecutionIdInterface $executionId): ?SpanContextInterface;
 
-    public function activityContext(string $activityId): ?SpanContextInterface;
+    public function activityContext(string|ActivityIdInterface $activityId): ?SpanContextInterface;
 }

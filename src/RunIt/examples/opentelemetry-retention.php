@@ -76,7 +76,7 @@ try {
             ExecutionName::fromString('checkout.process'),
             ExecutionKind::fromString('operation'),
         ),
-        static fn(): array => ['status' => 'ok'],
+        static fn (): array => ['status' => 'ok'],
     );
 
 
