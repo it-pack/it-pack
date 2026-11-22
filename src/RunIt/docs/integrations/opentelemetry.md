@@ -118,6 +118,11 @@ worker memory and delayed-parent workloads. The default in-memory implementation
 not promise thread or coroutine isolation; use an appropriately isolated or synchronized
 custom store when required.
 
+For a reproducible synthetic comparison against the historical unbounded store,
+including measured delayed-parent loss and its limitations, see
+[benchmarks](../benchmarks.md#historical-store-comparison-2026-11-22). It is not
+a substitute for measuring the application's own worker memory and parent delays.
+
 Each mapper looks up a parent before starting its span and records its own context
 after ending the span. Child executions look up their parent execution. Activities look
 up their parent activity first, then their execution if that lookup misses. If no stored

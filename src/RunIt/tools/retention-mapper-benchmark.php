@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Fresh process per sample: php tools/retention-mapper-benchmark.php bounded|unbounded [executions] [capacity]
+// Fresh process per sample; historical mode loads the pre-change store from a file.
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
@@ -57,22 +57,44 @@ final class BenchmarkSpanProcessor extends NoopSpanProcessor
 $mode = $argv[1] ?? '';
 $executions = filter_var($argv[2] ?? '10000', FILTER_VALIDATE_INT);
 $capacity = filter_var($argv[3] ?? '10000', FILTER_VALIDATE_INT);
-if (!in_array($mode, ['bounded', 'unbounded'], true) || $executions === false || $executions < 2
-    || $capacity === false || $capacity < 1 || $argc > 4) {
-    fwrite(STDERR, "Usage: php tools/retention-mapper-benchmark.php bounded|unbounded [executions>=2] [capacity>=1]\n");
+if (!in_array($mode, ['bounded', 'unbounded', 'historical'], true) || $executions === false || $executions < 2
+    || $capacity === false || $capacity < 1 || $argc > 5
+    || ($mode === 'historical' && ($argc !== 5 || !is_file($argv[4])))
+    || ($mode !== 'historical' && $argc > 4)) {
+    fwrite(STDERR, 'Usage: php tools/retention-mapper-benchmark.php bounded|unbounded|historical '
+        . "[executions>=2] [capacity>=1] [historical-store-file]\n");
     exit(1);
+}
+
+if ($mode === 'historical') {
+    $storeFile = realpath($argv[4]);
+    if ($storeFile === false || pathinfo($storeFile, PATHINFO_EXTENSION) !== 'php'
+        || (!str_starts_with($storeFile, '/tmp/kilo/')
+            && !str_starts_with($storeFile, getcwd() . '/'))) {
+        fwrite(STDERR, "Historical store file must be a .php file under /tmp/kilo/ or the working directory\n");
+        exit(1);
+    }
+    require $storeFile;
 }
 
 $processor = new BenchmarkSpanProcessor();
 $provider = new TracerProvider($processor);
 $config = new BridgeConfigBuilder()->withTracerProvider($provider)->build();
-$store = $mode === 'bounded' ? new InMemoryExecutionSpanStore($capacity) : new UnboundedBenchmarkStore();
+$store = match ($mode) {
+    'bounded' => new InMemoryExecutionSpanStore($capacity),
+    'historical' => new InMemoryExecutionSpanStore(),
+    default => new UnboundedBenchmarkStore(),
+};
 $publisher = TelemetryPublisher::fromConfig($config, $store);
 
 // Warm the same publisher, then use a fresh store so warmup does not affect retention.
 $publisher->publish(RunItArtifactFactory::execution('warm', 'work', 'internal', 'succeeded'));
 $publisher->publish(RunItArtifactFactory::activity('warm-a', 'warm', 'work', 'internal', 'succeeded'));
-$store = $mode === 'bounded' ? new InMemoryExecutionSpanStore($capacity) : new UnboundedBenchmarkStore();
+$store = match ($mode) {
+    'bounded' => new InMemoryExecutionSpanStore($capacity),
+    'historical' => new InMemoryExecutionSpanStore(),
+    default => new UnboundedBenchmarkStore(),
+};
 $publisher = TelemetryPublisher::fromConfig($config, $store);
 gc_collect_cycles();
 $usedBefore = memory_get_usage(false);
@@ -121,9 +143,11 @@ foreach ([$executions - 1, 0] as $i) {
     $probes[$i === 0 ? 'oldest' : 'newest'] = [
         'actual_parent' => $activityMatches
             ? 'activity'
-            : ($executionMatches
+            : (
+                $executionMatches
                 ? 'execution'
-                : ($parent->isValid()
+                : (
+                    $parent->isValid()
                     ? 'other'
                     : 'root'
                 )

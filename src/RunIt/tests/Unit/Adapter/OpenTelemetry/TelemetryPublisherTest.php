@@ -53,6 +53,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Instrumentation\Configurator;
+use OpenTelemetry\API\Trace\SpanContextInterface;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Metrics\Data\Metric;
 use OpenTelemetry\SDK\Metrics\Data\Sum;
@@ -414,6 +415,114 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame($spans[0]->getContext()->getTraceId(), $spans[101]->getContext()->getTraceId());
         self::assertNotSame($spans[0]->getContext()->getSpanId(), $spans[102]->getParentSpanId());
         self::assertNotSame($spans[0]->getContext()->getTraceId(), $spans[102]->getContext()->getTraceId());
+    }
+
+    public function testLongLivedDefaultPublisherEvictsAcrossExecutionAndActivityWrites(): void
+    {
+        $publisher = $this->publisher();
+        $publisher->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('outer', 'parent', 'outer', 'internal', 'succeeded'));
+        for ($i = 0; $i < 4999; ++$i) {
+            $publisher->publish(RunItArtifactFactory::execution('exec-' . $i, 'exec', 'internal', 'succeeded'));
+            $publisher->publish(RunItArtifactFactory::activity(
+                'act-' . $i,
+                'exec-' . $i,
+                'act',
+                'internal',
+                'succeeded',
+            ));
+        }
+
+        // At exactly 10,000 writes, both oldest contexts are still available.
+        $publisher->publish(RunItArtifactFactory::activity(
+            'inner',
+            'parent',
+            'inner',
+            'internal',
+            'succeeded',
+            'outer',
+        ));
+        $publisher->publish(RunItArtifactFactory::activity(
+            'nested',
+            'parent',
+            'nested',
+            'internal',
+            'succeeded',
+            'inner',
+        ));
+        $publisher->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded', 'outer'));
+        $publisher->publish(RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'parent'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(10004, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[10000]->getParentSpanId());
+        self::assertSame($spans[10000]->getContext()->getSpanId(), $spans[10001]->getParentSpanId());
+        self::assertSame('0000000000000000', $spans[10002]->getParentSpanId());
+        self::assertSame('0000000000000000', $spans[10003]->getParentSpanId());
+        self::assertNotSame($spans[0]->getContext()->getTraceId(), $spans[10003]->getContext()->getTraceId());
+    }
+
+    public function testInjectedStoreControlsRetentionAcrossPublishersAndDuplicateWrites(): void
+    {
+        $store = new class () implements ExecutionSpanStoreInterface {
+            /** @var array<string, SpanContextInterface> */
+            public array $executions = [];
+
+            /** @var array<string, SpanContextInterface> */
+            public array $activities = [];
+
+            public function recordExecution(string $executionId, SpanContextInterface $context): void
+            {
+                $this->executions[$executionId] = $context;
+            }
+
+            public function recordActivity(string $activityId, SpanContextInterface $context): void
+            {
+                $this->activities[$activityId] = $context;
+            }
+
+            public function executionContext(string $executionId): ?SpanContextInterface
+            {
+                return $this->executions[$executionId] ?? null;
+            }
+
+            public function activityContext(string $activityId): ?SpanContextInterface
+            {
+                return $this->activities[$activityId] ?? null;
+            }
+        };
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $first = TelemetryPublisher::fromConfig($config, $store);
+        $second = TelemetryPublisher::fromConfig($config, $store);
+        $first->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        $first->publish(RunItArtifactFactory::activity('outer', 'parent', 'outer', 'internal', 'succeeded'));
+        for ($i = 0; $i < 100; ++$i) {
+            $first->publish(RunItArtifactFactory::execution('exec-' . $i, 'exec', 'internal', 'succeeded'));
+            $first->publish(RunItArtifactFactory::activity('act-' . $i, 'exec-' . $i, 'act', 'internal', 'succeeded'));
+        }
+
+        $second->publish(RunItArtifactFactory::activity('inner', 'parent', 'inner', 'internal', 'succeeded', 'outer'));
+        $second->publish(RunItArtifactFactory::activity('outer', 'parent', 'replacement', 'internal', 'succeeded'));
+
+        $first->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded', 'outer'));
+        unset($store->activities['outer']);
+        $second->publish(RunItArtifactFactory::activity(
+            'fallback',
+            'parent',
+            'fallback',
+            'internal',
+            'succeeded',
+            'outer',
+        ));
+
+        $spans = $this->kit->spans();
+        self::assertCount(206, $spans);
+        self::assertCount(101, $store->executions);
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[202]->getParentSpanId());
+        self::assertSame($spans[203]->getContext()->getSpanId(), $spans[204]->getParentSpanId());
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[205]->getParentSpanId());
+        self::assertNull($store->activityContext('outer'));
     }
 
     public function testNullTracerProviderDoesNotAccessInjectedStore(): void

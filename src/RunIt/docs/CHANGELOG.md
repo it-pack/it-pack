@@ -28,6 +28,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Added long-lived publisher and custom-store retention regressions, and a
+  reproducible synthetic comparison with the historical OpenTelemetry store.
+  These test and benchmark changes do not change runtime behavior or public API.
 - The default OpenTelemetry span-context store now retains at most 10,000
   execution and activity entries combined, evicting the oldest entry on overflow.
   Replacing an entry refreshes its insertion age; lookups do not. Late children

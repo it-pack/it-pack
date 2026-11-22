@@ -124,6 +124,64 @@ the size of individual IDs, contexts or trace state.
 
 ### Publisher Retention Comparison (2026-11-22)
 
+#### Historical Store Comparison (2026-11-22)
+
+The following fresh-process comparison loads the actual unbounded store from
+`929854b13c63a629f0ee3eed765fba1dcd802868`, immediately before bounded
+retention, into the current harness at `58a5ae85768c2d6ea579c361a7d156ea34486c60`
+with the historical-mode harness change. The store interface differs only in
+documentation; the OpenTelemetry adapter mappers and publisher and the artifact
+factory used here have no diff between these revisions. This is a controlled store
+substitution, not a full historical checkout or historical dependency install.
+Both modes use the same installed dependencies, fixtures and current harness.
+
+Reproduce from the RunIt directory (the extraction path must exist):
+
+```bash
+mkdir -p /tmp/kilo/runit-phase5-historical
+git -C ../.. archive 929854b13c63a629f0ee3eed765fba1dcd802868 src/RunIt/src/Adapter/OpenTelemetry/InMemoryExecutionSpanStore.php | tar -x -C /tmp/kilo/runit-phase5-historical
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 tools/retention-mapper-benchmark.php historical 10000 10000 /tmp/kilo/runit-phase5-historical/src/RunIt/src/Adapter/OpenTelemetry/InMemoryExecutionSpanStore.php
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 tools/retention-mapper-benchmark.php bounded 10000 10000
+```
+
+Repeat in fresh processes, replacing `10000` executions with `30000` for the
+longer workload. The capacity argument applies only to the bounded store; the
+historical implementation has no limit. Each process warms one execution and
+activity, then creates a fresh store and publisher. The timed loop publishes one
+synthetic execution and immediate child per ID, checking the child's actual
+parent; after timing, newest and oldest delayed children probe actual parentage.
+The newest probe itself writes an activity before the oldest probe.
+
+PHP 8.5.13 CLI NTS, OpenTelemetry API 1.12.0 and SDK 1.17.0, CLI OPcache/JIT
+and PCOV disabled; Linux x86-64 under Microsoft virtualization, four visible
+Intel i7-9700 CPUs. The host was not isolated or pinned. Samples were sequential
+in order H,B,B,H,H,B,B,H,H,B for 10,000 pairs and H,B,B,H,H,B for 30,000.
+Times below are raw nanoseconds per publication in run order within each mode;
+each publication includes fixture construction, mapping, SDK processing and
+parent checks, not just mapper execution.
+
+| Pairs | Store | ns/publication samples | Median | Used heap delta bytes | Allocated heap delta bytes | RSS samples KiB | Peak used / allocated bytes |
+|---|---|---|---:|---:|---:|---|---|
+| 10,000 | historical | 40595.140, 41124.885, 42381.040, 41788.375, 40255.815 | 41124.885 | 7005112 | 6291456 | 107476, 108524, 107432, 107892, 107524 | 17386168 / 18874368 |
+| 10,000 | bounded | 42382.990, 42795.330, 42941.285, 42567.815, 42739.850 | 42739.850 | 7914584 | 6291456 | 107444, 108148, 107624, 108012, 108000 | 18343896 / 18874368 |
+| 30,000 | historical | 40407.550, 41839.003, 41270.363 | 41270.363 | 19457976 | 18874368 | 120228, 120788, 120488 | 30032168 / 31457280 |
+| 30,000 | bounded | 43294.917, 44498.938, 44733.328 | 44498.938 | 7994584 | 8388608 | 110236, 110132, 110256 | 18380832 / 20971520 |
+
+Heap values were identical across samples within each row. RSS is whole-process
+at the end of the timed loop; reported peak RSS equaled RSS in every sample.
+All 10,000 or 30,000 immediate parent checks matched in every process; the newest
+delayed probe matched its activity in every process. The oldest matched its
+activity in every historical process and became a root in every bounded process.
+The bounded store caps combined contexts at 10,000; the historical store retains
+both contexts for each pair. At 10,000 pairs the bounded bookkeeping costs more
+heap despite eviction; at 30,000 pairs the historical heap grows substantially.
+The observed median timing differences are workload-specific, not a regression
+threshold or isolated mapper overhead. There is no exporter I/O, concurrent work,
+duplicate IDs, varied trace state, production traffic distribution or measured
+real-world correlation-loss rate. Two delayed probes and these finite runs do not
+establish a production memory budget or long-term worker behavior. PHP 8.4 and
+other hardware were not measured.
+
 `tools/retention-mapper-benchmark.php` compares the bounded store with a simple
 unbounded custom store through the same publisher, default mappers and OpenTelemetry
 SDK tracer. Run each sample in a fresh process, for example:
