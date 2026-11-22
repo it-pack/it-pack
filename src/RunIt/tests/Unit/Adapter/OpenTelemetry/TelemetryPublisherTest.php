@@ -213,6 +213,28 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame($spans[1]->getContext()->getSpanId(), $spans[2]->getParentSpanId());
     }
 
+    /** Default publishers keep their correlation state separate across repeated publications. */
+    public function testDefaultStoresAreIsolatedAndRetainDelayedParents(): void
+    {
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $first = TelemetryPublisher::fromConfig($config);
+        $second = TelemetryPublisher::fromConfig($config);
+        $first->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        for ($i = 0; $i < 100; ++$i) {
+            $first->publish(RunItArtifactFactory::execution('other-' . $i, 'other', 'internal', 'succeeded'));
+        }
+
+        $first->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded'));
+        $second->publish(RunItArtifactFactory::activity('isolated', 'parent', 'isolated', 'internal', 'succeeded'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(103, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[101]->getParentSpanId());
+        self::assertSame($spans[0]->getContext()->getTraceId(), $spans[101]->getContext()->getTraceId());
+        self::assertNotSame($spans[0]->getContext()->getSpanId(), $spans[102]->getParentSpanId());
+        self::assertNotSame($spans[0]->getContext()->getTraceId(), $spans[102]->getContext()->getTraceId());
+    }
+
     public function testNullTracerProviderDoesNotAccessInjectedStore(): void
     {
         $store = $this->createMock(ExecutionSpanStoreInterface::class);

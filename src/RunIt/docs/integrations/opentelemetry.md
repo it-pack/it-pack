@@ -89,6 +89,14 @@ ID-keyed maps with no limit, removal, or eviction. A long-lived publisher can th
 grow with the number of distinct execution and activity IDs. Reusing an ID replaces the
 previous context in that map; activity IDs are not scoped by execution. The maps live
 as long as their store remains reachable. A null tracer provider records nothing.
+Separate calls to `fromConfig()` without an injected store create separate stores;
+they do not share parent correlation, even when they use the same tracer provider.
+
+Sequential characterization on 2026-11-22 with PHP 8.5.13 and Codeception 5.3.7
+passed `testDefaultStoresAreIsolatedAndRetainDelayedParents` (1 test, 5 assertions):
+one publisher correlated a child after 100 intervening execution publications,
+while a second default publisher did not correlate the same parent ID. This is not
+a memory bound, concurrency guarantee, or representative worker workload.
 
 An application can pass an `ExecutionSpanStoreInterface` as the second argument to
 `fromConfig()`. Both mappers use that exact store; sharing it between publishers also

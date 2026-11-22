@@ -2269,6 +2269,10 @@ documentation now describes default and shared-store retention accurately.
 Sequential publisher characterization additionally covers shared injected stores,
 null tracer providers, activity ID reuse across executions and ambient-parent
 fallback. These cases do not demonstrate concurrency safety or bounded retention.
+`testDefaultStoresAreIsolatedAndRetainDelayedParents` also characterizes a child
+published after 100 intervening executions and confirms that independently created
+default publishers do not share correlation, even with the same tracer provider.
+This sequential synthetic test does not establish representative retention needs.
 `tools/retention-baseline.php` and `benchmarks.md` now provide a reproducible
 fresh-process synthetic store baseline. It does not measure mapper overhead,
 eviction loss, or representative worker traffic, and does not resolve the limit.
