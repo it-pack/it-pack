@@ -96,8 +96,8 @@ arbitrary artifact contents.
 
 `FailSafeArtifactPublisher` reports an adapter exception to its optional health
 reporter before handing it to a `PublicationFailurePolicyInterface`. A throwing
-reporter can prevent the policy from running; a standalone publisher has no default
-reporter and does not contain arbitrary reporter failures:
+reporter is contained with a fixed, payload-free fallback log notice and the
+policy still runs; a standalone publisher has no default reporter:
 
 - **FailOpenPolicy** — swallows the adapter error when the policy is reached; the
   runner uses this policy with its own health reporting.
@@ -106,9 +106,10 @@ reporter and does not contain arbitrary reporter failures:
 - **ReportToFallbackPolicy** — republishes the artifact to a separate fallback publisher;
   a fallback failure is caught and routed to the health reporter instead of recursing.
 
-The fail-safe guard blocks a nested publish but reports every nested attempt to
-health. A reporter that republishes through the same instance can therefore recurse
-through health reporting; it must not do so. See [self-instrumentation](self-instrumentation.md).
+The fail-safe guard blocks a nested publish. A nested publish that arrives while
+the reporter is active is dropped with a fixed fallback notice, and the reporter is
+not called again. Reporters should still not republish through the same instance.
+See [self-instrumentation](self-instrumentation.md).
 
 ## Buffering and backpressure
 
