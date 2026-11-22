@@ -84,8 +84,8 @@ foreach ([
             $coverage[basename((string) $file['name'])] = (int) $file->metrics['coveredstatements'];
         }
         return count($coverage) === 2
-            && ($coverage['Target.php'] ?? null) === $expectedCoverage[0]
-            && ($coverage['Collaborator.php'] ?? null) === $expectedCoverage[1];
+            && ($coverage['AttributionTarget.php'] ?? null) === $expectedCoverage[0]
+            && ($coverage['AttributionCollaborator.php'] ?? null) === $expectedCoverage[1];
     };
     runControl($test, $command, $directory, $environment, $check);
 }

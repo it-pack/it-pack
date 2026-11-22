@@ -20,7 +20,7 @@ if (!isset($argc, $argv) || $argc !== 2 || !in_array($argv[1], ['leak', 'allowed
 }
 
 $filter = new Filter();
-$filter->includeFiles([__DIR__ . '/production/Target.php', __DIR__ . '/production/Collaborator.php']);
+$filter->includeFiles([__DIR__ . '/production/AttributionTarget.php', __DIR__ . '/production/AttributionCollaborator.php']);
 $selector = new Selector();
 $coverage = new CodeCoverage($selector->select($filter), $filter);
 $coverage->enableCheckForUnintentionallyCoveredCode();
