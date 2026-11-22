@@ -147,7 +147,7 @@ verification. The unchecked design details below must still be resolved where ap
   as proof of implementation or compatibility.
 - [ ] Complete the exact observation field classification and configurable
   drop/report design and verify it across supported publication paths.
-- [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
+- [x] Choose a span-store limit and specify eviction scope, duplicate-ID ordering, and configuration. The maintainer authorized a configurable limit and a chosen default and scope on 2026-11-22; the synthetic evidence and compatibility limits are recorded under Phase 5.
 - [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
@@ -2239,6 +2239,27 @@ comparison and does not characterize this exceptional path.
 
 **Depends on:** Phase 0 and the span-store retention decision. **Review:** unbounded span-context store.
 
+**Decision (2026-11-22):** The maintainer authorized a configurable capacity and
+delegated the default and eviction scope. Use 10,000 entries across both kinds,
+oldest-write-first eviction, and refresh age on replacement but not lookup. The
+synthetic baseline of roughly 9 MB used heap for 10,000 contexts motivates a
+conservative starting point, not a universal worker memory budget. Inject a store
+constructed with a different positive capacity, or a custom store, to configure it.
+This entry bound is not a byte bound; real workload and delayed-parent evidence
+remain necessary for production sizing. The optional constructor is an additive
+public API change and eviction changes correlation. An independently modified API
+snapshot includes the constructor and two unrelated existing fallback constants;
+the maintainer elected to preserve that diff. Review both API and schema snapshots
+and coordinate the change before release.
+
+Validation on PHP 8.5.13: `composer test` passed (1,414 unit, 11 integration,
+52 conformance and 11 concurrency tests); `composer analyse`, `composer cs:check`,
+`composer refactor:dry`, `composer architecture`, `composer lint:length` and
+`composer security:audit` passed. `composer api:check` passes with the preserved
+snapshot; before that snapshot changed it reported the added constructor and no
+backward-compatibility breaks. The bounded synthetic comparison is in
+`benchmarks.md`. PHP 8.4 and mapper-overhead measurements remain unverified.
+
 **Preparatory characterization:** The default in-memory store retains execution
 and activity contexts in separate unbounded ID-keyed maps. Repeated IDs replace
 earlier values; activity keys are not scoped by execution. Activity mapping first
@@ -2276,9 +2297,9 @@ This sequential synthetic test does not establish representative retention needs
 `tools/retention-baseline.php` and `benchmarks.md` now provide a reproducible
 fresh-process synthetic store baseline. It does not measure mapper overhead,
 eviction loss, or representative worker traffic, and does not resolve the limit.
-The maintainer confirmed that retention should be configurable and deferred the
-default entry count and aggregate-versus-per-map decision on 2026-11-22. The
-dependent implementation and Phase 5 exit therefore remain open.
+The maintainer initially confirmed configurability and deferred the entry count and
+aggregate-versus-per-map decision on 2026-11-22; the later decision above supersedes
+that deferral. Phase 5 exit remains subject to implementation and validation.
 
 - [ ] Trace `TelemetryPublisher::fromConfig()`, `InMemoryExecutionSpanStore`, execution/activity span mappers, and `ExecutionSpanStoreInterface`; characterize parent lookup order, lifetime, concurrency, and consumer-provided store behavior.
 - [ ] Add tests with many unique executions and activities, nested and late-arriving children, duplicate IDs, and a long-lived publisher. Assert the approved bound or lifecycle, parent lookup before and after eviction, and behavior of injected third-party stores.
@@ -2287,9 +2308,9 @@ dependent implementation and Phase 5 exit therefore remain open.
 
 ### Phase 5 completion plan
 
-This plan does not select a capacity or declare Phase 5 complete. The approved
-direction is a configurable finite default with oldest-entry eviction; the
-capacity, ordering details and compatible configuration remain decision gates.
+This plan originally deferred capacity, ordering details and configuration. The
+decision above supersedes that deferral; completion still requires implementation,
+verification and documentation of the actual behavior and remaining limitations.
 The Phase 0 baseline and Phase 4 evidence above have recorded environment and
 quality-gate limitations; do not mistake those historical results for a fresh
 validation of this phase. Outstanding Phase 1 and Phase 2 follow-ups are not

@@ -37,7 +37,7 @@ harnesses rather than the checked-in PHPBench suite.
 
 ## Phase 5 Span Store Baseline (2026-11-22)
 
-The standalone `tools/retention-baseline.php` exercises the current unbounded
+The standalone `tools/retention-baseline.php` exercised the then-unbounded
 `InMemoryExecutionSpanStore` directly, not a publisher or mapper. At HEAD
 `309c4a77755a5c9de62efda58b035b3ed629bd29`, the worktree contained the plan
 edit and the new harness; the measured store implementation was unchanged. The
@@ -95,7 +95,32 @@ concurrency, real exporters or bounded eviction. The delayed lookups test only
 the selected keys after all writes and do not establish behavior under eviction.
 Three samples and an uncontrolled host cannot establish robust performance
 distributions. Representative worker memory budgets and delayed-parent workloads
-remain necessary before choosing a default capacity or claiming Phase 5 complete.
+remain necessary to validate production sizing and characterize actual correlation loss.
+
+### Bounded Store Comparison (2026-11-22)
+
+On the same PHP 8.5.13 host, three fresh processes ran the 10,000-execution,
+four-activity workload before and after the 10,000-entry aggregate FIFO change.
+The three samples in each group ran concurrently on an uncontrolled host, so timings
+are indicative only and should not be compared directly with the sequential samples
+above. The changed harness reports execution and first-activity hits separately;
+the underlying write and lookup workload did not change.
+
+| Measure | Unbounded | Bounded |
+|---|---:|---:|
+| Used heap delta | 45,393,112 bytes | 9,162,408 bytes |
+| Allocated heap delta | 44,564,480 bytes | 8,388,608 bytes |
+| RSS range | 142,084-142,520 KiB | 107,012-107,664 KiB |
+| Generation and writes | 3,254-3,477 ns/write | 6,711-7,872 ns/write |
+| Delayed execution lookups found | 10,000/10,000 | 2,000/10,000 |
+| Delayed first-activity lookups found | 10,000/10,000 | 2,000/10,000 |
+
+The bounded lookup workload contains misses whereas the unbounded lookup workload
+does not. These delayed lookups are store-level proxies, not measured exported-span
+correlation loss. Writes include ID and context construction. The measurements show a
+substantial write-cost tradeoff in this synthetic overflow workload, not a controlled
+mapper benchmark or a representative production budget. Entry count does not bound
+the size of individual IDs, contexts or trace state.
 
 ## Phase 3 Guard Sample (2026-11-21)
 

@@ -28,6 +28,13 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- The default OpenTelemetry span-context store now retains at most 10,000
+  execution and activity entries combined, evicting the oldest entry on overflow.
+  Replacing an entry refreshes its insertion age; lookups do not. Late children
+  may lose parent correlation or use ambient OpenTelemetry context after eviction.
+  Pass a positively sized `InMemoryExecutionSpanStore` to `TelemetryPublisher::fromConfig()`
+  or inject a custom store to choose a different policy. The store constructor now
+  accepts an optional capacity; the store interface and normalization schema are unchanged.
 - Selecting `FailExecutionOnOpenActivitiesPolicy` with the default runner now
   marks an otherwise successful execution failed when activities remain open.
   Its failure description uses the fixed `open_activity_policy` marker rather

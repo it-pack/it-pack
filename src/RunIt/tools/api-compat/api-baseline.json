@@ -2001,6 +2001,17 @@
         },
         "constants": [],
         "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "capacity",
+                        "type": "int",
+                        "optional": true
+                    }
+                ]
+            },
             "recordExecution": {
                 "static": false,
                 "return": "void",
@@ -7059,7 +7070,10 @@
         "final": true,
         "extends": null,
         "implements": [],
-        "constants": [],
+        "constants": {
+            "FALLBACK_PRIMARY_MESSAGE": "public",
+            "FALLBACK_HANDLER_FAULT_MESSAGE": "public"
+        },
         "methods": {
             "__construct": {
                 "static": false,

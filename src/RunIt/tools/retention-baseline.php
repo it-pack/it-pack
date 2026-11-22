@@ -50,13 +50,14 @@ for ($i = 0; $i < $executions; ++$i) {
 $writeNs = hrtime(true) - $start;
 $usedAfter = memory_get_usage(false);
 $allocatedAfter = memory_get_usage(true);
-$hits = 0;
+$executionHits = 0;
+$activityHits = 0;
 $misses = 0;
 $start = hrtime(true);
 for ($i = 0; $i < $executions; ++$i) {
-    $hits += (int) ($store->executionContext('e' . $i . $suffix) !== null);
+    $executionHits += (int) ($store->executionContext('e' . $i . $suffix) !== null);
     if ($activities > 0) {
-        $hits += (int) ($store->activityContext('a' . $i . '-0' . $suffix) !== null);
+        $activityHits += (int) ($store->activityContext('a' . $i . '-0' . $suffix) !== null);
     }
 }
 $hitNs = hrtime(true) - $start;
@@ -73,12 +74,15 @@ $writes = $executions * (1 + $activities) + $duplicateExecutions * (1 + (int) ($
 print json_encode([
     'executions' => $executions, 'activities_per_execution' => $activities,
     'duplicate_percent' => $duplicates, 'id_padding_bytes' => $padding,
-    'distinct_entries' => $executions * (1 + $activities), 'writes' => $writes,
+    'distinct_ids_written' => $executions * (1 + $activities), 'writes' => $writes,
     'used_delta_bytes' => $usedAfter - $usedBefore, 'allocated_delta_bytes' => $allocatedAfter - $allocatedBefore,
     'peak_used_bytes' => memory_get_peak_usage(false), 'peak_allocated_bytes' => memory_get_peak_usage(true),
     'rss_kib' => isset($rss[1]) ? (int) $rss[1] : null, 'peak_rss_kib' => isset($hwm[1]) ? (int) $hwm[1] : null,
     'generation_and_write_ns_per_write' => $writeNs / $writes,
-    'delayed_hits' => $hits, 'expected_delayed_hits' => $executions * (1 + (int) ($activities > 0)),
-    'delayed_lookup_ns' => $hitNs / ($executions * (1 + (int) ($activities > 0))), 'intentional_misses' => $misses,
+    'delayed_execution_hits' => $executionHits, 'delayed_execution_lookups' => $executions,
+    'delayed_first_activity_hits' => $activityHits,
+    'delayed_first_activity_lookups' => $executions * (int) ($activities > 0),
+    'delayed_lookup_ns_per_lookup_hits_and_misses' => $hitNs / ($executions * (1 + (int) ($activities > 0))),
+    'intentional_misses' => $misses, 'intentional_miss_lookups' => $executions,
     'miss_ns_per_lookup' => $missNs / $executions,
 ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES) . PHP_EOL;

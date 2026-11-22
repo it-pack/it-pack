@@ -12,8 +12,8 @@ use OpenTelemetry\API\Trace\SpanContextInterface;
  *
  * A default store belongs to one publisher; an injected store may be shared.
  * Retention and concurrency guarantees depend on the implementation. The default
- * in-memory store does not evict entries. Implementations may evict contexts, so
- * a parent lookup can return null even if the parent was previously recorded.
+ * in-memory store evicts old contexts, so a parent lookup can return null even if
+ * the parent was previously recorded. Injected stores define their own policy.
  *
  * @api
  */
