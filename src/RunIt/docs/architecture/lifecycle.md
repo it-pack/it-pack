@@ -57,36 +57,38 @@ without completing an execution.
 
 ## Runner flow
 
-`DefaultExecutionRunner::run()` performs the following, always restoring the
-prior ambient context in a `finally` block:
+For an execution, `DefaultExecutionRunner::run()` performs the following. It
+attempts to detach the scope in a `finally` block; a detach failure is reported
+and contained, but restoration cannot be guaranteed if storage fails:
 
 1. Resolve the nested-execution policy (`NestedExecutionPolicyInterface`) for the
    current ambient execution and the new definition.
-2. Create the `created` execution, then transition it to `running` and publish
-   the running execution artifact.
-3. Attach the execution scope to the context storage and invoke the consumer
-   operation with that scope.
-4. On success: resolve open activities, transition `running → succeeded`, and
-   publish the completed execution and a terminal `execution` snapshot.
-5. On failure: record a failure observation, transition `running → failed`, and
-   publish the completed execution and a terminal snapshot.
-6. Rethrow the exact original `Throwable`.
+2. Create the `created` execution, transition it to `running`, and attach its
+   scope to context storage.
+3. Attempt to publish the running execution, then invoke the consumer operation.
+4. On success: resolve open activities, transition to `succeeded` (or `failed`
+   under the explicit fail-on-open policy), and publish the completed execution
+   and a terminal `execution` snapshot.
+5. On failure: resolve open activities, attempt to record a failure observation,
+   transition `running → failed`, publish the completed execution and a terminal
+   snapshot, and rethrow the original `Throwable`.
 
 Terminal execution publication is attempted before creating the terminal
-snapshot. A snapshot factory failure is reported through `onPublicationFailure`
-(if a callback is configured) without suppressing that execution; only an error
+snapshot. A snapshot factory failure is reported through the runner's health path
+without suppressing the earlier execution publication attempt; an error
 escaping execution publication prevents the snapshot attempt. Under the default
 `FailOpenPolicy`, an inner publisher error is swallowed and does not prevent
 the snapshot attempt. These guarantees concern attempts, not successful
-delivery by a failing publisher. **When no `onPublicationFailure` callback is
-configured, failures are reported to the replaceable SDK default health sink
-(the PHP error log) instead of being silent.** A no-op closure passed as the
-handler is the explicit silence opt-out.
+delivery by a failing publisher; snapshot provenance checks can also prevent
+snapshot publication. A failed terminal transition prevents both terminal
+publication attempts.
 
-Publication failures never replace the business result or exception: the runner
-publishes through `FailSafeArtifactPublisher` (configured with the fail-open default
-policy), which catches publisher errors and forwards them to the configured health
-callback (`onPublicationFailure`).
+The runner uses `FailSafeArtifactPublisher` with `FailOpenPolicy`. An omitted or
+null `onPublicationFailure` selects the PHP error log; a no-op closure opts out
+of this runner health path. Callback and fallback failures are contained on the
+runner's reporting paths, but error-log delivery is best effort. These protections
+do not guarantee restoration or a terminal artifact when other collaborators fail.
+See [self-instrumentation](self-instrumentation.md) for diagnostic limitations.
 
 ## Nested execution
 
@@ -105,6 +107,16 @@ the active context and reports through the same recorders; open activities are
 resolved by the completion policy when the execution finishes. Depth is bounded by
 the configured activity-depth limit.
 
+Currently `AutoFailOpenActivitiesPolicy` records a critical observation for each
+open activity; its message says auto-resolved, but the policy itself does not close
+it. With the default runner, `FailExecutionOnOpenActivitiesPolicy` also records
+critical observations and marks an otherwise successful execution failed if any
+activities remain open, even if recording the diagnostic fails. Its fixed
+`open_activity_policy` failure-description class is a synthetic marker, not a
+thrown exception, and contains no activity data or trace. Custom runners must
+implement this outcome themselves. Neither policy closes activities or changes
+the business result or original exception.
+
 ```mermaid
 flowchart TD;
     E["Execution"] --> A1["Activity: resolve-config"];
@@ -121,9 +133,10 @@ flowchart TD;
 A failed execution records the original `Throwable` through
 `ThrowableMapperInterface`, which captures only a safe, bounded description
 (class, truncated message, optional cause chain, optional stack trace). The
-runner always rethrows the exact original `Throwable`; the mapped description is
+runner normally rethrows the exact original `Throwable`; the mapped description is
 carried on the failed execution artifact, never in place of the business
-exception.
+exception. Unprotected collaborator failures, including provenance cleanup in the
+runner's `finally` block, can still interrupt that outcome.
 
 ## Cancellation and timeout
 

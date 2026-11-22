@@ -73,7 +73,7 @@ final class FailureHandlingTest extends Unit
         self::assertNull($thrown);
     }
 
-    public function testRecursiveHealthPublicationReentersTheReporter(): void
+    public function testRecursiveHealthPublicationDoesNotReenterTheReporter(): void
     {
         $errors = [];
         $calls = 0;
@@ -96,15 +96,13 @@ final class FailureHandlingTest extends Unit
         $publisher->publish($this->artifact());
 
         self::assertSame(1, $calls);
-        self::assertCount(4, $errors);
+        self::assertCount(1, $errors);
         self::assertSame('transport down', $errors[0]->getMessage());
-        foreach (array_slice($errors, 1) as $error) {
-            self::assertInstanceOf(RecursivePublicationException::class, $error);
-        }
 
         $publisher->publish($this->artifact());
         self::assertSame(2, $calls);
-        self::assertCount(5, $errors);
+        self::assertCount(2, $errors);
+        self::assertSame('transport down', $errors[1]->getMessage());
     }
 
     public function testThrowingHealthCallbackReportsPayloadFreeFallback(): void

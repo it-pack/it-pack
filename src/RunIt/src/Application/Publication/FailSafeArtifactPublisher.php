@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -39,6 +40,8 @@ final class FailSafeArtifactPublisher implements
 
     private int $publishDepth = 0;
 
+    private bool $reportingHealth = false;
+
     public function __construct(
         private readonly ArtifactPublisherInterface        $inner,
         private readonly PublicationFailurePolicyInterface $policy,
@@ -49,7 +52,7 @@ final class FailSafeArtifactPublisher implements
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         if ($this->publishDepth > 0) {
-            $this->health?->report(
+            $this->reportHealth(
                 RecursivePublicationException::forNestedPublish(),
                 $artifact
             );
@@ -66,12 +69,46 @@ final class FailSafeArtifactPublisher implements
                 // Report before the policy runs: a fail-closed policy rethrows,
                 // and without this ordering its faults would be invisible to
                 // the health channel (Phase 1, T1.2).
-                $this->health?->report($publicationError, $artifact);
+                $this->reportHealth($publicationError, $artifact);
 
                 $this->policy->handle($publicationError, $artifact);
             }
         } finally {
             --$this->publishDepth;
+        }
+    }
+
+    private function reportHealth(Throwable $error, ExecutionArtifactInterface $artifact): void
+    {
+        if (!$this->health instanceof InternalHealthReporterInterface) {
+            return;
+        }
+
+        if ($this->reportingHealth) {
+            $this->reportFallback();
+
+            return;
+        }
+
+        $this->reportingHealth = true;
+        try {
+            $this->health->report($error, $artifact);
+        } catch (Throwable) {
+            $this->reportFallback();
+        } finally {
+            $this->reportingHealth = false;
+        }
+    }
+
+    private function reportFallback(): void
+    {
+        try {
+            new FallbackErrorLogReporter()->report(
+                new RuntimeException(FallbackErrorLogReporter::FALLBACK_PRIMARY_MESSAGE),
+                new RuntimeException(FallbackErrorLogReporter::FALLBACK_HANDLER_FAULT_MESSAGE),
+            );
+        } catch (Throwable) {
+            // No independent reporting path remains.
         }
     }
 }

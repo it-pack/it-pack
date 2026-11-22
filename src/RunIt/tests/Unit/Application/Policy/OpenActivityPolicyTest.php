@@ -6,6 +6,7 @@ namespace Tests\Unit\Application\Policy;
 
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Application\Policy\AutoCancelOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\FailExecutionOnOpenActivitiesPolicy;
@@ -13,9 +14,11 @@ use ItPack\RunIt\Application\Policy\WarnAndIgnoreOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -64,7 +67,7 @@ final class OpenActivityPolicyTest extends Unit
         yield 'fail-execution' => [
             new FailExecutionOnOpenActivitiesPolicy(),
             ObservationSeverity::Critical,
-            'flagged as failed',
+            'fail-execution policy applies',
         ];
     }
 
@@ -111,21 +114,66 @@ final class OpenActivityPolicyTest extends Unit
         self::assertStringContainsString($expectationFragment, $observation->message());
     }
 
-    /** Characterizes the policy's diagnostic without implying it changes the execution outcome. */
-    public function testFailExecutionPolicyPreservesOperationOutcomeWithOpenActivity(): void
+    /** @return iterable<string, array{bool, bool, bool, bool, ExecutionStatus}> */
+    public static function outcomes(): iterable
     {
-        foreach ([false, true] as $businessFails) {
-            $kit = new RunItTestKit(completionPolicy: new FailExecutionOnOpenActivitiesPolicy());
-            $original = new RuntimeException('business failure');
-            $value = new stdClass();
-            $result = null;
-            $caught = null;
+        yield 'selected with open activity' => [true, true, false, false, ExecutionStatus::Failed];
+        yield 'selected without open activity' => [true, false, false, false, ExecutionStatus::Succeeded];
+        yield 'selected with business failure' => [true, true, true, false, ExecutionStatus::Failed];
+        yield 'selected with recorder failure' => [true, true, false, true, ExecutionStatus::Failed];
+        yield 'default with open activity' => [false, true, false, false, ExecutionStatus::Succeeded];
+        yield 'default with business failure' => [false, true, true, false, ExecutionStatus::Failed];
+    }
 
-            try {
-                $result = $kit->runner->run(
-                    ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-                    static function (ExecutionScopeInterface $scope) use ($businessFails, $original, $value): object {
-                        self::assertInstanceOf(ExecutionScope::class, $scope);
+    #[DataProvider('outcomes')]
+    public function testPolicyPreservesBusinessOutcome(
+        bool $selected,
+        bool $open,
+        bool $businessFails,
+        bool $recorderFails,
+        ExecutionStatus $expectedStatus,
+    ): void {
+        $allocator = new InMemorySequenceAllocator();
+        if ($recorderFails) {
+            $allocator = $this->createMock(SequenceAllocatorInterface::class);
+            $delegate = new InMemorySequenceAllocator();
+            $calls = 0;
+            $allocator->method('allocate')->willReturnCallback(static function (ExecutionIdInterface $id) use (
+                $delegate,
+                &$calls
+            ): ArtifactSequenceInterface {
+                if ($calls++ > 0) {
+                    throw new RuntimeException('recorder failure');
+                }
+
+                return $delegate->allocate($id);
+            });
+        }
+
+        $reported = [];
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
+                $reported[] = $failure;
+            },
+            sequenceAllocator: $allocator,
+            completionPolicy: $selected ? new FailExecutionOnOpenActivitiesPolicy() : null,
+        );
+        $original = new RuntimeException('business failure');
+        $value = new stdClass();
+        $result = null;
+        $caught = null;
+
+        try {
+            $result = $kit->runner->run(
+                ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+                static function (ExecutionScopeInterface $scope) use (
+                    $open,
+                    $businessFails,
+                    $original,
+                    $value
+                ): object {
+                    self::assertInstanceOf(ExecutionScope::class, $scope);
+                    if ($open) {
                         $scope->trackOpenActivity(Activity::start(
                             ActivityId::fromString('a1'),
                             $scope->execution()->id(),
@@ -135,42 +183,55 @@ final class OpenActivityPolicyTest extends Unit
                             ),
                             Instant::of(1),
                         ));
-                        if ($businessFails) {
-                            throw $original;
-                        }
+                    }
 
-                        return $value;
-                    },
-                );
-            } catch (Throwable $failure) {
-                $caught = $failure;
-            }
+                    if ($businessFails) {
+                        throw $original;
+                    }
 
-            self::assertSame($businessFails ? $original : null, $caught);
-            self::assertSame($businessFails ? null : $value, $result);
-            $observations = array_values(array_filter(
-                $kit->artifacts(),
-                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ObservationInterface
-                    && $artifact->severity() === ObservationSeverity::Critical,
-            ));
-            self::assertCount(1, $observations);
-            self::assertInstanceOf(ObservationInterface::class, $observations[0]);
-            self::assertSame(
-                'Activity "load" was still open at execution completion; the execution is flagged as failed.',
-                $observations[0]->message(),
+                    return $value;
+                },
             );
-            $terminal = array_values(array_filter(
-                $kit->artifacts(),
-                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface
-                    && $artifact->status()->isTerminal(),
-            ));
-            self::assertCount(1, $terminal);
-            self::assertInstanceOf(ExecutionInterface::class, $terminal[0]);
-            self::assertSame(
-                $businessFails ? ExecutionStatus::Failed : ExecutionStatus::Succeeded,
-                $terminal[0]->status(),
-            );
-            self::assertNull($kit->storage->current());
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
         }
+
+        self::assertSame($businessFails ? $original : null, $caught);
+        self::assertSame($businessFails ? null : $value, $result);
+        $observations = [];
+        $terminal = [];
+        foreach ($kit->artifacts() as $artifact) {
+            if ($artifact instanceof ObservationInterface && $artifact->severity() === ObservationSeverity::Critical) {
+                $observations[] = $artifact;
+            } elseif ($artifact instanceof ExecutionInterface && $artifact->status()->isTerminal()) {
+                $terminal[] = $artifact;
+            }
+        }
+
+        self::assertCount($open && !$recorderFails ? 1 : 0, $observations);
+        self::assertCount($recorderFails ? 1 : 0, $reported);
+        self::assertCount(1, $terminal);
+        self::assertInstanceOf(ExecutionInterface::class, $terminal[0]);
+        self::assertSame(
+            $expectedStatus,
+            $terminal[0]->status(),
+        );
+        if ($selected && $open && !$businessFails) {
+            $description = $terminal[0]->result()?->throwableDescription();
+            self::assertNotNull($description);
+            self::assertSame('open_activity_policy', $description->class());
+            self::assertSame(
+                'Execution failed because activities remained open at completion.',
+                $description->message(),
+            );
+            self::assertNull($description->previous());
+            self::assertNull($description->trace());
+        }
+
+        if ($businessFails) {
+            self::assertSame(RuntimeException::class, $terminal[0]->result()?->throwableDescription()?->class());
+        }
+
+        self::assertNull($kit->storage->current());
     }
 }

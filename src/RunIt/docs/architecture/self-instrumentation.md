@@ -32,15 +32,17 @@ flowchart TD;
 ```
 
 Health reporters (`CallbackHealthReporter`, `ErrorLogHealthReporter`) implement
-`InternalHealthReporterInterface`. They must not call the guarded publisher:
-a callback that republishes can recursively trigger health reporting.
+`InternalHealthReporterInterface`. They should not call the guarded publisher:
+nested publication during health reporting is dropped without invoking the
+reporter again. The instance-wide guard does not isolate interleaved calls.
 
 ## Guard in the default stack
 
 The builder-composed stack (the one every consumer gets by default) carries its own
 reentrancy protection: `FailSafeArtifactPublisher` tracks an active publish depth and
 routes any nested publish to the health reporter as a
-`RecursivePublicationException` instead of executing it. The explicit
+`RecursivePublicationException` instead of executing it, unless the reporter is
+already active, in which case the nested report is suppressed. The explicit
 `GuardedArtifactPublisher` remains available through `PublicationPipeline` for
 composed pipelines; the fail-safe guard guarantees the property holds even in the
 simple default wiring.
@@ -53,14 +55,14 @@ the fallback log receives fixed diagnostics without exception messages or artifa
 identifiers, and the artifact is not normalized. If writing that fallback throws,
 it attempts a separate fixed system-log notice. A failure of that last
 resort is contained, although PHP's system log can fail without reporting it.
-Other invocation sites, including the runner and bounded-publisher drop callback,
-have separate failure paths and are not covered by this guarantee. Setup faults
-before an execution materializes (identity allocation, start, scope assembly,
-attach) are passed to the runner's health callback when one is configured. If
-no callback is configured, no health report is emitted. The original setup
-exception is surfaced to the caller unless the callback throws and the runner's
-fallback reporting also fails. For example, an `error_log` fallback error when
-PHP error logging is disabled can escape instead of the original exception.
+Other invocation sites have separate failure paths and are not covered by this
+guarantee. Runner setup failures are passed to its callback, or to the default PHP
+error log when the callback is null, after any setup cleanup. The runner contains
+failures from that reporting path; however, a cleanup failure before reporting can
+still escape. Its guarded `reportFailure()` path uses fixed, payload-free fallback
+diagnostics for reporter failures and suppressed recursive reports. Neither path
+guarantees log delivery. Guards are per instance and can suppress interleaved
+independent reports; they do not provide concurrency isolation.
 
 ## Instrument batches, not every method
 
@@ -83,10 +85,9 @@ scope only once the consumer operation is about to run.
 When RunIt models its own quality gates (test execution, static analysis,
 architecture analysis, mutation testing, benchmarks, release validation — see
 M14.6), each is represented as a normal execution through the same ports. The
-recursion guard and the health reporter guarantee that representing, say, a
-mutation run does not recurse into publication, and that dogfooding does not distort
-benchmark timing (the instrumented surface is the batch/flush edge, not the measured
-code). See [`lifecycle.md`](lifecycle.md) and [`publication.md`](publication.md).
+guard blocks nested delivery on the same publisher, but a health callback that
+republishes can repeatedly invoke itself. Benchmark effects require measurement.
+See [`lifecycle.md`](lifecycle.md) and [`publication.md`](publication.md).
 
 ## What is guarded
 

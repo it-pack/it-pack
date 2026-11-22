@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Runner;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -142,6 +147,79 @@ final class HealthReportingTest extends Unit
 
             self::assertSame('business-value', $result);
             self::assertStringContainsString('publication health fallback', (string) @file_get_contents($logPath));
+        } finally {
+            ini_set('error_log', $previous);
+            @unlink($logPath);
+        }
+    }
+
+    /** @return iterable<string, array{bool, bool}> */
+    public static function failingReporterCases(): iterable
+    {
+        yield 'callback and success' => [true, false];
+        yield 'callback and exception' => [true, true];
+        yield 'default reporter and success' => [false, false];
+        yield 'default reporter and exception' => [false, true];
+    }
+
+    #[DataProvider('failingReporterCases')]
+    public function testReporterFailureFallbackExcludesSecrets(bool $callback, bool $businessFails): void
+    {
+        $logPath = (string) tempnam(sys_get_temp_dir(), 'runit-health-secret');
+        $previous = (string) ini_get('error_log');
+        $publisher = new class () implements ArtifactPublisherInterface {
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                throw new RuntimeException('PRIMARY-SECRET');
+            }
+        };
+        $mapper = new class () implements ThrowableMapperInterface {
+            public function describe(Throwable $throwable): ThrowableDescriptionInterface
+            {
+                throw new RuntimeException('REPORTER-SECRET');
+            }
+        };
+        $handler = $callback ? static function (Throwable $failure): never {
+            throw new RuntimeException('REPORTER-SECRET');
+        } : null;
+        $businessError = new RuntimeException('BUSINESS-SECRET');
+        $snapshotFactory = self::createStub(ExecutionSnapshotFactoryInterface::class);
+        $snapshotFactory->method('terminal')->willThrowException(new RuntimeException('SNAPSHOT-SECRET'));
+
+        try {
+            ini_set('error_log', $logPath);
+            $kit = new RunItTestKit(
+                publisher: $publisher,
+                onPublicationFailure: $handler,
+                throwableMapper: $mapper,
+                snapshotFactory: $snapshotFactory,
+            );
+            $caught = null;
+            $result = null;
+            try {
+                $result = $kit->runner->run($this->definition(), static function () use (
+                    $businessFails,
+                    $businessError
+                ): string {
+                    if ($businessFails) {
+                        throw $businessError;
+                    }
+
+                    return 'business-value';
+                });
+            } catch (Throwable $throwable) {
+                $caught = $throwable;
+            }
+
+            $log = (string) file_get_contents($logPath);
+            self::assertSame($businessFails ? $businessError : null, $caught);
+            self::assertSame($businessFails ? null : 'business-value', $result);
+            self::assertNull($kit->storage->current());
+            self::assertStringContainsString('publication health fallback', $log);
+            self::assertStringNotContainsString('PRIMARY-SECRET', $log);
+            self::assertStringNotContainsString('REPORTER-SECRET', $log);
+            self::assertStringNotContainsString('BUSINESS-SECRET', $log);
+            self::assertStringNotContainsString('SNAPSHOT-SECRET', $log);
         } finally {
             ini_set('error_log', $previous);
             @unlink($logPath);

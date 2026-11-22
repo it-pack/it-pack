@@ -28,19 +28,26 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Selecting `FailExecutionOnOpenActivitiesPolicy` with the default runner now
+  marks an otherwise successful execution failed when activities remain open.
+  Its failure description uses the fixed `open_activity_policy` marker rather
+  than a thrown exception; the exact business result or exception is unchanged.
+  This changes terminal statuses and diagnostics for existing users of this
+  explicit policy; the default policy and public interfaces are unchanged.
 - Publication health reporting now defaults to the replaceable SDK error-log
   sink: an omitted or `null` `onPublicationFailure` handler reports publication
   failures to the PHP error log instead of being silent, including for directly
-  constructed runners. Diagnostics are sanitized through the throwable mapper and
-  exclude artifact identifiers; a throwing reporter or sink falls back to a
-  bounded, payload-free error-log notice, and re-entering publication is routed
-  through the health channel without recursion. Explicit silence is opted into by
-  passing a no-op closure as the handler. No public signature changed;
-  `composer api:check` passes.
+  constructed runners. The default reporter uses the configured throwable mapper
+  and excludes artifact identifiers. Callback and sink failures trigger best-effort
+  fixed, payload-free fallback reporting. Same-publisher re-entry during health reporting is dropped
+  without recursively invoking the reporter; the instance-wide guard may also
+  suppress interleaved calls. A no-op handler opts out of that runner health path.
+  No public signature changed.
 - The default open-activity completion policy (`AutoFailOpenActivitiesPolicy`)
   now records a `Critical` diagnostic instead of `Warning` when activities are
   still open at completion. The operation-derived terminal status and the exact
   business result or original exception are preserved.
+- Neither open-activity policy itself closes open activities.
 - `BufferedArtifactPublisher` now drops and counts same-instance publications
   reentered during a drop-health callback, before estimating or admitting them.
   Nested drops do not recursively invoke the configured reporter; a best-effort

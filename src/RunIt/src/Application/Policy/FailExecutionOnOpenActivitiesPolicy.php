@@ -12,8 +12,8 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
  * Open-activity policy that escalates the execution when activities are still open.
  *
  * The policy never changes the original business result or exception; instead it records
- * a critical observation so the open activities are surfaced as an execution-level
- * failure signal for downstream health reporting.
+ * a critical observation. The default runner marks successful executions failed
+ * when this policy is selected and activities remain open.
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
@@ -24,7 +24,7 @@ final class FailExecutionOnOpenActivitiesPolicy implements ExecutionCompletionPo
         foreach ($openActivities as $activity) {
             $scope->observations()->record(
                 sprintf(
-                    self::OPEN_ACTIVITY_MESSAGE_PREFIX . '; the execution is flagged as failed.',
+                    self::OPEN_ACTIVITY_MESSAGE_PREFIX . '; the fail-execution policy applies.',
                     $activity->definition()->name()->toString(),
                 ),
                 ObservationSeverity::Critical,
