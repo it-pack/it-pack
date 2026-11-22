@@ -33,8 +33,11 @@ flowchart TD;
 
 Health reporters (`CallbackHealthReporter`, `ErrorLogHealthReporter`) implement
 `InternalHealthReporterInterface`. They should not call the guarded publisher:
-nested publication during health reporting is dropped without invoking the
-reporter again. The instance-wide guard does not isolate interleaved calls.
+`GuardedArtifactPublisher` routes nested publication to the reporter again on
+re-entry and can recurse without bound if the reporter feeds the same pipeline;
+`FailSafeArtifactPublisher` suppresses nested publication without invoking the
+reporter again, falling back to a payload-free diagnostic instead. The
+instance-wide guard does not isolate interleaved calls.
 
 ## Guard in the default stack
 

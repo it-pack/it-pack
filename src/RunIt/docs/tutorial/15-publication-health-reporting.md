@@ -38,9 +38,10 @@ $result = $runtime->run(
 // logged to the error log instead.
 ```
 
-Diagnostics are sanitized: throwable descriptions come from the throwable mapper
-(truncated, structural), and artifact identifiers are deliberately excluded so no
-business identifier reaches the error log.
+Diagnostics exclude artifact identifiers so no business identifier reaches the
+error log. Throwable descriptions come from the throwable mapper, which only
+truncates messages — truncation is not sanitization, so exception messages may
+still contain sensitive data unless an independently sanitizing mapper is used.
 
 ## Custom handler
 
@@ -83,8 +84,10 @@ error-log sink.
 
 The default completion policy (`AutoFailOpenActivitiesPolicy`) now records a
 `Critical` diagnostic instead of `Warning` when activities are still open at
-completion. The activity is auto-resolved, but the operation-derived terminal
-status and the exact business result or original exception are preserved. Use an
+completion. The policy itself only records the observation — it does not
+complete or remove the activity; activity closure is left to the runtime. The
+operation-derived terminal status and the exact business result or original
+exception are preserved. Use an
 explicit completion policy (`withCompletionPolicy(...)`) to alter the terminal
 outcome.
 
@@ -110,7 +113,9 @@ $runtime = RunItBuilder::create()
 - Custom handler: receives failures directly; throwing handlers are contained by
   a bounded payload-free fallback.
 - Explicit silence: pass a no-op closure as the handler.
-- Diagnostics are sanitized — no artifact identifiers reach the error log.
+- Artifact identifiers are omitted from diagnostics; exception messages are only
+  truncated by the throwable mapper and may still contain sensitive data unless
+  an independently sanitizing mapper is used.
 - Open activities at completion now record a `Critical` diagnostic.
 
 ## Next
