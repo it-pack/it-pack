@@ -5,23 +5,37 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Scope;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
+use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
+use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
+use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
+use Tests\Support\Fixture\SequenceIdentifierGenerator;
 
+#[CoversClass(ExecutionScope::class)]
 final class ExecutionScopeTest extends Unit
 {
     public function testMeasurementsAreBoundToExecutionAndPublished(): void
@@ -198,5 +212,68 @@ final class ExecutionScopeTest extends Unit
         }
 
         return $result;
+    }
+
+    public function testInvalidActivityContextFailurePolicyThrows(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid activity context failure policy.');
+        new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new JsonSnapshotSerializer(),
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ObservationId::fromString(...),
+                new SequenceIdentifierGenerator('obs')
+            ),
+            new StringIdentifierFactory(
+                OccurrenceId::fromString(...),
+                new SequenceIdentifierGenerator('occ')
+            ),
+            new StringIdentifierFactory(
+                SnapshotId::fromString(...),
+                new SequenceIdentifierGenerator('snap')
+            ),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('act')
+            ),
+            new DeterministicHashCalculator(),
+            activityContextFailurePolicy: 'bogus',
+        );
+    }
+
+    public function testSetCurrentActivityIdUpdatesTracking(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+
+        $scope = $kit->buildScope($execution, $context);
+
+        $activityId = ActivityId::fromString('act-1');
+        $scope->setCurrentActivityId($activityId);
+
+        self::assertSame($activityId, $scope->currentActivityId());
+
+        $scope->setCurrentActivityId(null);
+        self::assertNull($scope->currentActivityId());
     }
 }

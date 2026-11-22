@@ -6,6 +6,7 @@ namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
@@ -35,7 +36,9 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
+use ReflectionMethod;
 use RuntimeException;
+use Throwable;
 
 #[CoversClass(DefaultArtifactRedactor::class)]
 final class DefaultArtifactRedactorTest extends Unit
@@ -43,7 +46,7 @@ final class DefaultArtifactRedactorTest extends Unit
     public function testUnchangedArtifactIsReturnedAsIs(): void
     {
         $config = ArtifactRedactionConfig::disabled();
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Observation::info(
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
@@ -61,7 +64,7 @@ final class DefaultArtifactRedactorTest extends Unit
         $config = new ArtifactRedactionConfig(
             sensitiveAttributeKeys: ['password', 'token']
         );
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Observation::info(
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
@@ -103,7 +106,7 @@ final class DefaultArtifactRedactorTest extends Unit
     public function testObservationMessageNotMaskedWhenDisabled(): void
     {
         $config = new ArtifactRedactionConfig(redactObservationMessages: false);
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Observation::info(
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
@@ -118,7 +121,7 @@ final class DefaultArtifactRedactorTest extends Unit
     public function testMeasurementValueIsMaskedWhenEnabled(): void
     {
         $config = new ArtifactRedactionConfig(redactMeasurementValues: true);
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Measurement::counter(
             MeasurementName::fromString('requests'),
             ExecutionId::fromString('exec-1'),
@@ -173,7 +176,7 @@ final class DefaultArtifactRedactorTest extends Unit
     public function testSnapshotPayloadIsMaskedAndHashOmitted(): void
     {
         $config = new ArtifactRedactionConfig(sensitiveDataKeys: ['secret']);
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Snapshot::create(
             SnapshotId::fromString('snap-1'),
             ExecutionId::fromString('exec-1'),
@@ -204,7 +207,7 @@ final class DefaultArtifactRedactorTest extends Unit
     public function testDisabledConfigMasksNothing(): void
     {
         $config = ArtifactRedactionConfig::disabled();
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Observation::info(
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
@@ -222,7 +225,7 @@ final class DefaultArtifactRedactorTest extends Unit
         $config = new ArtifactRedactionConfig(
             sensitiveAttributeKeys: ['password']
         );
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = new class () implements ExecutionArtifactInterface {
             public function artifactType(): string
             {
@@ -251,7 +254,7 @@ final class DefaultArtifactRedactorTest extends Unit
     public function testObservationMessageNotMaskedOnNonObservation(): void
     {
         $config = new ArtifactRedactionConfig(redactObservationMessages: true);
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Execution::create(
             ExecutionId::fromString('exec-1'),
             ExecutionDefinition::create(
@@ -275,7 +278,7 @@ final class DefaultArtifactRedactorTest extends Unit
             redactObservationMessages: false,
             redactMeasurementValues: true
         );
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Observation::info(
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
@@ -292,7 +295,7 @@ final class DefaultArtifactRedactorTest extends Unit
         $config = new ArtifactRedactionConfig(
             sensitiveAttributeKeys: ['secret']
         );
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Observation::info(
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
@@ -315,7 +318,7 @@ final class DefaultArtifactRedactorTest extends Unit
             sensitiveDataKeys: ['secret'],
             redactOccurrenceData: true
         );
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Occurrence::create(
             OccurrenceId::fromString('occ-1'),
             ExecutionId::fromString('exec-1'),
@@ -347,7 +350,7 @@ final class DefaultArtifactRedactorTest extends Unit
             sensitiveDataKeys: ['secret'],
             redactSnapshotPayloads: true
         );
-        $redactor = new DefaultArtifactRedactor($config);
+        $redactor = $this->createArtifactRedactor($config);
         $artifact = Snapshot::create(
             SnapshotId::fromString('snap-1'),
             ExecutionId::fromString('exec-1'),
@@ -374,5 +377,203 @@ final class DefaultArtifactRedactorTest extends Unit
         self::assertSame('[redacted]', $payload['secret']);
         self::assertSame('visible', $payload['safe']);
         self::assertArrayNotHasKey('content_hash', $normalized);
+    }
+
+    public function testSnapshotPayloadWithContentHashHasHashRemovedWhenMasked(): void
+    {
+        $config = new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['secret'],
+            redactSnapshotPayloads: true
+        );
+        $redactor = $this->createArtifactRedactor($config);
+        $artifact = Snapshot::create(
+            SnapshotId::fromString('snap-1'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('state.v1'),
+            1,
+            ['secret' => 'data'],
+            new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return hash('sha256', $content);
+                }
+            },
+            classification: SnapshotClassification::Checkpoint,
+            createdAt: Instant::of(1000),
+            contentType: 'application/json'
+        );
+
+        $result = $redactor->redact($artifact);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $result);
+        $normalized = $result->normalize();
+        $payload = $normalized['payload'];
+        self::assertIsArray($payload);
+        self::assertSame('[redacted]', $payload['secret']);
+        self::assertArrayNotHasKey('content_hash', $normalized);
+    }
+
+    public function testTruncationReportsThroughHealthReporter(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $failure,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = $failure->getMessage();
+        });
+
+        $redactor = new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(
+                sensitiveDataKeys: ['secret'],
+                redactSnapshotPayloads: true,
+            ),
+            $health,
+        );
+
+        $ref = new ReflectionMethod(DefaultArtifactRedactor::class, 'reportTruncation');
+        $ref->invoke($redactor);
+
+        self::assertCount(1, $reports);
+        self::assertStringContainsString('traversal limits exceeded', $reports[0]);
+    }
+
+    public function testTruncationIsDeduplicated(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $failure,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = $failure->getMessage();
+        });
+
+        $redactor = new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(),
+            $health,
+        );
+
+        $ref = new ReflectionMethod(DefaultArtifactRedactor::class, 'reportTruncation');
+        $ref->invoke($redactor);
+        $ref->invoke($redactor);
+        $ref->invoke($redactor);
+
+        self::assertCount(1, $reports);
+    }
+
+    public function testTruncationIsNoopWhenAlreadyPublishing(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $failure,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = $failure->getMessage();
+        });
+
+        $redactor = new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(),
+            $health,
+        );
+
+        $ref = new ReflectionMethod(DefaultArtifactRedactor::class, 'reportTruncation');
+        $ref->invoke($redactor);
+
+        self::assertCount(1, $reports);
+    }
+
+    public function testThrowableClassChangedIsDetected(): void
+    {
+        $redactor = new DefaultArtifactRedactor();
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'execution';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'result' => [
+                        'throwable' => [
+                            'class' => 'OriginalClass',
+                            'message' => 'msg',
+                            'code' => 1,
+                            'previous' => null,
+                            'trace' => null,
+                        ],
+                    ],
+                ];
+            }
+        };
+
+        $result = $redactor->redact($artifact);
+
+        self::assertSame($artifact, $result);
+    }
+
+    public function testThrowableCodeChangedIsDetected(): void
+    {
+        $redactor = new DefaultArtifactRedactor();
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'execution';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'result' => [
+                        'throwable' => [
+                            'class' => 'X',
+                            'message' => 'msg',
+                            'code' => 1,
+                            'previous' => null,
+                            'trace' => null,
+                        ],
+                    ],
+                ];
+            }
+        };
+
+        $result = $redactor->redact($artifact);
+
+        self::assertSame($artifact, $result);
+    }
+
+    public function testThrowableMessageChangedIsDetected(): void
+    {
+        $redactor = new DefaultArtifactRedactor();
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'execution';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'result' => [
+                        'throwable' => [
+                            'class' => 'X',
+                            'message' => '[redacted]',
+                            'code' => 1,
+                            'previous' => null,
+                            'trace' => null,
+                        ],
+                    ],
+                ];
+            }
+        };
+
+        $result = $redactor->redact($artifact);
+
+        self::assertSame($artifact, $result);
+    }
+
+    public function createArtifactRedactor(ArtifactRedactionConfig $config): DefaultArtifactRedactor
+    {
+        return new DefaultArtifactRedactor($config);
     }
 }

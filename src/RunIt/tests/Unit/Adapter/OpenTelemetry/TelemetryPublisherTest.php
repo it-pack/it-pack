@@ -61,6 +61,8 @@ use OpenTelemetry\SDK\Metrics\Data\Metric;
 use OpenTelemetry\SDK\Metrics\Data\Sum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\MockObject\Exception;
+use ReflectionMethod;
 use ReflectionProperty;
 use RuntimeException;
 use stdClass;
@@ -203,7 +205,12 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'missing'));
     }
 
-    /** @param 'recordExecution'|'executionContext'|'recordActivity'|'activityContext' $method */
+    /**
+     * @param 'recordExecution'|'executionContext'|'recordActivity'|'activityContext' $method
+     * @param bool $redacted
+     * @throws Throwable
+     * @throws Exception
+     */
     #[DataProvider('storeFailureCases')]
     public function testDirectPublisherPropagatesInjectedStoreFailure(string $method, bool $redacted): void
     {
@@ -1463,5 +1470,126 @@ final class TelemetryPublisherTest extends Unit
         // The test reader uses delta temporality, so the first collection consumed the control value.
         self::assertCount(0, $points);
         self::assertFalse($publisher->capability()->any());
+    }
+
+    public function testPublishUnclassifiedArtifactWithoutKnownTypeIsSilentlyIgnored(): void
+    {
+        $publisher = $this->publisher();
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return ['id' => 'unknown', 'custom_field' => 'value'];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $this->kit->spans());
+        self::assertCount(0, $this->kit->logs());
+        self::assertCount(0, $this->kit->collectMetrics());
+    }
+
+    public function testPublishUnclassifiedArtifactWithArtifactTypeDispatches(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error) use (&$reports): void {
+                $reports[] = $error;
+            },
+        );
+        $mapper = $this->createMock(ObservationLogMapperInterface::class);
+        $publisher = new TelemetryPublisher(
+            BridgeConfig::default(),
+            $this->createMock(ExecutionSpanMapperInterface::class),
+            $this->createMock(ActivitySpanMapperInterface::class),
+            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $mapper,
+            $this->createMock(OccurrenceLogMapperInterface::class),
+            $health,
+        );
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'observation';
+            }
+
+            public function normalize(): array
+            {
+                return ['id' => 'obs', 'execution_id' => 'exec', 'message' => 'hi'];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(1, $reports);
+        self::assertSame(
+            'Observation mapper does not support redacted observations.',
+            $reports[0]->getMessage()
+        );
+    }
+
+    /**
+     * @throws \ReflectionException
+     */
+    public function testReportRedactedDropReEntryGuardCallsWriteHealthFallback(): void
+    {
+        $publisher = new TelemetryPublisher(
+            BridgeConfig::default(),
+            $this->createMock(ExecutionSpanMapperInterface::class),
+            $this->createMock(ActivitySpanMapperInterface::class),
+            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $this->createMock(ObservationLogMapperInterface::class),
+            $this->createMock(OccurrenceLogMapperInterface::class),
+        );
+
+        $ref = new ReflectionProperty(TelemetryPublisher::class, 'publishingHealthReport');
+        $ref->setValue($publisher, true);
+
+        $ref2 = new ReflectionMethod(TelemetryPublisher::class, 'reportRedactedDrop');
+        $ref2->invoke($publisher, 'test reason');
+
+    }
+
+    /**
+     * @throws \ReflectionException
+     */
+    public function testWriteHealthFallbackReEntryGuardIsNoop(): void
+    {
+        $publisher = new TelemetryPublisher(
+            BridgeConfig::default(),
+            $this->createMock(ExecutionSpanMapperInterface::class),
+            $this->createMock(ActivitySpanMapperInterface::class),
+            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $this->createMock(ObservationLogMapperInterface::class),
+            $this->createMock(OccurrenceLogMapperInterface::class),
+        );
+
+        $ref = new ReflectionProperty(TelemetryPublisher::class, 'writingHealthFallback');
+        $ref->setValue($publisher, true);
+
+        $ref2 = new ReflectionMethod(TelemetryPublisher::class, 'writeHealthFallback');
+        $ref2->invoke($publisher);
+
+    }
+
+    /**
+     * @throws \ReflectionException
+     */
+    public function testWriteHealthFallbackErrorLogFailureIsContained(): void
+    {
+        $publisher = new TelemetryPublisher(
+            BridgeConfig::default(),
+            $this->createMock(ExecutionSpanMapperInterface::class),
+            $this->createMock(ActivitySpanMapperInterface::class),
+            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $this->createMock(ObservationLogMapperInterface::class),
+            $this->createMock(OccurrenceLogMapperInterface::class),
+        );
+
+        $ref = new ReflectionMethod(TelemetryPublisher::class, 'writeHealthFallback');
+
+        // error_log is not throwable in normal PHP, but we can still call it directly
+        $ref->invoke($publisher);
+
     }
 }

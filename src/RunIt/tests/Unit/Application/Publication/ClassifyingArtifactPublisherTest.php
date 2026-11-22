@@ -6,6 +6,7 @@ namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
@@ -14,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -666,6 +668,379 @@ final class ClassifyingArtifactPublisherTest extends Unit
                         'previous' => null,
                         'trace' => 'changed',
                     ],
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testFlushWhenInnerNotFlushableIsNoop(): void
+    {
+        $inner = new class () implements ArtifactPublisherInterface {
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+            }
+        };
+        $publisher = new ClassifyingArtifactPublisher($inner);
+
+        $publisher->flush();
+
+    }
+
+    public function testCloseWhenInnerNotCloseableIsNoop(): void
+    {
+        $inner = new class () implements ArtifactPublisherInterface {
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+            }
+        };
+        $publisher = new ClassifyingArtifactPublisher($inner);
+
+        $publisher->close();
+
+    }
+
+    public function testSnapshotWithChangedPayloadIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'snapshot';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'snap-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'type' => 'state.v1',
+                    'classification' => 'checkpoint',
+                    'schema_version' => 1,
+                    'created_at' => 1000,
+                    'content_type' => 'application/json',
+                    'content_hash' => 'abc',
+                    'predecessor_id' => null,
+                    'sequence' => 0,
+                    'payload' => ['a' => 1],
+                    'attributes' => [],
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testMeasurementWithMissingFieldsIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'measurement';
+            }
+
+            public function normalize(): array
+            {
+                return [];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testMeasurementWithInvalidKindFactoryIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'measurement';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'name' => 'req',
+                    'kind' => 'bogus-kind',
+                    'unit' => '1',
+                    'value' => 5,
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'timestamp' => 1000,
+                    'sequence' => 0,
+                    'attributes' => [],
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testMeasurementWithNonNumericValueIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'measurement';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'name' => 'req',
+                    'kind' => 'counter',
+                    'unit' => '1',
+                    'value' => 'not-a-number',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'timestamp' => 1000,
+                    'sequence' => 0,
+                    'attributes' => [],
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testMeasurementWithNonArrayAttributesIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'measurement';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'name' => 'req',
+                    'kind' => 'counter',
+                    'unit' => '1',
+                    'value' => 5,
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'timestamp' => 1000,
+                    'sequence' => 0,
+                    'attributes' => 'not-array',
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testObservationWithInvalidSeverityIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'observation';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'obs-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'severity' => 'bogus-severity',
+                    'level' => 0,
+                    'message' => 'msg',
+                    'diagnostic_code' => null,
+                    'sequence' => 0,
+                    'timestamp' => 1000,
+                    'attributes' => [],
+                    'throwable' => null,
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testOccurrenceWithMissingFieldsIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'occurrence';
+            }
+
+            public function normalize(): array
+            {
+                return [];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testVerifiedArtifactProjectionUsesArtifactTypeMethod(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $artifact = new VerifiedArtifactProjection([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => null,
+        ], 'observation');
+
+        $publisher->publish($artifact);
+
+        self::assertCount(1, $inner->published());
+    }
+
+    public function testRedactedArtifactWithUnknownTypeIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $redacted = new readonly class (['id' => 'x']) implements RedactedArtifactInterface {
+            /** @param array<string, mixed> $data */
+            public function __construct(private array $data)
+            {
+            }
+
+            public function artifactType(): string
+            {
+                return 'unknown-type';
+            }
+
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return $this->data;
+            }
+        };
+
+        $publisher->publish($redacted);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testDeeplyNestedStructureTriggersDepthLimit(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+
+        $nested = ['value' => 'leaf'];
+        for ($i = 0; $i < 20; $i++) {
+            $nested = ['child' => $nested];
+        }
+
+        $artifact = new readonly class ($nested) implements ExecutionArtifactInterface {
+            /** @param array<string, mixed> $payload */
+            public function __construct(private array $payload)
+            {
+            }
+
+            public function artifactType(): string
+            {
+                return 'snapshot';
+            }
+
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'snap-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'type' => 'state.v1',
+                    'classification' => 'checkpoint',
+                    'schema_version' => 1,
+                    'created_at' => 1000,
+                    'content_type' => 'application/json',
+                    'content_hash' => 'abc',
+                    'predecessor_id' => null,
+                    'sequence' => 0,
+                    'payload' => $this->payload,
+                    'attributes' => [],
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testLargeArrayTriggersNodeBudgetLimit(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+
+        $largePayload = [];
+        for ($i = 0; $i < 2000; $i++) {
+            $largePayload["key_$i"] = "value_$i";
+        }
+
+        $artifact = new readonly class ($largePayload) implements ExecutionArtifactInterface {
+            /** @param array<string, mixed> $payload */
+            public function __construct(private array $payload)
+            {
+            }
+
+            public function artifactType(): string
+            {
+                return 'snapshot';
+            }
+
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'snap-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'type' => 'state.v1',
+                    'classification' => 'checkpoint',
+                    'schema_version' => 1,
+                    'created_at' => 1000,
+                    'content_type' => 'application/json',
+                    'content_hash' => 'abc',
+                    'predecessor_id' => null,
+                    'sequence' => 0,
+                    'payload' => $this->payload,
+                    'attributes' => [],
                 ];
             }
         };
