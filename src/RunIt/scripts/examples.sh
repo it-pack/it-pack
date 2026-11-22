@@ -37,7 +37,7 @@ for f in examples/*.php; do
 
     skip=0
     case "$name" in
-        opentelemetry.php)
+        opentelemetry.php|opentelemetry-retention.php)
             if ! class_exists "OpenTelemetry\\SDK\\Trace\\TracerProvider"; then
                 echo "==> SKIP $f (open-telemetry/sdk not installed)"
                 skip=1

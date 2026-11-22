@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\OpenTelemetry;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
@@ -27,7 +28,9 @@ use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -52,6 +55,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Instrumentation\Configurator;
+use OpenTelemetry\API\Trace\SpanContextInterface;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Metrics\Data\Metric;
 use OpenTelemetry\SDK\Metrics\Data\Sum;
@@ -59,8 +63,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionProperty;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 use Throwable;
 
@@ -195,6 +201,459 @@ final class TelemetryPublisherTest extends Unit
         $publisher = TelemetryPublisher::fromConfig($config, $store);
         $publisher->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'));
         $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'missing'));
+    }
+
+    /** @param 'recordExecution'|'executionContext'|'recordActivity'|'activityContext' $method */
+    #[DataProvider('storeFailureCases')]
+    public function testDirectPublisherPropagatesInjectedStoreFailure(string $method, bool $redacted): void
+    {
+        $failure = new RuntimeException('store failed');
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->once())->method($method)->willThrowException($failure);
+
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $artifact = match ($method) {
+            'recordExecution' => RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'),
+            'executionContext' => RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded', 'parent'),
+            'recordActivity' => RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded'),
+            'activityContext' => RunItArtifactFactory::activity(
+                'act',
+                'exec',
+                'act',
+                'internal',
+                'succeeded',
+                'parent',
+            ),
+        };
+        if ($redacted) {
+            $artifactType = match ($method) {
+                'recordExecution', 'executionContext' => 'execution',
+                'recordActivity', 'activityContext' => 'activity',
+            };
+            $normalized = match ($method) {
+                'recordExecution' => ['id' => 'redacted-exec'],
+                'executionContext' => ['parent_execution_id' => 'parent-exec'],
+                'recordActivity' => ['id' => 'redacted-act'],
+                'activityContext' => ['parent_activity_id' => 'parent-act'],
+            };
+            $artifact = new RedactedArtifact($normalized, $artifactType);
+        }
+
+        try {
+            $publisher->publish($artifact);
+            self::fail('The direct publisher must propagate the store failure.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+    }
+
+    /** @return array<string, array{'recordExecution'|'executionContext'|'recordActivity'|'activityContext', bool}> */
+    public static function storeFailureCases(): array
+    {
+        return [
+            'typed execution write' => ['recordExecution', false],
+            'redacted execution write' => ['recordExecution', true],
+            'typed execution lookup' => ['executionContext', false],
+            'redacted execution lookup' => ['executionContext', true],
+            'typed activity write' => ['recordActivity', false],
+            'redacted activity write' => ['recordActivity', true],
+            'typed activity lookup' => ['activityContext', false],
+            'redacted activity lookup' => ['activityContext', true],
+        ];
+    }
+
+    #[DataProvider('businessOutcomeCases')]
+    public function testRunnerPreservesBusinessOutcomeWhenInjectedStoreFails(bool $businessFails): void
+    {
+        $failure = new RuntimeException('store failed');
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->exactly(2))->method('recordExecution')->willThrowException($failure);
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $reports = [];
+        $kit = new RunItTestKit(
+            publisher: TelemetryPublisher::fromConfig($config, $store),
+            onPublicationFailure: static function (Throwable $error) use (&$reports): void {
+                $reports[] = $error;
+            },
+        );
+        $result = new stdClass();
+        $original = new RuntimeException('business failed');
+        $caught = null;
+        $actual = null;
+        try {
+            $actual = $kit->runner->run(
+                ExecutionDefinition::create(ExecutionName::fromString('test'), ExecutionKind::fromString('internal')),
+                static function () use ($businessFails, $original, $result): object {
+                    if ($businessFails) {
+                        throw $original;
+                    }
+
+                    return $result;
+                },
+            );
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertSame($businessFails ? $original : null, $caught);
+        self::assertSame($businessFails ? null : $result, $actual);
+        self::assertSame([$failure, $failure], $reports);
+        self::assertNull($kit->storage->current());
+    }
+
+    /** @return array<string, array{bool}> */
+    public static function businessOutcomeCases(): array
+    {
+        return ['result' => [false], 'exception' => [true]];
+    }
+
+    public function testInjectedStoreControlsWhichParentContextIsReturned(): void
+    {
+        $chosen = $this->kit->tracerProvider->getTracer('test')->spanBuilder('chosen')->startSpan();
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->once())->method('executionContext')->with('parent')->willReturn($chosen->getContext());
+        $store->expects($this->once())->method('recordExecution');
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        TelemetryPublisher::fromConfig($config, $store)->publish(
+            RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'parent'),
+        );
+        $chosen->end();
+
+        $spans = $this->kit->spans();
+        self::assertSame($chosen->getContext()->getSpanId(), $spans[0]->getParentSpanId());
+        self::assertSame($chosen->getContext()->getTraceId(), $spans[0]->getContext()->getTraceId());
+    }
+
+    public function testBoundedStoreRefreshesReplacementAndFallsBackFromEvictedActivity(): void
+    {
+        $store = new InMemoryExecutionSpanStore(2);
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $publisher->publish(RunItArtifactFactory::execution('exec', 'first', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('outer', 'exec', 'outer', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::execution('exec', 'replacement', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::execution('other', 'other', 'internal', 'succeeded'));
+
+        self::assertNull($store->activityContext('outer'));
+        $spans = $this->kit->spans();
+        self::assertSame($spans[2]->getContext()->getSpanId(), $store->executionContext('exec')?->getSpanId());
+        $publisher->publish(RunItArtifactFactory::activity('late', 'exec', 'late', 'internal', 'succeeded', 'outer'));
+        $spans = $this->kit->spans();
+        self::assertCount(5, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[2]->getContext()->getSpanId(), $spans[4]->getParentSpanId());
+        self::assertSame($spans[2]->getContext()->getTraceId(), $spans[4]->getContext()->getTraceId());
+    }
+
+    public function testEvictedExecutionFallsBackToAmbientContext(): void
+    {
+        $store = new InMemoryExecutionSpanStore(2);
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $publisher->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('outer', 'parent', 'outer', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::execution('other', 'other', 'internal', 'succeeded'));
+        self::assertNull($store->executionContext('parent'));
+
+        $ambient = $this->kit->tracerProvider->getTracer('test')->spanBuilder('ambient')->startSpan();
+        $scope = $ambient->activate();
+        try {
+            $publisher->publish(RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'parent'));
+        } finally {
+            $scope->detach();
+            $ambient->end();
+        }
+
+        $spans = $this->kit->spans();
+        self::assertCount(5, $spans);
+        self::assertSame($ambient->getContext()->getSpanId(), $spans[3]->getParentSpanId());
+        self::assertSame($ambient->getContext()->getTraceId(), $spans[3]->getContext()->getTraceId());
+    }
+
+    public function testRedactedSpansUseBoundedStoreForEvictionAndFallback(): void
+    {
+        $store = new InMemoryExecutionSpanStore(2);
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $publisher->publish(new RedactedArtifact(['id' => 'exec', 'name' => 'exec'], 'execution'));
+        $publisher->publish(new RedactedArtifact(['id' => 'outer', 'execution_id' => 'exec'], 'activity'));
+        $publisher->publish(new RedactedArtifact(['id' => 'other', 'name' => 'other'], 'execution'));
+        self::assertNull($store->executionContext('exec'));
+        $publisher->publish(new RedactedArtifact([
+            'id' => 'inner',
+            'execution_id' => 'exec',
+            'parent_activity_id' => 'outer',
+        ], 'activity'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(4, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[3]->getParentSpanId());
+    }
+
+    public function testPublishersShareInjectedStoreForParentCorrelation(): void
+    {
+        $store = new InMemoryExecutionSpanStore();
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $first = TelemetryPublisher::fromConfig($config, $store);
+        $second = TelemetryPublisher::fromConfig($config, $store);
+        $first->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'));
+        $second->publish(RunItArtifactFactory::activity('outer', 'exec', 'outer', 'internal', 'succeeded'));
+        $first->publish(RunItArtifactFactory::activity('inner', 'exec', 'inner', 'internal', 'succeeded', 'outer'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(3, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[2]->getParentSpanId());
+    }
+
+    /** Default publishers keep their correlation state separate across repeated publications. */
+    public function testDefaultStoresAreIsolatedAndRetainDelayedParents(): void
+    {
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $first = TelemetryPublisher::fromConfig($config);
+        $second = TelemetryPublisher::fromConfig($config);
+        $first->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        for ($i = 0; $i < 100; ++$i) {
+            $first->publish(RunItArtifactFactory::execution('other-' . $i, 'other', 'internal', 'succeeded'));
+        }
+
+        $first->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded'));
+        $second->publish(RunItArtifactFactory::activity('isolated', 'parent', 'isolated', 'internal', 'succeeded'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(103, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[101]->getParentSpanId());
+        self::assertSame($spans[0]->getContext()->getTraceId(), $spans[101]->getContext()->getTraceId());
+        self::assertNotSame($spans[0]->getContext()->getSpanId(), $spans[102]->getParentSpanId());
+        self::assertNotSame($spans[0]->getContext()->getTraceId(), $spans[102]->getContext()->getTraceId());
+    }
+
+    public function testLongLivedDefaultPublisherEvictsAcrossExecutionAndActivityWrites(): void
+    {
+        $publisher = $this->publisher();
+        $publisher->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('outer', 'parent', 'outer', 'internal', 'succeeded'));
+        for ($i = 0; $i < 4999; ++$i) {
+            $publisher->publish(RunItArtifactFactory::execution('exec-' . $i, 'exec', 'internal', 'succeeded'));
+            $publisher->publish(RunItArtifactFactory::activity(
+                'act-' . $i,
+                'exec-' . $i,
+                'act',
+                'internal',
+                'succeeded',
+            ));
+        }
+
+        // At exactly 10,000 writes, both oldest contexts are still available.
+        $publisher->publish(RunItArtifactFactory::activity(
+            'inner',
+            'parent',
+            'inner',
+            'internal',
+            'succeeded',
+            'outer',
+        ));
+        $publisher->publish(RunItArtifactFactory::activity(
+            'nested',
+            'parent',
+            'nested',
+            'internal',
+            'succeeded',
+            'inner',
+        ));
+        $publisher->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded', 'outer'));
+        $publisher->publish(RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'parent'));
+
+        $spans = $this->kit->spans();
+        self::assertCount(10004, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[10000]->getParentSpanId());
+        self::assertSame($spans[10000]->getContext()->getSpanId(), $spans[10001]->getParentSpanId());
+        self::assertSame('0000000000000000', $spans[10002]->getParentSpanId());
+        self::assertSame('0000000000000000', $spans[10003]->getParentSpanId());
+        self::assertNotSame($spans[0]->getContext()->getTraceId(), $spans[10003]->getContext()->getTraceId());
+    }
+
+    public function testInjectedStoreControlsRetentionAcrossPublishersAndDuplicateWrites(): void
+    {
+        $store = new class () implements ExecutionSpanStoreInterface {
+            /** @var array<string, SpanContextInterface> */
+            public array $executions = [];
+
+            /** @var array<string, SpanContextInterface> */
+            public array $activities = [];
+
+            public function recordExecution(
+                string|ExecutionIdInterface $executionId,
+                SpanContextInterface $context
+            ): void {
+                $this->executions[(string) $executionId] = $context;
+            }
+
+            public function recordActivity(
+                string|ActivityIdInterface $activityId,
+                SpanContextInterface $context
+            ): void {
+                $this->activities[(string) $activityId] = $context;
+            }
+
+            public function executionContext(string|ExecutionIdInterface $executionId): ?SpanContextInterface
+            {
+                return $this->executions[(string) $executionId] ?? null;
+            }
+
+            public function activityContext(string|ActivityIdInterface $activityId): ?SpanContextInterface
+            {
+                return $this->activities[(string) $activityId] ?? null;
+            }
+        };
+
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $first = TelemetryPublisher::fromConfig($config, $store);
+        $second = TelemetryPublisher::fromConfig($config, $store);
+        $first->publish(
+            RunItArtifactFactory::execution(
+                'parent',
+                'parent',
+                'internal',
+                'succeeded'
+            )
+        );
+        $first->publish(
+            RunItArtifactFactory::activity(
+                'outer',
+                'parent',
+                'outer',
+                'internal',
+                'succeeded'
+            )
+        );
+        for ($i = 0; $i < 100; ++$i) {
+            $first->publish(
+                RunItArtifactFactory::execution(
+                    'exec-' . $i,
+                    'exec',
+                    'internal',
+                    'succeeded'
+                )
+            );
+            $first->publish(
+                RunItArtifactFactory::activity(
+                    'act-' . $i,
+                    'exec-' . $i,
+                    'act',
+                    'internal',
+                    'succeeded'
+                )
+            );
+        }
+
+        $second->publish(
+            RunItArtifactFactory::activity(
+                'inner',
+                'parent',
+                'inner',
+                'internal',
+                'succeeded',
+                'outer'
+            )
+        );
+        $second->publish(
+            RunItArtifactFactory::activity(
+                'outer',
+                'parent',
+                'replacement',
+                'internal',
+                'succeeded'
+            )
+        );
+
+        $first->publish(
+            RunItArtifactFactory::activity(
+                'late',
+                'parent',
+                'late',
+                'internal',
+                'succeeded',
+                'outer'
+            )
+        );
+        unset($store->activities['outer']);
+        $second->publish(RunItArtifactFactory::activity(
+            'fallback',
+            'parent',
+            'fallback',
+            'internal',
+            'succeeded',
+            'outer',
+        ));
+
+        $spans = $this->kit->spans();
+        self::assertCount(206, $spans);
+        self::assertCount(101, $store->executions);
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[202]->getParentSpanId());
+        self::assertSame($spans[203]->getContext()->getSpanId(), $spans[204]->getParentSpanId());
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[205]->getParentSpanId());
+        self::assertNull($store->activityContext('outer'));
+    }
+
+    public function testNullTracerProviderDoesNotAccessInjectedStore(): void
+    {
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->never())->method('recordExecution');
+        $store->expects($this->never())->method('recordActivity');
+        $store->expects($this->never())->method('executionContext');
+        $store->expects($this->never())->method('activityContext');
+        $publisher = TelemetryPublisher::fromConfig(BridgeConfig::default(), $store);
+        $publisher->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded', 'parent'));
+        $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'parent'));
+        self::assertCount(0, $this->kit->spans());
+    }
+
+    public function testReusedActivityIdAcrossExecutionsReplacesParentContext(): void
+    {
+        $store = new InMemoryExecutionSpanStore();
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $publisher->publish(RunItArtifactFactory::execution('first', 'first', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('shared', 'first', 'first', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::execution('second', 'second', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('shared', 'second', 'second', 'internal', 'succeeded'));
+        $publisher->publish(
+            RunItArtifactFactory::activity('child', 'first', 'child', 'internal', 'succeeded', 'shared'),
+        );
+
+        $spans = $this->kit->spans();
+        self::assertCount(5, $spans);
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[2]->getContext()->getSpanId(), $spans[3]->getParentSpanId());
+        self::assertSame($spans[3]->getContext()->getSpanId(), $store->activityContext('shared')?->getSpanId());
+        self::assertSame($spans[3]->getContext()->getSpanId(), $spans[4]->getParentSpanId());
+    }
+
+    public function testMissingStoredParentsFallBackToAmbientSpan(): void
+    {
+        $publisher = $this->publisher();
+        $ambient = $this->kit->tracerProvider->getTracer('test')->spanBuilder('ambient')->startSpan();
+        $scope = $ambient->activate();
+        try {
+            $publisher->publish(RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'missing'));
+            $publisher->publish(
+                RunItArtifactFactory::activity('act', 'missing', 'act', 'internal', 'succeeded', 'missing'),
+            );
+        } finally {
+            $scope->detach();
+            $ambient->end();
+        }
+
+        $spans = $this->kit->spans();
+        self::assertCount(3, $spans);
+        self::assertSame($ambient->getContext()->getSpanId(), $spans[0]->getParentSpanId());
+        self::assertSame($ambient->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($ambient->getContext()->getTraceId(), $spans[0]->getContext()->getTraceId());
+        self::assertSame($ambient->getContext()->getTraceId(), $spans[1]->getContext()->getTraceId());
     }
 
     public function testFailedExecutionRedactionMasksOuterThrowableInSpanEvent(): void

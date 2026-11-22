@@ -35,6 +35,181 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Phase 5 Span Store Baseline (2026-11-22)
+
+The standalone `tools/retention-baseline.php` exercises the current bounded
+`InMemoryExecutionSpanStore` directly, not a publisher or mapper. At HEAD
+`309c4a77755a5c9de62efda58b035b3ed629bd29`, the worktree contained the plan
+edit and the new harness; the measured store implementation was unchanged. The
+host was unpinned, unisolated Linux x86-64 WSL2 on a Microsoft hypervisor, with
+four visible CPUs on an Intel Core i7-9700. PHP was 8.5.13 CLI NTS and
+`open-telemetry/api` was 1.12.0. Default CLI settings were used: OPcache and JIT
+disabled, PCOV and OpenTelemetry extensions loaded, and memory limit unlimited.
+Other host activity was not controlled. The reported samples below were sequential;
+earlier concurrent exploratory runs are excluded.
+
+From the package directory, with Composer dependencies installed, run:
+
+```bash
+for args in '10000 0 0 0' '10000 4 0 0' '10000 4 50 128'; do
+  for i in 1 2 3; do php tools/retention-baseline.php $args; done
+done
+```
+
+Arguments are execution count, activities per execution, duplicate percentage
+and ID padding bytes. Each invocation is a fresh process simulating one
+long-lived store: after a single autoload/store warmup, it writes all contexts,
+then looks up every execution and the first activity per execution, followed by
+intentional missing execution IDs. Every context has generated trace and span IDs
+and no trace state. A duplicate overwrites the execution and, when present, its
+last activity using the same contexts. Occupancy is the number of distinct keys
+generated, not an inspected store count. Results are emitted as JSON per process.
+
+Ranges are the minimum and maximum of three samples, not confidence intervals.
+Heap and allocated deltas are measured after writes relative to the warmed process;
+RSS is absolute process memory after lookups, from `/proc/self/status`.
+
+| Executions / activities each / duplicates / padding | Distinct entries | Used delta (bytes) | Allocated delta (bytes) | RSS (KiB) | Delayed hits |
+|---|---:|---:|---:|---:|---:|
+| 10,000 / 0 / 0% / 0 | 10,000 | 9,098,376 | 8,388,608 | 107,236-107,788 | 10,000/10,000 |
+| 10,000 / 4 / 0% / 0 | 50,000 | 45,393,112 | 44,564,480 | 142,496-142,664 | 20,000/20,000 |
+| 10,000 / 4 / 50% / 128 | 50,000 | 53,393,272 | 52,953,088 | 150,448-150,776 | 20,000/20,000 |
+
+| Workload | Generation and writes (ns/write) | Delayed lookups (ns/lookup) | Intentional misses (ns/lookup) |
+|---|---:|---:|---:|
+| 10,000 executions only | 2,767-3,136 | 284-301 | 261-314 |
+| 50,000 entries | 2,774-3,501 | 414-663 | 253-316 |
+| 50,000 entries, duplicates and padding | 2,549-3,028 | 499-691 | 335-560 |
+
+Each sample reported all 10,000 intentional misses. Write timing includes
+generation, context construction and duplicate writes, not isolated store
+operations; lookup timing includes key generation. The padded workload also
+changes duplicate rate, so it cannot isolate either effect. Peak PHP used and
+allocated memory and peak RSS are included in the JSON, but include the process
+and fixtures. RSS is not an incremental store measurement.
+
+These are synthetic store-level samples, not production traffic, mapper overhead,
+actual parent correlation or delivery-loss measurements. They do not exercise
+variable trace state, nested or out-of-order publication, shared publishers,
+concurrency, real exporters or bounded eviction. The delayed lookups test only
+the selected keys after all writes and do not establish behavior under eviction.
+Three samples and an uncontrolled host cannot establish robust performance
+distributions. Representative worker memory budgets and delayed-parent workloads
+remain necessary to validate production sizing and characterize actual correlation loss.
+
+### Bounded Store Comparison (2026-11-22)
+
+On the same PHP 8.5.13 host, three fresh processes ran the 10,000-execution,
+four-activity workload before and after the 10,000-entry aggregate FIFO change.
+The three samples in each group ran concurrently on an uncontrolled host, so timings
+are indicative only and should not be compared directly with the sequential samples
+above. The changed harness reports execution and first-activity hits separately;
+the underlying write and lookup workload did not change.
+
+| Measure | Unbounded | Bounded |
+|---|---:|---:|
+| Used heap delta | 45,393,112 bytes | 9,162,408 bytes |
+| Allocated heap delta | 44,564,480 bytes | 8,388,608 bytes |
+| RSS range | 142,084-142,520 KiB | 107,012-107,664 KiB |
+| Generation and writes | 3,254-3,477 ns/write | 6,711-7,872 ns/write |
+| Delayed execution lookups found | 10,000/10,000 | 2,000/10,000 |
+| Delayed first-activity lookups found | 10,000/10,000 | 2,000/10,000 |
+
+The bounded lookup workload contains misses whereas the unbounded lookup workload
+does not. These delayed lookups are store-level proxies, not measured exported-span
+correlation loss. Writes include ID and context construction. The measurements show a
+substantial write-cost tradeoff in this synthetic overflow workload, not a controlled
+mapper benchmark or a representative production budget. Entry count does not bound
+the size of individual IDs, contexts or trace state.
+
+### Publisher Retention Comparison (2026-11-22)
+
+#### Historical Store Comparison (2026-11-22)
+
+The following fresh-process comparison loads the actual unbounded store from
+`929854b13c63a629f0ee3eed765fba1dcd802868`, immediately before bounded
+retention, into the current harness at `58a5ae85768c2d6ea579c361a7d156ea34486c60`
+with the historical-mode harness change. The store interface differs only in
+documentation; the OpenTelemetry adapter mappers and publisher and the artifact
+factory used here have no diff between these revisions. This is a controlled store
+substitution, not a full historical checkout or historical dependency install.
+Both modes use the same installed dependencies, fixtures and current harness.
+
+Reproduce from the RunIt directory (the extraction path must exist):
+
+```bash
+mkdir -p /tmp/kilo/runit-phase5-historical
+git -C ../.. archive 929854b13c63a629f0ee3eed765fba1dcd802868 src/RunIt/src/Adapter/OpenTelemetry/InMemoryExecutionSpanStore.php | tar -x -C /tmp/kilo/runit-phase5-historical
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 tools/retention-mapper-benchmark.php historical 10000 10000 /tmp/kilo/runit-phase5-historical/src/RunIt/src/Adapter/OpenTelemetry/InMemoryExecutionSpanStore.php
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 tools/retention-mapper-benchmark.php bounded 10000 10000
+```
+
+Repeat in fresh processes, replacing `10000` executions with `30000` for the
+longer workload. The capacity argument applies only to the bounded store; the
+historical implementation has no limit. Each process warms one execution and
+activity, then creates a fresh store and publisher. The timed loop publishes one
+synthetic execution and immediate child per ID, checking the child's actual
+parent; after timing, newest and oldest delayed children probe actual parentage.
+The newest probe itself writes an activity before the oldest probe.
+
+PHP 8.5.13 CLI NTS, OpenTelemetry API 1.12.0 and SDK 1.17.0, CLI OPcache/JIT
+and PCOV disabled; Linux x86-64 under Microsoft virtualization, four visible
+Intel i7-9700 CPUs. The host was not isolated or pinned. Samples were sequential
+in order H,B,B,H,H,B,B,H,H,B for 10,000 pairs and H,B,B,H,H,B for 30,000.
+Times below are raw nanoseconds per publication in run order within each mode;
+each publication includes fixture construction, mapping, SDK processing and
+parent checks, not just mapper execution.
+
+| Pairs | Store | ns/publication samples | Median | Used heap delta bytes | Allocated heap delta bytes | RSS samples KiB | Peak used / allocated bytes |
+|---|---|---|---:|---:|---:|---|---|
+| 10,000 | historical | 40595.140, 41124.885, 42381.040, 41788.375, 40255.815 | 41124.885 | 7005112 | 6291456 | 107476, 108524, 107432, 107892, 107524 | 17386168 / 18874368 |
+| 10,000 | bounded | 42382.990, 42795.330, 42941.285, 42567.815, 42739.850 | 42739.850 | 7914584 | 6291456 | 107444, 108148, 107624, 108012, 108000 | 18343896 / 18874368 |
+| 30,000 | historical | 40407.550, 41839.003, 41270.363 | 41270.363 | 19457976 | 18874368 | 120228, 120788, 120488 | 30032168 / 31457280 |
+| 30,000 | bounded | 43294.917, 44498.938, 44733.328 | 44498.938 | 7994584 | 8388608 | 110236, 110132, 110256 | 18380832 / 20971520 |
+
+Heap values were identical across samples within each row. RSS is whole-process
+at the end of the timed loop; reported peak RSS equaled RSS in every sample.
+All 10,000 or 30,000 immediate parent checks matched in every process; the newest
+delayed probe matched its activity in every process. The oldest matched its
+activity in every historical process and became a root in every bounded process.
+The bounded store caps combined contexts at 10,000; the historical store retains
+both contexts for each pair. At 10,000 pairs the bounded bookkeeping costs more
+heap despite eviction; at 30,000 pairs the historical heap grows substantially.
+The observed median timing differences are workload-specific, not a regression
+threshold or isolated mapper overhead. There is no exporter I/O, concurrent work,
+duplicate IDs, varied trace state, production traffic distribution or measured
+real-world correlation-loss rate. Two delayed probes and these finite runs do not
+establish a production memory budget or long-term worker behavior. PHP 8.4 and
+other hardware were not measured.
+
+`tools/retention-mapper-benchmark.php` compares the bounded store with a simple
+unbounded custom store through the same publisher, default mappers and OpenTelemetry
+SDK tracer. Run each sample in a fresh process, for example:
+
+```bash
+php tools/retention-mapper-benchmark.php bounded 10000 10000
+php tools/retention-mapper-benchmark.php unbounded 10000 10000
+```
+
+On PHP 8.5.13, three sequential alternating samples each published 10,000
+executions and 10,000 immediate child activities. After warmup, bounded times were
+96,007.585, 93,958.040 and 93,944.455 ns/publication; unbounded times were
+93,532.580, 94,705.840 and 89,325.515 ns/publication. Used heap deltas were
+7,914,584 and 7,005,120 bytes respectively. Each sample matched all 10,000
+immediate execution parents. A newest delayed activity matched its parent in both
+modes; an oldest delayed activity matched in the unbounded mode and was a root in
+the bounded mode. The newest probe itself writes an entry before the oldest probe.
+
+A single 30,000-execution sample per mode measured 91,679.622 ns/publication,
+7,994,584 bytes used-heap delta and 109,740 KiB RSS bounded, versus 86,422.568 ns,
+19,778,008 bytes and 120,632 KiB unbounded, with the same probe outcomes and all
+30,000 immediate parents matched. These are synthetic uncontrolled-host samples,
+not production estimates. Timings include artifact construction, SDK and processor
+work and correlation checks; the control is not the historical store. RSS is
+whole-process and heap includes harness state. The workload uses unique IDs, no
+exporter or network, sequential publication and only two delayed probes; it does
+not establish real-world correlation-loss rates, concurrency safety or a memory budget.
+
 ## Phase 3 Guard Sample (2026-11-21)
 
 On PHP 8.5, the `Buffered(Admission|Overflow|Flush)Bench` filter ran eight

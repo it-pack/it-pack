@@ -20,18 +20,30 @@ if (!isset($argc, $argv) || $argc !== 2 || !in_array($argv[1], ['leak', 'allowed
 }
 
 $filter = new Filter();
-$filter->includeFiles([__DIR__ . '/production/Target.php', __DIR__ . '/production/Collaborator.php']);
+$filter->includeFiles(
+    [
+        __DIR__ . '/production/AttributionTarget.php',
+        __DIR__ . '/production/AttributionCollaborator.php',
+    ]
+);
 $selector = new Selector();
 $coverage = new CodeCoverage($selector->select($filter), $filter);
 $coverage->enableCheckForUnintentionallyCoveredCode();
 $coverage->start('synthetic', TestSize::Small);
 $result = AttributionCollaborator::execute();
 $covers = TargetCollection::fromArray([Target::forClass(AttributionTarget::class)]);
-$uses = TargetCollection::fromArray($argv[1] === 'allowed' ? [Target::forClass(AttributionCollaborator::class)] : []);
+$uses = TargetCollection::fromArray(
+    $argv[1] === 'allowed'
+        ? [Target::forClass(AttributionCollaborator::class)]
+        : []
+);
 try {
     $coverage->stop(true, null, $covers, $uses);
     fwrite(STDOUT, "Direct control accepted {$argv[1]} (result $result).\n");
 } catch (UnintentionallyCoveredCodeException $unintentionallyCoveredCodeException) {
-    fwrite(STDERR, "Direct control rejected {$argv[1]}: " . $unintentionallyCoveredCodeException->getMessage() . "\n");
+    fwrite(
+        STDERR,
+        "Direct control rejected {$argv[1]}: " . $unintentionallyCoveredCodeException->getMessage() . "\n"
+    );
     exit(1);
 }

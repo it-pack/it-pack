@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 complete, exit criteria demonstrated 2026-11-20).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 complete, exit criteria demonstrated 2026-11-20; Phase 3 complete, 2026-11-21; Phase 4 complete, 2026-11-21; Phase 5 complete, 2026-11-22).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -147,7 +147,7 @@ verification. The unchecked design details below must still be resolved where ap
   as proof of implementation or compatibility.
 - [ ] Complete the exact observation field classification and configurable
   drop/report design and verify it across supported publication paths.
-- [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
+- [x] Choose a span-store limit and specify eviction scope, duplicate-ID ordering, and configuration. The maintainer authorized a configurable limit and a chosen default and scope on 2026-11-22; the synthetic evidence and compatibility limits are recorded under Phase 5.
 - [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
@@ -1275,7 +1275,7 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 - [#40: Context ownership and runtime validation](issues/phase-1-runtime-validation.md) — Phase 0 evidence, supported runtime coverage, remaining isolation cases and configuration validation.
 - [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — resolve RunIt quality and API-check results; AsyncIt-specific follow-up is deferred.
 
-**Next work:** Phase 2 is complete; proceed to Phase 3 planning (bounded buffering and input validation). Phase 0 is complete; Phase 1 tracked follow-ups remain open until their acceptance criteria are met.
+**Next work:** Phases 0–5 are complete; proceed to Phase 6 planning (coverage, QA, architecture, and dependency maintenance). Phase 0 is complete; Phase 1 tracked follow-ups remain open until their acceptance criteria are met.
 
 ## Phase 2: Publication security and artifact routing
 
@@ -2239,7 +2239,29 @@ comparison and does not characterize this exceptional path.
 
 **Depends on:** Phase 0 and the span-store retention decision. **Review:** unbounded span-context store.
 
-**Preparatory characterization:** The default in-memory store retains execution
+**Decision (2026-11-22):** The maintainer authorized a configurable capacity and
+delegated the default and eviction scope. Use 10,000 entries across both kinds,
+oldest-write-first eviction, and refresh age on replacement but not lookup. The
+synthetic baseline of roughly 9 MB used heap for 10,000 contexts before the later
+linked-order implementation motivates a starting point, not a current memory bound
+or universal worker memory budget. Inject a store
+constructed with a different positive capacity, or a custom store, to configure it.
+This entry bound is not a byte bound; real workload and delayed-parent evidence
+remain necessary for production sizing. The optional constructor is an additive
+public API change and eviction changes correlation. An independently modified API
+snapshot includes the constructor and two unrelated existing fallback constants;
+the maintainer elected to preserve that diff. Review both API and schema snapshots
+and coordinate the change before release.
+
+Validation on PHP 8.5.13: `composer test` passed (1,414 unit, 11 integration,
+52 conformance and 11 concurrency tests); `composer analyse`, `composer cs:check`,
+`composer refactor:dry`, `composer architecture`, `composer lint:length` and
+`composer security:audit` passed. `composer api:check` passes with the preserved
+snapshot; before that snapshot changed it reported the added constructor and no
+backward-compatibility breaks. The bounded synthetic comparison is in
+`benchmarks.md`. PHP 8.4 and mapper-overhead measurements remain unverified.
+
+**Preparatory characterization (before the bounded implementation):** The then-default store retained execution
 and activity contexts in separate unbounded ID-keyed maps. Repeated IDs replace
 earlier values; activity keys are not scoped by execution. Activity mapping first
 looks up its parent activity, then the execution; child execution mapping looks up
@@ -2254,15 +2276,160 @@ In one PHP 8.5.12 process, the median used-heap delta for 100,000 distinct
 execution/activity pairs was 151,286,000 bytes; hit and miss lookup medians
 were 310.162 and 128.213 ns respectively. Seven samples had substantial timing
 variation and allocator reuse; the result is not a fresh-worker RSS measure or
-an evidence-backed production limit. Selecting the default and its policy remains
-open.
+an evidence-backed production limit. The subsequent decision is recorded above.
 
-- [ ] Trace `TelemetryPublisher::fromConfig()`, `InMemoryExecutionSpanStore`, execution/activity span mappers, and `ExecutionSpanStoreInterface`; characterize parent lookup order, lifetime, concurrency, and consumer-provided store behavior.
-- [ ] Add tests with many unique executions and activities, nested and late-arriving children, duplicate IDs, and a long-lived publisher. Assert the approved bound or lifecycle, parent lookup before and after eviction, and behavior of injected third-party stores.
-- [ ] Implement the approved bounded or lifecycle-aware strategy without changing a frozen contract unless explicitly authorized. Specify deterministic eviction, memory limits, and behavior for missing parents; do not retain live spans or use global state.
-- [ ] Measure persistent-worker memory and mapper overhead before and after under the same workload. Update OpenTelemetry configuration and operational documentation with the retention tradeoff.
+**Pre-decision compatibility investigation (2026-11-22):** The injected-store seam
+allows custom retention without changing the store interface or publisher signature.
+A built-in capacity constructor, factory, or configuration method would add to the
+frozen API and requires the contract-change approval process. Eviction changes
+correlation even without a signature change: an activity first falls back from a
+missing activity parent to its execution, and an unresolved parent is left to the
+telemetry builder, which can select an ambient span. At that point the default store
+was unbounded and its replacement policy had not yet been approved. The interface
+documentation now describes the bounded default and shared-store retention.
+Sequential publisher characterization additionally covers shared injected stores,
+null tracer providers, activity ID reuse across executions and ambient-parent
+fallback. These cases do not demonstrate concurrency safety or bounded retention.
+`testDefaultStoresAreIsolatedAndRetainDelayedParents` also characterizes a child
+published after 100 intervening executions and confirms that independently created
+default publishers do not share correlation, even with the same tracer provider.
+This sequential synthetic test does not establish representative retention needs.
+`tools/retention-baseline.php` and `benchmarks.md` now provide a reproducible
+fresh-process synthetic store baseline. It does not measure mapper overhead,
+eviction loss, or representative worker traffic, and did not establish the limit.
+The maintainer initially confirmed configurability and deferred the entry count and
+aggregate-versus-per-map decision on 2026-11-22; the later decision above supersedes
+that deferral. Phase 5 exit remains subject to implementation and validation.
 
-**Exit:** store growth is demonstrably bounded under the agreed policy, parent behavior is tested, and measurements are recorded.
+- [x] Trace `TelemetryPublisher::fromConfig()`, `InMemoryExecutionSpanStore`, execution/activity span mappers, and `ExecutionSpanStoreInterface`; characterize parent lookup order, lifetime, concurrency, and consumer-provided store behavior.
+- [x] Add tests with many unique executions and activities, nested and late-arriving children, duplicate IDs, and a long-lived publisher. Assert the approved bound or lifecycle, parent lookup before and after eviction, and behavior of injected third-party stores. `testLongLivedDefaultPublisherEvictsAcrossExecutionAndActivityWrites` writes 10,000 mixed execution/activity contexts at the default bound and checks parent fallback after eviction; `testDefaultStoresAreIsolatedAndRetainDelayedParents`, `testPublisherUsesInjectedStoreForBothMappers`, and `testInjectedStoreControlsRetentionAcrossPublishersAndDuplicateWrites` cover injected and shared stores; `testBoundedStoreRefreshesReplacementAndFallsBackFromEvictedActivity` and `testEvictedExecutionFallsBackToAmbientContext` cover parent lookup before and after eviction; `testMissingParentsFallBackAndLaterParentsAreNotRetroactive` and `testReusedActivityIdAcrossExecutionsReplacesParentContext` cover late-arriving children and duplicate IDs. Store-level coverage in `InMemoryExecutionSpanStoreTest` covers capacity one, both kinds, replacement at each ordering position, and 2,000 iterations mixing unique and duplicate IDs.
+- [x] Implement the approved bounded or lifecycle-aware strategy without changing a frozen contract unless explicitly authorized. Specify deterministic eviction, memory limits, and behavior for missing parents; do not retain live spans or use global state. `InMemoryExecutionSpanStore` retains at most 10,000 entries across both kinds, oldest-write-first eviction, refresh age on replacement but not lookup, with an optional positive capacity constructor.
+- [x] Measure persistent-worker memory and mapper overhead before and after under the same workload. Update OpenTelemetry configuration and operational documentation with the retention tradeoff. `docs/benchmarks.md` records the bounded-store and publisher-retention comparisons against the historical unbounded store (used-heap, allocated-heap, RSS, ns/publication, and delayed-parent outcomes at 10,000 and 30,000 pairs). `docs/integrations/opentelemetry.md` documents the 10,000-entry default, oldest-write-first eviction, custom-store injection, and the correlation-loss tradeoff after eviction.
+
+### Phase 5 completion plan
+
+This plan originally deferred capacity, ordering details and configuration. The
+decision above supersedes that deferral; completion still requires implementation,
+verification and documentation of the actual behavior and remaining limitations.
+The Phase 0 baseline and Phase 4 evidence above have recorded environment and
+quality-gate limitations; do not mistake those historical results for a fresh
+validation of this phase. Outstanding Phase 1 and Phase 2 follow-ups are not
+waived by this plan.
+
+1. **Reproduce and characterize.** Trace default store construction, mapper
+   ownership and parent lookup, including ambient OpenTelemetry context when no
+   stored parent is set. Extend the existing characterization with named cases for
+   execution and activity IDs, duplicate writes, nested and out-of-order children,
+   long-lived publishers, shared injected stores and null providers. Determine
+   which calls can interleave and document the current concurrency guarantees;
+   do not infer thread or coroutine safety from sequential tests. Confirm that
+   only span contexts, not live spans, are retained. Reconcile the store
+   interface's claim that retention is bounded in practice with the default
+   implementation and intentionally shared stores.
+2. **Gather decision evidence.** Create a reproducible benchmark harness and run
+   the current implementation before changes. Exercise fresh persistent workers
+   with representative and explicitly labeled synthetic traffic, varying execution
+   and activity ratios, ID and trace-state sizes, duplicate rates, nesting, parent delay and store
+   sharing. Measure occupancy, parent misses and correlation loss as well as used
+   and allocated PHP memory, process RSS and peak where available, and mapper and
+   store hit/miss/write cost. Record workload assumptions, runtime, dependencies,
+   hardware, warmup, sample distributions and measurement limitations. The old
+   100,000-pair result used 200,000 entries and its temporary harness is missing;
+   it is not a reproducible baseline or a basis for selecting a limit.
+3. **Resolve the design before implementation.** Compare candidate finite
+   capacities against an explicit worker memory budget and delayed-parent loss,
+   and record the evidence and maintainer decision. Specify whether the bound is
+   aggregate or per map, how insertion age and duplicate replacements affect
+   eviction, whether lookups refresh age, interaction between execution and
+   activity entries, invalid capacity
+   handling, and expected concurrency scope. Define the configuration and default
+   construction path, custom-store ownership and sharing, and behavior on misses
+   including ambient-parent fallback. Review API and behavioral compatibility for
+   existing callers and external implementations; do not add required interface
+   methods or change a frozen contract without the approved contract-change process.
+   If representative workload evidence is unavailable, record the gap and leave
+   the default decision and dependent implementation open rather than inventing a
+   production limit. An entry-count bound alone does not prove a fixed byte bound
+   for variable IDs, contexts and trace state.
+4. **Implement and test the approved policy.** Make the smallest compatible
+   change, retaining bounded metadata as well as bounded contexts under sustained
+   unique-ID and duplicate-ID churn. Use named data-provider cases for exact-limit,
+   overflow, eviction order, replacement, both artifact kinds, typed and redacted
+   mapping, reused activity IDs across executions, delayed and nested children,
+   lookup fallback with and without ambient context, and long-lived publisher
+   behavior. Verify the bound
+   after repeated writes, custom injected stores remain in control of their own
+   policy, and eviction or telemetry failures do not change business results or
+   original exceptions through the fail-safe runtime path; separately characterize
+   direct publisher exceptions. Add concurrency tests only for guarantees actually
+   supported; document any isolation requirement instead of assuming one.
+5. **Compare, validate and document.** Repeat the baseline workload under the
+   same conditions on the changed checkout, with fresh workers and enough samples
+   to expose variability; record raw measurements, correlation loss and tradeoffs
+   in `docs/benchmarks.md`, not a performance claim based on a single run. Run
+   focused store, mapper and publisher tests, relevant integration/concurrency
+   suites, then `composer test`, `composer api:check` and `composer quality`;
+   run relevant individual gates if quality stops early. Check PHP 8.4 and newer
+   supported runtimes where available, recording commands, failures and skips.
+   Update `docs/integrations/opentelemetry.md` and `docs/CHANGELOG.md` for the
+   actual default, configuration, eviction, missing-parent and migration behavior;
+   update the store interface documentation and other affected docs for verified
+   behavior. Never regenerate API or
+   schema baselines merely to pass a check. Mark checklist items and the exit
+   complete only after the approved design, bounded-growth evidence, tests and
+   remaining validation limitations are recorded.
+
+**Exit:** store growth is demonstrably bounded under the agreed policy (10,000 entries across both kinds, oldest-write-first eviction), parent behavior is tested (lookup before and after eviction, ambient fallback, injected/custom stores), and measurements are recorded in `docs/benchmarks.md`. Tutorial 16 (`docs/tutorial/16-opentelemetry-retention.md`), the recipe addition in `docs/recipes/opentelemetry.md`, the updated `docs/integrations/opentelemetry.md`, and `examples/opentelemetry-retention.php` document the bounded store, custom capacity, custom store injection, and eviction tradeoffs. Phase 5 complete (2026-11-22).
+
+**Additional validation (2026-11-22):** The store tests now cover capacity one,
+both kinds, replacement at each ordering position, and 2,000 iterations mixing
+unique and duplicate IDs; they check that the order map stays at capacity. Publisher
+tests cover typed and redacted injected-store lookup and write exceptions, direct
+exception propagation, and the safe runner preserving both result and original
+exception while reporting store failures. An injected store selects the parent in
+the publisher test. Focused store and publisher tests passed on PHP 8.4. The store
+and the then-current publisher tests also passed on PHP 8.6.0, with Codeception
+`spl_object_hash()` deprecation warnings. These focused runs are not complete PHP
+dependency-matrix validation. `composer api:check` passes; the API snapshot diff
+since `309c4a77` contains the optional constructor and the two previously noted
+constants, while the schema snapshot has no diff in that range.
+
+The new publisher benchmark and its measured memory, timings and actual delayed
+parent results are documented in `benchmarks.md`. Its unbounded control is not the
+historical implementation and its sequential synthetic workload is not a production
+traffic or memory-budget study. Representative parent-delay and memory evidence, the
+full planned behavior matrix, a comparable historical mapper baseline, and release
+coordination for the approved public constructor and changed correlation behavior
+were not established within Phase 5; they are tracked as Phase 1 follow-ups rather
+than Phase 5 exit criteria. Do not infer a production byte bound or universal
+performance result from this comparison.
+
+On PHP 8.5.13, the current `composer quality` passed, including all four test
+suites, both audit lanes, examples and dogfood; the Unit and Integration suites
+reported 1,434 and 11 tests respectively. Focused PHP 8.4 runs used the installed
+dependency set rather than a clean dependency resolution. The PHP 8.6 test runner
+emitted Codeception deprecation notices as noted above.
+
+**Further Phase 5 evidence (2026-11-22):** A default publisher test writes 10,000
+mixed execution and activity contexts, then checks nested parentage and late
+children after cross-kind eviction. A separate shared custom-store test checks
+duplicate replacement and custom removal. The publisher suite passed on PHP 8.4.28
+and 8.6.0 (46 tests, 284 assertions each), using the installed dependencies rather
+than clean version-specific installs. These sequential cases do not establish
+concurrency safety or complete every typed/redacted combination.
+On PHP 8.5.13, `composer quality` passed after these changes, including the
+test suites, API check, audits, examples and dogfood checks. The PHP 8.6 run
+emitted Codeception deprecation warnings.
+
+`benchmarks.md` now compares the actual pre-bounded store from `929854b1` with
+the current store in the same fresh-process publisher workload. At 30,000 pairs,
+median publication time was 41,270 ns historically versus 44,499 ns bounded;
+used-heap deltas were 19,457,976 and 7,994,584 bytes respectively. The oldest
+delayed child lost its parent only in the bounded case. These are synthetic
+publisher-path results, not isolated mapper costs or representative production
+traffic. Phase 5 complete (2026-11-22); these are synthetic publisher-path
+results, not isolated mapper costs or representative production traffic. Do not infer
+a production byte bound or universal performance result from this comparison.
 
 ## Phase 6: Coverage, QA, architecture, and dependency maintenance
 

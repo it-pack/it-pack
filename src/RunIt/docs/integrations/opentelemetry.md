@@ -84,11 +84,19 @@ signals it needs.
 ## Span context retention
 
 `TelemetryPublisher::fromConfig()` creates an in-memory store by default, shared by
-its execution and activity mappers. It retains contexts, not live spans, in separate
-ID-keyed maps with no limit, removal, or eviction. A long-lived publisher can therefore
-grow with the number of distinct execution and activity IDs. Reusing an ID replaces the
-previous context in that map; activity IDs are not scoped by execution. The maps live
-as long as their store remains reachable. A null tracer provider records nothing.
+its execution and activity mappers. It retains contexts, not live spans, with a default
+limit of 10,000 entries across executions and activities combined. On overflow the
+oldest entry is evicted; replacing an existing ID makes it newest, but lookup does not
+refresh its age. Execution and activity IDs occupy separate namespaces, but activity
+IDs are not scoped by execution. A null tracer provider records nothing.
+Separate calls to `fromConfig()` without an injected store create separate stores;
+they do not share parent correlation, even when they use the same tracer provider.
+
+Sequential characterization on 2026-11-22 with PHP 8.5.13 and Codeception 5.3.7
+passed `testDefaultStoresAreIsolatedAndRetainDelayedParents` (1 test, 5 assertions):
+one publisher correlated a child after 100 intervening execution publications,
+while a second default publisher did not correlate the same parent ID. This is not
+a memory bound, concurrency guarantee, or representative worker workload.
 
 An application can pass an `ExecutionSpanStoreInterface` as the second argument to
 `fromConfig()`. Both mappers use that exact store; sharing it between publishers also
@@ -96,12 +104,38 @@ shares correlation and its lifetime. Custom stores define their own retention, d
 handling, and concurrency properties. The interface permits eviction, but supplies no
 removal or capacity configuration contract.
 
+To choose a different positive entry limit for the built-in store:
+
+```php
+use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
+use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+
+$publisher = TelemetryPublisher::fromConfig($config, new InMemoryExecutionSpanStore(20000));
+```
+
+The limit counts entries, not bytes: IDs and contexts can vary in size. Size it against
+worker memory and delayed-parent workloads. The default in-memory implementation does
+not promise thread or coroutine isolation; use an appropriately isolated or synchronized
+custom store when required.
+
+For a reproducible synthetic comparison against the historical unbounded store,
+including measured delayed-parent loss and its limitations, see
+[benchmarks](../benchmarks.md#historical-store-comparison-2026-11-22). It is not
+a substitute for measuring the application's own worker memory and parent delays.
+
+For a hands-on walkthrough of bounded retention, custom capacity, and custom
+store injection, see
+[Tutorial 16 — OpenTelemetry span-context retention](../tutorial/16-opentelemetry-retention.md)
+and [`examples/opentelemetry-retention.php`](../../examples/opentelemetry-retention.php).
+
 Each mapper looks up a parent before starting its span and records its own context
 after ending the span. Child executions look up their parent execution. Activities look
 up their parent activity first, then their execution if that lookup misses. If no stored
 parent is found, the bridge does not set an explicit parent; the OpenTelemetry builder
 may use the ambient context. A later parent does not reparent an already exported span.
-Evicting a context in a custom store can consequently alter linkage for late children.
+Eviction can consequently alter linkage for late children. Upgrading from the formerly
+unbounded default can change correlation; configure a larger store or inject a custom
+implementation if the default retention window is insufficient.
 
 ## Cardiality and payload controls
 
