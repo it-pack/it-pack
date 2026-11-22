@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactPredicateInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
@@ -80,7 +81,7 @@ final readonly class ExecutionKindPredicate implements ArtifactPredicateInterfac
         $normalized = $artifact->normalize();
         $isExecution = ($artifact instanceof RedactedArtifactInterface
             || $artifact instanceof VerifiedArtifactProjection)
-            && $artifact->artifactType() === 'execution';
+            && $artifact->artifactType() === ArtifactType::EXECUTION;
         $executionId = $normalized[$isExecution ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
         if (!is_string($executionId)) {
             return false;

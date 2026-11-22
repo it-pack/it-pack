@@ -193,9 +193,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
 
         $isObservation = $artifact instanceof ObservationInterface
             || ($artifact instanceof TrustedArtifactProjectionInterface
-                && $artifact->artifactType() === 'observation')
+                && $artifact->artifactType() === ArtifactType::OBSERVATION)
             || ($artifact instanceof RedactedArtifactInterface
-                && $artifact->artifactType() === 'observation');
+                && $artifact->artifactType() === ArtifactType::OBSERVATION);
 
         if (!$isObservation
             || !isset($normalized[ArtifactField::MESSAGE])
@@ -220,7 +220,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
     ): array {
         if (!$this->config->redactMeasurementValues
             || !isset($normalized[ArtifactField::VALUE])
-            || !$this->isTypeOf($artifact, 'measurement')
+            || !$this->isTypeOf($artifact, ArtifactType::MEASUREMENT)
         ) {
             return [$normalized, false, $truncated];
         }
@@ -243,7 +243,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
             || !is_array($normalized[ArtifactField::RESULT] ?? null)
             || !isset($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
             || !is_array($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
-            || !$this->isTypeOf($artifact, 'execution')
+            || !$this->isTypeOf($artifact, ArtifactType::EXECUTION)
         ) {
             return [$normalized, false, $truncated];
         }
@@ -269,7 +269,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         if ($this->config->sensitiveAttributeKeys === []
             || !isset($normalized[ArtifactField::ATTRIBUTES])
             || !is_array($normalized[ArtifactField::ATTRIBUTES])
-            || !$this->isTypeOf($artifact, 'snapshot')
+            || !$this->isTypeOf($artifact, ArtifactType::SNAPSHOT)
         ) {
             return [$normalized, false, $truncated];
         }
@@ -291,7 +291,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         if (!$this->config->redactOccurrenceData
             || !isset($normalized[ArtifactField::DATA])
             || !is_array($normalized[ArtifactField::DATA])
-            || !$this->isTypeOf($artifact, 'occurrence')
+            || !$this->isTypeOf($artifact, ArtifactType::OCCURRENCE)
         ) {
             return [$normalized, false, $truncated];
         }
@@ -321,7 +321,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         if (!$this->config->redactSnapshotPayloads
             || !isset($normalized[ArtifactField::PAYLOAD])
             || !is_array($normalized[ArtifactField::PAYLOAD])
-            || !$this->isTypeOf($artifact, 'snapshot')
+            || !$this->isTypeOf($artifact, ArtifactType::SNAPSHOT)
         ) {
             return [$normalized, false, $truncated];
         }

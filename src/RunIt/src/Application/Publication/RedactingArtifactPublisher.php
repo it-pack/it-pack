@@ -174,12 +174,12 @@ final class RedactingArtifactPublisher implements
     private function resolveArtifactKind(ExecutionArtifactInterface $artifact): string
     {
         return match (true) {
-            $artifact instanceof ObservationInterface => 'observation',
-            $artifact instanceof ActivityInterface => 'activity',
-            $artifact instanceof MeasurementInterface => 'measurement',
-            $artifact instanceof OccurrenceInterface => 'occurrence',
-            $artifact instanceof ExecutionInterface => 'execution',
-            $artifact instanceof SnapshotInterface => 'snapshot',
+            $artifact instanceof ObservationInterface => ArtifactType::OBSERVATION,
+            $artifact instanceof ActivityInterface => ArtifactType::ACTIVITY,
+            $artifact instanceof MeasurementInterface => ArtifactType::MEASUREMENT,
+            $artifact instanceof OccurrenceInterface => ArtifactType::OCCURRENCE,
+            $artifact instanceof ExecutionInterface => ArtifactType::EXECUTION,
+            $artifact instanceof SnapshotInterface => ArtifactType::SNAPSHOT,
             default => '',
         };
     }
@@ -202,7 +202,7 @@ final class RedactingArtifactPublisher implements
             && $this->stillVerified($authority, $artifact)
             && array_intersect_key($original, $fields) === array_intersect_key($normalized, $fields)
             && (!$redacted instanceof RedactedArtifactInterface || $redacted->artifactType() === $kind)
-            && ($kind !== 'snapshot' || ($original[ArtifactField::CLASSIFICATION] ?? null)
+            && ($kind !== ArtifactType::SNAPSHOT || ($original[ArtifactField::CLASSIFICATION] ?? null)
                 === ($normalized[ArtifactField::CLASSIFICATION] ?? null));
     }
 

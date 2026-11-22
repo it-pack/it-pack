@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
@@ -14,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /** @internal A validated redacted observation with trace severity. */
 final readonly class ClassifiedTraceObservation implements ObservationInterface, RedactedArtifactInterface
@@ -26,7 +28,7 @@ final readonly class ClassifiedTraceObservation implements ObservationInterface,
 
     public function artifactType(): string
     {
-        return 'observation';
+        return ArtifactType::OBSERVATION;
     }
 
     public function id(): ObservationIdInterface
@@ -82,8 +84,8 @@ final readonly class ClassifiedTraceObservation implements ObservationInterface,
     public function normalize(): array
     {
         $fields = $this->observation->normalize();
-        $fields['severity'] = ObservationSeverity::Trace->value;
-        $fields['level'] = ObservationSeverity::Trace->level();
+        $fields[ArtifactField::SEVERITY] = ObservationSeverity::Trace->value;
+        $fields[ArtifactField::LEVEL] = ObservationSeverity::Trace->level();
         return $fields;
     }
 }

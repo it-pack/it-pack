@@ -103,37 +103,47 @@ final class ClassifyingArtifactPublisher implements
      */
     private const array FIELD_ALLOWLIST = [
         ArtifactType::EXECUTION => [
-            'id', 'name', 'kind', 'status', 'started_at', 'ended_at',
-            'parent_execution_id', 'linked_execution_ids', 'sequence',
-            'context', 'result',
+            ArtifactField::ID, ArtifactField::NAME, ArtifactField::KIND, ArtifactField::STATUS,
+            ArtifactField::STARTED_AT, ArtifactField::ENDED_AT, ArtifactField::PARENT_EXECUTION_ID,
+            ArtifactField::LINKED_EXECUTION_IDS, ArtifactField::SEQUENCE, ArtifactField::CONTEXT,
+            ArtifactField::RESULT,
         ],
         'execution_definition' => [
-            'name', 'kind', 'parent_execution_id', 'linked_execution_ids', 'context',
+            ArtifactField::NAME, ArtifactField::KIND, ArtifactField::PARENT_EXECUTION_ID,
+            ArtifactField::LINKED_EXECUTION_IDS, ArtifactField::CONTEXT,
         ],
         ArtifactType::ACTIVITY => [
-            'id', 'execution_id', 'name', 'kind', 'status', 'started_at',
-            'ended_at', 'parent_activity_id', 'sequence', 'attributes', 'throwable', 'duration_ns',
+            ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::NAME, ArtifactField::KIND,
+            ArtifactField::STATUS, ArtifactField::STARTED_AT, ArtifactField::ENDED_AT,
+            ArtifactField::PARENT_ACTIVITY_ID, ArtifactField::SEQUENCE, ArtifactField::ATTRIBUTES,
+            ArtifactField::THROWABLE, ArtifactField::DURATION_NS,
         ],
         'activity_definition' => [
-            'name', 'kind', 'parent_activity_id',
+            ArtifactField::NAME, ArtifactField::KIND, ArtifactField::PARENT_ACTIVITY_ID,
         ],
         ArtifactType::MEASUREMENT => [
-            'name', 'kind', 'unit', 'value', 'execution_id', 'activity_id',
-            'timestamp', 'sequence', 'attributes',
+            ArtifactField::NAME, ArtifactField::KIND, ArtifactField::UNIT, ArtifactField::VALUE,
+            ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID, ArtifactField::TIMESTAMP,
+            ArtifactField::SEQUENCE, ArtifactField::ATTRIBUTES,
         ],
         ArtifactType::OBSERVATION => [
-            'id', 'execution_id', 'activity_id', 'severity', 'level', 'message',
-            'diagnostic_code', 'sequence', 'timestamp', 'attributes', 'throwable',
+            ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
+            ArtifactField::SEVERITY, ArtifactField::LEVEL, ArtifactField::MESSAGE,
+            ArtifactField::DIAGNOSTIC_CODE, ArtifactField::SEQUENCE, ArtifactField::TIMESTAMP,
+            ArtifactField::ATTRIBUTES, ArtifactField::THROWABLE,
         ],
         ArtifactType::OCCURRENCE => [
-            'id', 'execution_id', 'activity_id', 'type', 'version', 'source',
-            'subject', 'time', 'data', 'data_schema', 'content_type',
-            'extension_attributes', 'sequence',
+            ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
+            ArtifactField::TYPE, ArtifactField::VERSION, ArtifactField::SOURCE,
+            ArtifactField::SUBJECT, ArtifactField::TIME, ArtifactField::DATA, ArtifactField::DATA_SCHEMA,
+            ArtifactField::CONTENT_TYPE, ArtifactField::EXTENSION_ATTRIBUTES, ArtifactField::SEQUENCE,
         ],
         ArtifactType::SNAPSHOT => [
-            'id', 'execution_id', 'activity_id', 'type', 'classification',
-            'schema_version', 'created_at', 'content_type', 'content_hash',
-            'predecessor_id', 'sequence', 'payload', 'attributes',
+            ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
+            ArtifactField::TYPE, ArtifactField::CLASSIFICATION, ArtifactField::SCHEMA_VERSION,
+            ArtifactField::CREATED_AT, ArtifactField::CONTENT_TYPE, ArtifactField::CONTENT_HASH,
+            ArtifactField::PREDECESSOR_ID, ArtifactField::SEQUENCE, ArtifactField::PAYLOAD,
+            ArtifactField::ATTRIBUTES,
         ],
     ];
 
@@ -145,26 +155,26 @@ final class ClassifyingArtifactPublisher implements
      */
     private const array REQUIRED_FIELDS = [
         ArtifactType::EXECUTION => [
-            'id',
+            ArtifactField::ID,
         ],
         ArtifactType::ACTIVITY => [
-            'id',
-            'execution_id',
+            ArtifactField::ID,
+            ArtifactField::EXECUTION_ID,
         ],
         ArtifactType::MEASUREMENT => [
-            'execution_id',
+            ArtifactField::EXECUTION_ID,
         ],
         ArtifactType::OBSERVATION => [
-            'id',
-            'execution_id',
+            ArtifactField::ID,
+            ArtifactField::EXECUTION_ID,
         ],
         ArtifactType::OCCURRENCE => [
-            'id',
-            'execution_id',
+            ArtifactField::ID,
+            ArtifactField::EXECUTION_ID,
         ],
         ArtifactType::SNAPSHOT => [
-            'id',
-            'execution_id',
+            ArtifactField::ID,
+            ArtifactField::EXECUTION_ID,
         ],
     ];
 
@@ -200,7 +210,7 @@ final class ClassifyingArtifactPublisher implements
         $kind = $this->artifactKind($artifact);
 
         if (!in_array($kind, self::SUPPORTED_KINDS, true)) {
-            $this->reportMissingRequiredField('unknown', 'supported artifact kind');
+            $this->reportMissingRequiredField(ArtifactType::UNKNOWN, 'supported artifact kind');
             return;
         }
 
@@ -375,8 +385,8 @@ final class ClassifyingArtifactPublisher implements
     private function structuralFieldsIntact(array $original, array $projected, string $kind): bool
     {
         $field = match ($kind) {
-            ArtifactType::OBSERVATION, ArtifactType::ACTIVITY => 'throwable',
-            ArtifactType::EXECUTION => 'result',
+            ArtifactType::OBSERVATION, ArtifactType::ACTIVITY => ArtifactField::THROWABLE,
+            ArtifactType::EXECUTION => ArtifactField::RESULT,
             default => null,
         };
 
@@ -407,7 +417,7 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        $kind = $fields['kind'];
+        $kind = $fields[ArtifactField::KIND];
         $factory = $this->resolveMeasurementFactory($kind);
         if (!$factory instanceof Closure) {
             return null;
@@ -427,13 +437,13 @@ final class ClassifyingArtifactPublisher implements
             $activityId = $this->resolveTypedActivityId($components['identifiers']);
 
             $measurement = $factory(
-                MeasurementName::fromString($components['identifiers']['name']),
-                ExecutionId::fromString($components['identifiers']['execution_id']),
-                $components['value'],
+                MeasurementName::fromString($components['identifiers'][ArtifactField::NAME]),
+                ExecutionId::fromString($components['identifiers'][ArtifactField::EXECUTION_ID]),
+                $components[ArtifactField::VALUE],
                 $activityId,
-                Instant::of($components['identifiers']['timestamp']),
-                ArtifactSequence::of($components['identifiers']['sequence']),
-                AttributeCollection::fromArray($components['attributes']),
+                Instant::of($components['identifiers'][ArtifactField::TIMESTAMP]),
+                ArtifactSequence::of($components['identifiers'][ArtifactField::SEQUENCE]),
+                AttributeCollection::fromArray($components[ArtifactField::ATTRIBUTES]),
                 $unit,
             );
             if (!$measurement instanceof MeasurementInterface) {
@@ -456,12 +466,12 @@ final class ClassifyingArtifactPublisher implements
      */
     private function resolveMeasurementComponents(array $fields, mixed $kind): ?array
     {
-        $value = $this->resolveValidatedMeasurementValue($fields['value'], $kind);
+        $value = $this->resolveValidatedMeasurementValue($fields[ArtifactField::VALUE], $kind);
         if ($value === null) {
             return null;
         }
 
-        $attributes = $this->buildMeasurementAttributes($fields['attributes']);
+        $attributes = $this->buildMeasurementAttributes($fields[ArtifactField::ATTRIBUTES]);
         if ($attributes === null) {
             return null;
         }
@@ -471,7 +481,11 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        return ['value' => $value, 'attributes' => $attributes, 'identifiers' => $identifiers];
+        return [
+            ArtifactField::VALUE => $value,
+            ArtifactField::ATTRIBUTES => $attributes,
+            'identifiers' => $identifiers,
+        ];
     }
 
     /**
@@ -489,7 +503,15 @@ final class ClassifyingArtifactPublisher implements
     private function measurementRequiredKeysPresent(array $fields): bool
     {
         $required = [
-            'name', 'kind', 'unit', 'value', 'execution_id', 'activity_id', 'timestamp', 'sequence', 'attributes',
+            ArtifactField::NAME,
+            ArtifactField::KIND,
+            ArtifactField::UNIT,
+            ArtifactField::VALUE,
+            ArtifactField::EXECUTION_ID,
+            ArtifactField::ACTIVITY_ID,
+            ArtifactField::TIMESTAMP,
+            ArtifactField::SEQUENCE,
+            ArtifactField::ATTRIBUTES,
         ];
 
         return !array_any($required, fn (string $key): bool => !array_key_exists($key, $fields));
@@ -500,16 +522,16 @@ final class ClassifyingArtifactPublisher implements
      */
     private function measurementFieldTypesValid(array $fields): bool
     {
-        return is_string($fields['name'])
-            && is_string($fields['kind'])
-            && is_string($fields['unit'])
-            && is_string($fields['execution_id'])
-            && is_int($fields['timestamp'])
-            && is_int($fields['sequence'])
-            && is_array($fields['attributes'])
+        return is_string($fields[ArtifactField::NAME])
+            && is_string($fields[ArtifactField::KIND])
+            && is_string($fields[ArtifactField::UNIT])
+            && is_string($fields[ArtifactField::EXECUTION_ID])
+            && is_int($fields[ArtifactField::TIMESTAMP])
+            && is_int($fields[ArtifactField::SEQUENCE])
+            && is_array($fields[ArtifactField::ATTRIBUTES])
             && (
-                is_string($fields['activity_id'])
-                || $fields['activity_id'] === null
+                is_string($fields[ArtifactField::ACTIVITY_ID])
+                || $fields[ArtifactField::ACTIVITY_ID] === null
             );
     }
 
@@ -534,7 +556,7 @@ final class ClassifyingArtifactPublisher implements
      */
     private function resolveMeasurementUnit(array $fields): ?MeasurementUnit
     {
-        $unitValue = $fields['unit'];
+        $unitValue = $fields[ArtifactField::UNIT];
         if (!is_string($unitValue)) {
             return null;
         }
@@ -586,37 +608,37 @@ final class ClassifyingArtifactPublisher implements
      */
     private function extractTypedMeasurementIdentifiers(array $fields): ?array
     {
-        $name = $fields['name'];
+        $name = $fields[ArtifactField::NAME];
         if (!is_string($name)) {
             return null;
         }
 
-        $executionId = $fields['execution_id'];
+        $executionId = $fields[ArtifactField::EXECUTION_ID];
         if (!is_string($executionId)) {
             return null;
         }
 
-        $activityIdValue = $fields['activity_id'];
+        $activityIdValue = $fields[ArtifactField::ACTIVITY_ID];
         if ($activityIdValue !== null && !is_string($activityIdValue)) {
             return null;
         }
 
-        $timestamp = $fields['timestamp'];
+        $timestamp = $fields[ArtifactField::TIMESTAMP];
         if (!is_int($timestamp)) {
             return null;
         }
 
-        $sequence = $fields['sequence'];
+        $sequence = $fields[ArtifactField::SEQUENCE];
         if (!is_int($sequence)) {
             return null;
         }
 
         return [
-            'name' => $name,
-            'execution_id' => $executionId,
-            'activity_id' => $activityIdValue,
-            'timestamp' => $timestamp,
-            'sequence' => $sequence,
+            ArtifactField::NAME => $name,
+            ArtifactField::EXECUTION_ID => $executionId,
+            ArtifactField::ACTIVITY_ID => $activityIdValue,
+            ArtifactField::TIMESTAMP => $timestamp,
+            ArtifactField::SEQUENCE => $sequence,
         ];
     }
 
@@ -627,7 +649,7 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        $attributes = $this->buildMeasurementAttributes($fields['attributes']);
+        $attributes = $this->buildMeasurementAttributes($fields[ArtifactField::ATTRIBUTES]);
         if ($attributes === null) {
             return null;
         }
@@ -639,14 +661,14 @@ final class ClassifyingArtifactPublisher implements
 
         $trace = $this->prepareTraceObservation($fields, $redacted);
 
-        $severity = $fields['severity'];
+        $severity = $fields[ArtifactField::SEVERITY];
         $factory = $this->resolveObservationFactory($severity);
         if (!$factory instanceof Closure) {
             return null;
         }
 
-        $throwable = $this->typedThrowable($fields['throwable']);
-        if (!$this->observationThrowableValid($fields['throwable'], $throwable)) {
+        $throwable = $this->typedThrowable($fields[ArtifactField::THROWABLE]);
+        if (!$this->observationThrowableValid($fields[ArtifactField::THROWABLE], $throwable)) {
             return null;
         }
 
@@ -675,15 +697,15 @@ final class ClassifyingArtifactPublisher implements
     ): ?ObservationInterface {
         try {
             $artifact = $factory(
-                ObservationId::fromString($identifiers['id']),
-                ExecutionId::fromString($identifiers['execution_id']),
-                $identifiers['message'],
+                ObservationId::fromString($identifiers[ArtifactField::ID]),
+                ExecutionId::fromString($identifiers[ArtifactField::EXECUTION_ID]),
+                $identifiers[ArtifactField::MESSAGE],
                 $this->resolveTypedActivityId($identifiers),
-                $identifiers['diagnostic_code'],
+                $identifiers[ArtifactField::DIAGNOSTIC_CODE],
                 AttributeCollection::fromArray($attributes),
                 $throwable,
-                Instant::of($identifiers['timestamp']),
-                ArtifactSequence::of($identifiers['sequence']),
+                Instant::of($identifiers[ArtifactField::TIMESTAMP]),
+                ArtifactSequence::of($identifiers[ArtifactField::SEQUENCE]),
             );
             if (!$artifact instanceof Observation) {
                 return null;
@@ -709,7 +731,7 @@ final class ClassifyingArtifactPublisher implements
     private function resolveTypedActivityId(array $identifiers): ?ActivityId
     {
 
-        $activityIdValue = $identifiers['activity_id'];
+        $activityIdValue = $identifiers[ArtifactField::ACTIVITY_ID];
 
         return is_string($activityIdValue)
             ? ActivityId::fromString($activityIdValue)
@@ -731,8 +753,17 @@ final class ClassifyingArtifactPublisher implements
     private function observationRequiredKeysPresent(array $fields): bool
     {
         $keys = [
-            'id', 'execution_id', 'activity_id', 'severity', 'level', 'message', 'diagnostic_code', 'sequence',
-            'timestamp', 'attributes', 'throwable',
+            ArtifactField::ID,
+            ArtifactField::EXECUTION_ID,
+            ArtifactField::ACTIVITY_ID,
+            ArtifactField::SEVERITY,
+            ArtifactField::LEVEL,
+            ArtifactField::MESSAGE,
+            ArtifactField::DIAGNOSTIC_CODE,
+            ArtifactField::SEQUENCE,
+            ArtifactField::TIMESTAMP,
+            ArtifactField::ATTRIBUTES,
+            ArtifactField::THROWABLE,
         ];
 
         return !array_any($keys, fn (string $key): bool => !array_key_exists($key, $fields));
@@ -743,16 +774,16 @@ final class ClassifyingArtifactPublisher implements
      */
     private function observationFieldTypesValid(array $fields): bool
     {
-        return is_string($fields['execution_id'])
-            && is_int($fields['timestamp'])
-            && is_int($fields['sequence'])
-            && is_array($fields['attributes'])
-            && (is_string($fields['activity_id'])
-                || $fields['activity_id'] === null)
-            && is_string($fields['id'])
-            && is_string($fields['message'])
-            && (is_string($fields['diagnostic_code'])
-                || $fields['diagnostic_code'] === null);
+        return is_string($fields[ArtifactField::EXECUTION_ID])
+            && is_int($fields[ArtifactField::TIMESTAMP])
+            && is_int($fields[ArtifactField::SEQUENCE])
+            && is_array($fields[ArtifactField::ATTRIBUTES])
+            && (is_string($fields[ArtifactField::ACTIVITY_ID])
+                || $fields[ArtifactField::ACTIVITY_ID] === null)
+            && is_string($fields[ArtifactField::ID])
+            && is_string($fields[ArtifactField::MESSAGE])
+            && (is_string($fields[ArtifactField::DIAGNOSTIC_CODE])
+                || $fields[ArtifactField::DIAGNOSTIC_CODE] === null);
     }
 
     private function resolveObservationFactory(mixed $severity): ?Closure
@@ -786,49 +817,49 @@ final class ClassifyingArtifactPublisher implements
      */
     private function extractTypedObservationIdentifiers(array $fields): ?array
     {
-        $id = $fields['id'];
+        $id = $fields[ArtifactField::ID];
         if (!is_string($id)) {
             return null;
         }
 
-        $executionId = $fields['execution_id'];
+        $executionId = $fields[ArtifactField::EXECUTION_ID];
         if (!is_string($executionId)) {
             return null;
         }
 
-        $activityIdValue = $fields['activity_id'];
+        $activityIdValue = $fields[ArtifactField::ACTIVITY_ID];
         if ($activityIdValue !== null && !is_string($activityIdValue)) {
             return null;
         }
 
-        $message = $fields['message'];
+        $message = $fields[ArtifactField::MESSAGE];
         if (!is_string($message)) {
             return null;
         }
 
-        $diagnosticCode = $fields['diagnostic_code'];
+        $diagnosticCode = $fields[ArtifactField::DIAGNOSTIC_CODE];
         if ($diagnosticCode !== null && !is_string($diagnosticCode)) {
             return null;
         }
 
-        $timestamp = $fields['timestamp'];
+        $timestamp = $fields[ArtifactField::TIMESTAMP];
         if (!is_int($timestamp)) {
             return null;
         }
 
-        $sequence = $fields['sequence'];
+        $sequence = $fields[ArtifactField::SEQUENCE];
         if (!is_int($sequence)) {
             return null;
         }
 
         return [
-            'id' => $id,
-            'execution_id' => $executionId,
-            'activity_id' => $activityIdValue,
-            'message' => $message,
-            'diagnostic_code' => $diagnosticCode,
-            'timestamp' => $timestamp,
-            'sequence' => $sequence,
+            ArtifactField::ID => $id,
+            ArtifactField::EXECUTION_ID => $executionId,
+            ArtifactField::ACTIVITY_ID => $activityIdValue,
+            ArtifactField::MESSAGE => $message,
+            ArtifactField::DIAGNOSTIC_CODE => $diagnosticCode,
+            ArtifactField::TIMESTAMP => $timestamp,
+            ArtifactField::SEQUENCE => $sequence,
         ];
     }
 
@@ -840,36 +871,46 @@ final class ClassifyingArtifactPublisher implements
     /** @param array<string, mixed> $fields */
     private function prepareTraceObservation(array &$fields, bool $redacted): bool
     {
-        if (!$redacted || $fields['severity'] !== ObservationSeverity::Trace->value
-            || $fields['level'] !== ObservationSeverity::Trace->level()) {
+        if (!$redacted || $fields[ArtifactField::SEVERITY] !== ObservationSeverity::Trace->value
+            || $fields[ArtifactField::LEVEL] !== ObservationSeverity::Trace->level()) {
             return false;
         }
 
-        $fields['severity'] = ObservationSeverity::Debug->value;
-        $fields['level'] = ObservationSeverity::Debug->level();
+        $fields[ArtifactField::SEVERITY] = ObservationSeverity::Debug->value;
+        $fields[ArtifactField::LEVEL] = ObservationSeverity::Debug->level();
         return true;
     }
 
     private function typedThrowable(mixed $value): ?ThrowableDescriptionInterface
     {
-        if (!is_array($value) || !isset($value['class'], $value['message'], $value['code'])
-            || !array_key_exists('previous', $value) || !array_key_exists('trace', $value)
-            || !is_string($value['class']) || !is_string($value['message']) || !is_int($value['code'])
-            || (!is_string($value['trace']) && $value['trace'] !== null)) {
+        if (
+            !is_array($value)
+            || !isset(
+                $value[ArtifactField::THROWABLE_CLASS],
+                $value[ArtifactField::MESSAGE],
+                $value[ArtifactField::CODE],
+                $value[ArtifactField::PREVIOUS],
+                $value[ArtifactField::TRACE],
+            )
+            || !is_string($value[ArtifactField::THROWABLE_CLASS])
+            || !is_string($value[ArtifactField::MESSAGE])
+            || !is_int($value[ArtifactField::CODE])
+            || (!is_string($value[ArtifactField::TRACE]) && $value[ArtifactField::TRACE] !== null)
+        ) {
             return null;
         }
 
-        $previous = $this->typedThrowable($value['previous']);
-        if ($value['previous'] !== null && !$previous instanceof ThrowableDescriptionInterface) {
+        $previous = $this->typedThrowable($value[ArtifactField::PREVIOUS]);
+        if ($value[ArtifactField::PREVIOUS] !== null && !$previous instanceof ThrowableDescriptionInterface) {
             return null;
         }
 
         $description = ThrowableDescription::create(
-            $value['class'],
-            $value['message'],
-            $value['code'],
+            $value[ArtifactField::THROWABLE_CLASS],
+            $value[ArtifactField::MESSAGE],
+            $value[ArtifactField::CODE],
             $previous,
-            $value['trace'],
+            $value[ArtifactField::TRACE],
         );
         $normalized = $description->toArray();
         ksort($normalized);
@@ -901,8 +942,18 @@ final class ClassifyingArtifactPublisher implements
     {
         return array_any(
             [
-                'id', 'name', 'kind', 'status', 'started_at', 'ended_at', 'parent_execution_id',
-                'linked_execution_ids', 'sequence', 'context', 'result'],
+                ArtifactField::ID,
+                ArtifactField::NAME,
+                ArtifactField::KIND,
+                ArtifactField::STATUS,
+                ArtifactField::STARTED_AT,
+                ArtifactField::ENDED_AT,
+                ArtifactField::PARENT_EXECUTION_ID,
+                ArtifactField::LINKED_EXECUTION_IDS,
+                ArtifactField::SEQUENCE,
+                ArtifactField::CONTEXT,
+                ArtifactField::RESULT,
+            ],
             fn (string $key): bool => !array_key_exists($key, $fields)
         );
     }
@@ -913,12 +964,17 @@ final class ClassifyingArtifactPublisher implements
      */
     private function executionFieldTypesInvalid(array $fields): bool
     {
-        return $fields['context'] !== []
-            || !is_array($fields['linked_execution_ids'])
-            || !is_string($fields['id']) || !is_string($fields['name']) || !is_string($fields['kind'])
-            || !is_string($fields['status']) || !is_int($fields['started_at']) || !is_int($fields['sequence'])
-            || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
-            || (!is_string($fields['parent_execution_id']) && $fields['parent_execution_id'] !== null);
+        return $fields[ArtifactField::CONTEXT] !== []
+            || !is_array($fields[ArtifactField::LINKED_EXECUTION_IDS])
+            || !is_string($fields[ArtifactField::ID])
+            || !is_string($fields[ArtifactField::NAME])
+            || !is_string($fields[ArtifactField::KIND])
+            || !is_string($fields[ArtifactField::STATUS])
+            || !is_int($fields[ArtifactField::STARTED_AT])
+            || !is_int($fields[ArtifactField::SEQUENCE])
+            || (!is_int($fields[ArtifactField::ENDED_AT]) && $fields[ArtifactField::ENDED_AT] !== null)
+            || (!is_string($fields[ArtifactField::PARENT_EXECUTION_ID])
+                && $fields[ArtifactField::PARENT_EXECUTION_ID] !== null);
     }
 
     /**
@@ -927,26 +983,26 @@ final class ClassifyingArtifactPublisher implements
     private function buildTypedExecution(array $fields): ?ExecutionInterface
     {
         try {
-            $status = ExecutionStatus::tryFrom($fields['status']);
+            $status = ExecutionStatus::tryFrom($fields[ArtifactField::STATUS]);
             if ($status === null) {
                 return null;
             }
 
-            $links = $this->buildExecutionLinks($fields['linked_execution_ids']);
+            $links = $this->buildExecutionLinks($fields[ArtifactField::LINKED_EXECUTION_IDS]);
             if ($links === null) {
                 return null;
             }
 
             $execution = Execution::create(
-                ExecutionId::fromString($fields['id']),
+                ExecutionId::fromString($fields[ArtifactField::ID]),
                 ExecutionDefinition::create(
-                    ExecutionName::fromString($fields['name']),
-                    ExecutionKind::fromString($fields['kind']),
-                    $this->resolveParentExecutionId($fields['parent_execution_id']),
+                    ExecutionName::fromString($fields[ArtifactField::NAME]),
+                    ExecutionKind::fromString($fields[ArtifactField::KIND]),
+                    $this->resolveParentExecutionId($fields[ArtifactField::PARENT_EXECUTION_ID]),
                     $links
                 ),
-                Instant::of($fields['started_at']),
-                ArtifactSequence::of($fields['sequence']),
+                Instant::of($fields[ArtifactField::STARTED_AT]),
+                ArtifactSequence::of($fields[ArtifactField::SEQUENCE]),
             );
             if ($status !== ExecutionStatus::Created) {
                 $execution = $execution->beginRunning();
@@ -955,8 +1011,8 @@ final class ClassifyingArtifactPublisher implements
             $execution = $this->completeTerminalExecution(
                 $execution,
                 $status,
-                $fields['result'],
-                $fields['ended_at'],
+                $fields[ArtifactField::RESULT],
+                $fields[ArtifactField::ENDED_AT],
             );
             if (!$execution instanceof Execution) {
                 return null;
@@ -985,13 +1041,13 @@ final class ClassifyingArtifactPublisher implements
             return $execution;
         }
 
-        if (!is_array($result) || !array_key_exists('throwable', $result)) {
+        if (!is_array($result) || !array_key_exists(ArtifactField::THROWABLE, $result)) {
             return null;
         }
 
-        $throwable = $this->typedThrowable($result['throwable']);
+        $throwable = $this->typedThrowable($result[ArtifactField::THROWABLE]);
         $isSuccessful = $status === ExecutionStatus::Succeeded;
-        if ($isSuccessful && $result['throwable'] !== null) {
+        if ($isSuccessful && $result[ArtifactField::THROWABLE] !== null) {
             return null;
         }
 
@@ -1046,9 +1102,23 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        /** @var array{id: string, execution_id: string, name: string, kind: string, status: string, started_at: int, sequence: int, parent_activity_id: string|null, attributes: array<mixed>, throwable: mixed, ended_at: int|null, duration_ns?: int} $fields */
+        /** @var array{
+         *     id: string,
+         *     execution_id: string,
+         *     name: string,
+         *     kind: string,
+         *     status: string,
+         *     started_at: int,
+         *     sequence: int,
+         *     parent_activity_id: string|null,
+         *     attributes: array<mixed>,
+         *     throwable: mixed,
+         *     ended_at: int|null,
+         *     duration_ns?: int
+         * } $fields
+         */
 
-        $attributes = $this->typedAttributes($fields['attributes']);
+        $attributes = $this->typedAttributes($fields[ArtifactField::ATTRIBUTES]);
         if ($attributes === null) {
             return null;
         }
@@ -1064,8 +1134,18 @@ final class ClassifyingArtifactPublisher implements
     {
         return array_any(
             [
-                'id', 'execution_id', 'name', 'kind', 'status', 'started_at', 'ended_at',
-                'parent_activity_id', 'sequence', 'attributes', 'throwable'],
+                ArtifactField::ID,
+                ArtifactField::EXECUTION_ID,
+                ArtifactField::NAME,
+                ArtifactField::KIND,
+                ArtifactField::STATUS,
+                ArtifactField::STARTED_AT,
+                ArtifactField::ENDED_AT,
+                ArtifactField::PARENT_ACTIVITY_ID,
+                ArtifactField::SEQUENCE,
+                ArtifactField::ATTRIBUTES,
+                ArtifactField::THROWABLE,
+            ],
             fn (string $key): bool => !array_key_exists($key, $fields)
         );
     }
@@ -1076,12 +1156,19 @@ final class ClassifyingArtifactPublisher implements
      */
     private function activityFieldTypesInvalid(array $fields): bool
     {
-        return !is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['name'])
-            || !is_string($fields['kind']) || !is_string($fields['status']) || !is_int($fields['started_at'])
-            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
-            || (!is_int($fields['ended_at']) && $fields['ended_at'] !== null)
-            || (array_key_exists('duration_ns', $fields) && !is_int($fields['duration_ns']))
-            || (!is_string($fields['parent_activity_id']) && $fields['parent_activity_id'] !== null);
+        return !is_string($fields[ArtifactField::ID])
+            || !is_string($fields[ArtifactField::EXECUTION_ID])
+            || !is_string($fields[ArtifactField::NAME])
+            || !is_string($fields[ArtifactField::KIND])
+            || !is_string($fields[ArtifactField::STATUS])
+            || !is_int($fields[ArtifactField::STARTED_AT])
+            || !is_int($fields[ArtifactField::SEQUENCE])
+            || !is_array($fields[ArtifactField::ATTRIBUTES])
+            || (!is_int($fields[ArtifactField::ENDED_AT]) && $fields[ArtifactField::ENDED_AT] !== null)
+            || (array_key_exists(ArtifactField::DURATION_NS, $fields)
+                && !is_int($fields[ArtifactField::DURATION_NS]))
+            || (!is_string($fields[ArtifactField::PARENT_ACTIVITY_ID])
+                && $fields[ArtifactField::PARENT_ACTIVITY_ID] !== null);
     }
 
     /**
@@ -1091,24 +1178,24 @@ final class ClassifyingArtifactPublisher implements
     private function buildTypedActivity(array $fields, array $attributes): ?ActivityInterface
     {
         try {
-            $status = ActivityStatus::tryFrom($fields['status']);
-            $throwable = $this->typedThrowable($fields['throwable']);
+            $status = ActivityStatus::tryFrom($fields[ArtifactField::STATUS]);
+            $throwable = $this->typedThrowable($fields[ArtifactField::THROWABLE]);
             $throwableOk = $throwable instanceof ThrowableDescriptionInterface;
-            if ($status === null || ($fields['throwable'] !== null && !$throwableOk)) {
+            if ($status === null || ($fields[ArtifactField::THROWABLE] !== null && !$throwableOk)) {
                 return null;
             }
 
             $activity = Activity::start(
-                ActivityId::fromString($fields['id']),
-                ExecutionId::fromString($fields['execution_id']),
+                ActivityId::fromString($fields[ArtifactField::ID]),
+                ExecutionId::fromString($fields[ArtifactField::EXECUTION_ID]),
                 ActivityDefinition::create(
-                    ActivityName::fromString($fields['name']),
-                    ActivityKind::fromString($fields['kind']),
-                    $fields['parent_activity_id'] === null
-                        ? null : ActivityId::fromString($fields['parent_activity_id'])
+                    ActivityName::fromString($fields[ArtifactField::NAME]),
+                    ActivityKind::fromString($fields[ArtifactField::KIND]),
+                    $fields[ArtifactField::PARENT_ACTIVITY_ID] === null
+                        ? null : ActivityId::fromString($fields[ArtifactField::PARENT_ACTIVITY_ID])
                 ),
-                Instant::of($fields['started_at']),
-                ArtifactSequence::of($fields['sequence']),
+                Instant::of($fields[ArtifactField::STARTED_AT]),
+                ArtifactSequence::of($fields[ArtifactField::SEQUENCE]),
                 AttributeCollection::fromArray($attributes),
             );
             $activity = $this->completeTypedActivity($activity, $status, $throwable, $fields);
@@ -1135,14 +1222,14 @@ final class ClassifyingArtifactPublisher implements
         array $fields,
     ): ?Activity {
         if ($status !== ActivityStatus::Running) {
-            $endedAt = $fields['ended_at'];
+            $endedAt = $fields[ArtifactField::ENDED_AT];
             if (!is_int($endedAt)) {
                 return null;
             }
 
             $durationNs = null;
-            if (array_key_exists('duration_ns', $fields)) {
-                $durationNsValue = $fields['duration_ns'];
+            if (array_key_exists(ArtifactField::DURATION_NS, $fields)) {
+                $durationNsValue = $fields[ArtifactField::DURATION_NS];
                 if (!is_int($durationNsValue)) {
                     return null;
                 }
@@ -1174,7 +1261,7 @@ final class ClassifyingArtifactPublisher implements
 
         /** @var array{id: string, execution_id: string, type: string, classification: string, schema_version: int, created_at: int, content_type: string, content_hash: string, sequence: int, attributes: array<mixed>, activity_id: string|null, predecessor_id: string|null, payload: mixed} $fields */
 
-        $attributes = $this->typedAttributes($fields['attributes']);
+        $attributes = $this->typedAttributes($fields[ArtifactField::ATTRIBUTES]);
         if ($attributes === null) {
             return null;
         }
@@ -1190,18 +1277,18 @@ final class ClassifyingArtifactPublisher implements
     {
         return array_any(
             [
-                'id',
-                'activity_id',
-                'execution_id',
-                'type',
-                'classification',
-                'schema_version',
-                'created_at',
-                'content_type',
-                'predecessor_id',
-                'sequence',
-                'payload',
-                'attributes',
+                ArtifactField::ID,
+                ArtifactField::ACTIVITY_ID,
+                ArtifactField::EXECUTION_ID,
+                ArtifactField::TYPE,
+                ArtifactField::CLASSIFICATION,
+                ArtifactField::SCHEMA_VERSION,
+                ArtifactField::CREATED_AT,
+                ArtifactField::CONTENT_TYPE,
+                ArtifactField::PREDECESSOR_ID,
+                ArtifactField::SEQUENCE,
+                ArtifactField::PAYLOAD,
+                ArtifactField::ATTRIBUTES,
             ],
             fn (string $key): bool => !array_key_exists($key, $fields)
         );
@@ -1213,13 +1300,19 @@ final class ClassifyingArtifactPublisher implements
      */
     private function snapshotFieldTypesInvalid(array $fields): bool
     {
-        return !is_string($fields['id']) || !is_string($fields['execution_id']) || !is_string($fields['type'])
-            || !is_string($fields['classification']) || !is_int($fields['schema_version'])
-            || !is_int($fields['created_at']) || !is_string($fields['content_type'])
-            || (array_key_exists('content_hash', $fields) && !is_string($fields['content_hash']))
-            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
-            || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)
-            || (!is_string($fields['predecessor_id']) && $fields['predecessor_id'] !== null);
+        return !is_string($fields[ArtifactField::ID])
+            || !is_string($fields[ArtifactField::EXECUTION_ID])
+            || !is_string($fields[ArtifactField::TYPE])
+            || !is_string($fields[ArtifactField::CLASSIFICATION])
+            || !is_int($fields[ArtifactField::SCHEMA_VERSION])
+            || !is_int($fields[ArtifactField::CREATED_AT])
+            || !is_string($fields[ArtifactField::CONTENT_TYPE])
+            || (array_key_exists(ArtifactField::CONTENT_HASH, $fields)
+                && !is_string($fields[ArtifactField::CONTENT_HASH]))
+            || !is_int($fields[ArtifactField::SEQUENCE])
+            || !is_array($fields[ArtifactField::ATTRIBUTES])
+            || (!is_string($fields[ArtifactField::ACTIVITY_ID]) && $fields[ArtifactField::ACTIVITY_ID] !== null)
+            || (!is_string($fields[ArtifactField::PREDECESSOR_ID]) && $fields[ArtifactField::PREDECESSOR_ID] !== null);
     }
 
     /**
@@ -1229,12 +1322,12 @@ final class ClassifyingArtifactPublisher implements
     private function buildTypedSnapshot(array $fields, array $attributes): ?SnapshotInterface
     {
         try {
-            $classification = SnapshotClassification::tryFrom($fields['classification']);
+            $classification = SnapshotClassification::tryFrom($fields[ArtifactField::CLASSIFICATION]);
             if ($classification === null) {
                 return null;
             }
 
-            $contentHash = $fields['content_hash'] ?? '';
+            $contentHash = $fields[ArtifactField::CONTENT_HASH] ?? '';
             $hashCalculator = $contentHash !== ''
                 ? new readonly class ($contentHash) implements HashCalculatorInterface {
                     public function __construct(private string $hash)
@@ -1254,19 +1347,23 @@ final class ClassifyingArtifactPublisher implements
             };
 
             $snapshot = Snapshot::create(
-                SnapshotId::fromString($fields['id']),
-                ExecutionId::fromString($fields['execution_id']),
-                SnapshotType::fromString($fields['type']),
-                $fields['schema_version'],
-                $fields['payload'],
+                SnapshotId::fromString($fields[ArtifactField::ID]),
+                ExecutionId::fromString($fields[ArtifactField::EXECUTION_ID]),
+                SnapshotType::fromString($fields[ArtifactField::TYPE]),
+                $fields[ArtifactField::SCHEMA_VERSION],
+                $fields[ArtifactField::PAYLOAD],
                 $hashCalculator,
-                $fields['activity_id'] === null ? null : ActivityId::fromString($fields['activity_id']),
-                $fields['predecessor_id'] === null ? null : SnapshotId::fromString($fields['predecessor_id']),
+                $fields[ArtifactField::ACTIVITY_ID] === null
+                    ? null
+                    : ActivityId::fromString($fields[ArtifactField::ACTIVITY_ID]),
+                $fields[ArtifactField::PREDECESSOR_ID] === null
+                    ? null
+                    : SnapshotId::fromString($fields[ArtifactField::PREDECESSOR_ID]),
                 $classification,
-                Instant::of($fields['created_at']),
-                $fields['content_type'],
+                Instant::of($fields[ArtifactField::CREATED_AT]),
+                $fields[ArtifactField::CONTENT_TYPE],
                 AttributeCollection::fromArray($attributes),
-                ArtifactSequence::of($fields['sequence']),
+                ArtifactSequence::of($fields[ArtifactField::SEQUENCE]),
             );
             $normalized = $snapshot->normalize();
             ksort($normalized);
@@ -1303,19 +1400,19 @@ final class ClassifyingArtifactPublisher implements
     {
         if (array_any(
             [
-                'id',
-                'activity_id',
-                'execution_id',
-                'type',
-                'source',
-                'time',
-                'data',
-                'content_type',
-                'extension_attributes',
-                'sequence',
-                'subject',
-                'data_schema',
-                'version',
+                ArtifactField::ID,
+                ArtifactField::ACTIVITY_ID,
+                ArtifactField::EXECUTION_ID,
+                ArtifactField::TYPE,
+                ArtifactField::SOURCE,
+                ArtifactField::TIME,
+                ArtifactField::DATA,
+                ArtifactField::CONTENT_TYPE,
+                ArtifactField::EXTENSION_ATTRIBUTES,
+                ArtifactField::SEQUENCE,
+                ArtifactField::SUBJECT,
+                ArtifactField::DATA_SCHEMA,
+                ArtifactField::VERSION,
             ],
             fn (string $key): bool => !array_key_exists($key, $fields)
         )
@@ -1323,18 +1420,18 @@ final class ClassifyingArtifactPublisher implements
             return null;
         }
 
-        if (!is_string($fields['id']) || !is_string($fields['execution_id'])
-            || !is_string($fields['type']) || !is_string($fields['source'])
-            || !is_int($fields['time']) || !is_string($fields['content_type'])
-            || !is_array($fields['extension_attributes']) || !is_int($fields['sequence'])
-            || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)
-            || (!is_string($fields['subject']) && $fields['subject'] !== null)
-            || (!is_string($fields['data_schema']) && $fields['data_schema'] !== null)) {
+        if (!is_string($fields[ArtifactField::ID]) || !is_string($fields[ArtifactField::EXECUTION_ID])
+            || !is_string($fields[ArtifactField::TYPE]) || !is_string($fields[ArtifactField::SOURCE])
+            || !is_int($fields[ArtifactField::TIME]) || !is_string($fields[ArtifactField::CONTENT_TYPE])
+            || !is_array($fields[ArtifactField::EXTENSION_ATTRIBUTES]) || !is_int($fields[ArtifactField::SEQUENCE])
+            || (!is_string($fields[ArtifactField::ACTIVITY_ID]) && $fields[ArtifactField::ACTIVITY_ID] !== null)
+            || (!is_string($fields[ArtifactField::SUBJECT]) && $fields[ArtifactField::SUBJECT] !== null)
+            || (!is_string($fields[ArtifactField::DATA_SCHEMA]) && $fields[ArtifactField::DATA_SCHEMA] !== null)) {
             return null;
         }
 
         $extensions = [];
-        foreach ($fields['extension_attributes'] as $key => $value) {
+        foreach ($fields[ArtifactField::EXTENSION_ATTRIBUTES] as $key => $value) {
             if (!is_string($key) || !(is_scalar($value) || is_array($value) || $value === null)) {
                 return null;
             }
@@ -1344,18 +1441,20 @@ final class ClassifyingArtifactPublisher implements
 
         try {
             $occurrence = Occurrence::create(
-                OccurrenceId::fromString($fields['id']),
-                ExecutionId::fromString($fields['execution_id']),
-                OccurrenceType::fromString($fields['type']),
-                $fields['source'],
-                Instant::of($fields['time']),
-                $fields['data'],
-                $fields['activity_id'] === null ? null : ActivityId::fromString($fields['activity_id']),
-                $fields['subject'],
-                $fields['data_schema'],
-                $fields['content_type'],
+                OccurrenceId::fromString($fields[ArtifactField::ID]),
+                ExecutionId::fromString($fields[ArtifactField::EXECUTION_ID]),
+                OccurrenceType::fromString($fields[ArtifactField::TYPE]),
+                $fields[ArtifactField::SOURCE],
+                Instant::of($fields[ArtifactField::TIME]),
+                $fields[ArtifactField::DATA],
+                $fields[ArtifactField::ACTIVITY_ID] === null
+                    ? null
+                    : ActivityId::fromString($fields[ArtifactField::ACTIVITY_ID]),
+                $fields[ArtifactField::SUBJECT],
+                $fields[ArtifactField::DATA_SCHEMA],
+                $fields[ArtifactField::CONTENT_TYPE],
                 AttributeCollection::fromArray($extensions),
-                ArtifactSequence::of($fields['sequence']),
+                ArtifactSequence::of($fields[ArtifactField::SEQUENCE]),
             );
             // Reject defaults or conversions that would invent projected values.
             $normalized = $occurrence->normalize();
@@ -1410,7 +1509,7 @@ final class ClassifyingArtifactPublisher implements
             return $artifact->artifactType();
         }
 
-        return 'unknown';
+        return ArtifactType::UNKNOWN;
     }
 
     /**
@@ -1443,11 +1542,11 @@ final class ClassifyingArtifactPublisher implements
                 continue;
             }
 
-            $projected = $kind === ArtifactType::SNAPSHOT && $key === 'payload'
+            $projected = $kind === ArtifactType::SNAPSHOT && $key === ArtifactField::PAYLOAD
                 ? $val : $this->projectValue($val, $depth + 1);
 
             $this->totalBytes += strlen($key);
-            if ($kind !== ArtifactType::SNAPSHOT || $key !== 'payload') {
+            if ($kind !== ArtifactType::SNAPSHOT || $key !== ArtifactField::PAYLOAD) {
                 $this->totalBytes += $this->byteLength($projected);
             }
 
