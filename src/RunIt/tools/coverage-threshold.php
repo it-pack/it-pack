@@ -8,12 +8,16 @@ declare(strict_types=1);
  * Usage: php tools/coverage-threshold.php [coverage.xml] [threshold=95]
  *
  * Exits 0 when coverage is at or above the threshold, nonzero otherwise.
- * Fails on missing/invalid report, wrong suite, zero denominator, or
- * coverage below the threshold.
+ * Fails on missing/invalid report, zero denominator, or coverage below the threshold.
  */
 
 $coveragePath = $argv[1] ?? 'tests/_output/coverage.xml';
-$threshold = (float)($argv[2] ?? 95.0);
+$rawThreshold = $argv[2] ?? '95';
+if (!is_numeric($rawThreshold) || (float)$rawThreshold < 0.0 || (float)$rawThreshold > 100.0) {
+    fwrite(STDERR, "FAIL: invalid threshold: $rawThreshold\n");
+    exit(1);
+}
+$threshold = (float)$rawThreshold;
 
 if (!is_file($coveragePath)) {
     fwrite(STDERR, "FAIL: coverage report not found: $coveragePath\n");

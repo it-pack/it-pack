@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Attribute;
 
+use ItPack\RunIt\SDK\Attribute\CallableReflectionResolverInterface;
 use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
+use ReflectionFunctionAbstract;
 use Tests\Support\Fixture\SDK\AttributedService;
 use Tests\Support\Fixture\SDK\SampleService;
 
@@ -171,10 +172,15 @@ final class ExecutedAsMetadataReaderTest extends TestCase
         self::assertSame('service.static', $metadata->name);
     }
 
-    public function testInvalidStringCallableResolvesToNull(): void
+    public function testNullReflectionResolverResolvesToNull(): void
     {
-        $method = new ReflectionMethod(DefaultExecutedAsMetadataReader::class, 'resolveFromReflection');
+        $reader = new DefaultExecutedAsMetadataReader(new class () implements CallableReflectionResolverInterface {
+            public function resolve(callable $callable): ?ReflectionFunctionAbstract
+            {
+                return null;
+            }
+        });
 
-        self::assertNull($method->invoke($this->reader, null));
+        self::assertNull($reader->read('Tests\Support\Fixture\SDK\sample_free_function'));
     }
 }
