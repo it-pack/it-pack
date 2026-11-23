@@ -109,6 +109,55 @@ final class ClassifyingArtifactPublisherTest extends Unit
         self::assertSame('boom', $published->result()?->throwableDescription()?->message());
     }
 
+    public function testFailedExecutionWithNullTraceIsClassified(): void
+    {
+        $inner = $this->innerPublisher();
+        $execution = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            Instant::of(1000),
+        )->beginRunning()->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create(
+                RuntimeException::class,
+                'boom',
+                1,
+                ThrowableDescription::create(RuntimeException::class, 'cause', 2, null, null),
+                null,
+            )),
+            Instant::of(2000),
+        );
+
+        $this->classifier($inner)->publish($execution);
+
+        self::assertCount(1, $inner->published());
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ExecutionInterface::class, $published);
+        self::assertSame($execution->normalize(), $published->normalize());
+    }
+
+    public function testExecutionWithMissingThrowableTraceIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $fields = $this->execution('failed')->normalize();
+
+        if (is_array($fields['result'])
+            && is_array($fields['result']['throwable'])
+            && isset($fields['result']['throwable']['trace'])
+        ) {
+            unset($fields['result']['throwable']['trace']);
+        }
+
+
+
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn($fields);
+
+        $this->classifier($inner)->publish($mock);
+
+        self::assertCount(1, $inner->published());
+        self::assertInstanceOf(ClassifiedArtifact::class, $inner->published()[0]);
+    }
+
     public function testObservationIsClassifiedAndPublished(): void
     {
         $inner = $this->innerPublisher();

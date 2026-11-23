@@ -20,9 +20,13 @@ use OpenTelemetry\API\Trace\SpanKind;
 final class SpanKindMap implements SpanKindMapInterface
 {
     public const string KIND_CONSUMER = 'consumer';
+
     public const string KIND_PRODUCER = 'producer';
+
     public const string KIND_SERVER = 'server';
+
     public const string KIND_CLIENT = 'client';
+
     public const string KIND_INTERNAL = 'internal';
 
     /**

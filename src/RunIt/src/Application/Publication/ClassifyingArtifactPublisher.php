@@ -889,9 +889,9 @@ final class ClassifyingArtifactPublisher implements
                 $value[ArtifactField::THROWABLE_CLASS],
                 $value[ArtifactField::MESSAGE],
                 $value[ArtifactField::CODE],
-                $value[ArtifactField::PREVIOUS],
-                $value[ArtifactField::TRACE],
             )
+            || !array_key_exists(ArtifactField::PREVIOUS, $value)
+            || !array_key_exists(ArtifactField::TRACE, $value)
             || !is_string($value[ArtifactField::THROWABLE_CLASS])
             || !is_string($value[ArtifactField::MESSAGE])
             || !is_int($value[ArtifactField::CODE])
