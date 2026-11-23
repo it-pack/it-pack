@@ -12,11 +12,6 @@ declare(strict_types=1);
  * coverage below the threshold.
  */
 
-if ($argc < 1) {
-    fwrite(STDERR, "Usage: php tools/coverage-threshold.php [coverage.xml] [threshold=95]\n");
-    exit(2);
-}
-
 $coveragePath = $argv[1] ?? 'tests/_output/coverage.xml';
 $threshold = (float)($argv[2] ?? 95.0);
 
@@ -25,7 +20,8 @@ if (!is_file($coveragePath)) {
     exit(1);
 }
 
-$xml = simplexml_load_file($coveragePath);
+/** @noinspection PhpComposerExtensionStubsInspection */
+$xml = simplexml_load_string(file_get_contents($coveragePath));
 if ($xml === false) {
     fwrite(STDERR, "FAIL: could not parse coverage report: $coveragePath\n");
     exit(1);
