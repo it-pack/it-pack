@@ -27,21 +27,16 @@ use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
-use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
-use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
-use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
@@ -67,6 +62,11 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
+use Tests\Support\Fixture\RedactedTagArtifact;
+use Tests\Support\Fixture\SpyHashCalculator;
+use Tests\Support\Fixture\SpyHealthAwarePublisherStackFactory;
+use Tests\Support\Fixture\SpyPublisherStackFactory;
+use Tests\Support\Fixture\TaggingRedactor;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingSnapshotStore;
 use Throwable;
@@ -556,7 +556,7 @@ final class RunItBuilderTest extends TestCase
         foreach ($spy->published as $artifact) {
             $normalized = $artifact->normalize();
             $encoded = json_encode($normalized);
-            self::assertFalse($encoded === false);
+            self::assertNotFalse($encoded);
             self::assertStringNotContainsString(
                 'secret failure detail',
                 $encoded,
@@ -914,7 +914,7 @@ final class RunItBuilderTest extends TestCase
         $builder = $base->withActivityContextPolicy($policy);
         self::assertNotSame($base, $builder);
         $runner = $builder->build()->executionRunner();
-        self::assertInstanceOf(DefaultExecutionRunner::class, $runner);
+        /** @var DefaultExecutionRunner $runner */
         self::assertSame($policy, $runner->activityContextPolicy);
     }
 
@@ -992,91 +992,5 @@ final class RunItBuilderTest extends TestCase
             $spy->called,
             'configured hash calculator must be invoked through the custom snapshot factory'
         );
-    }
-}
-
-final class SpyHashCalculator implements HashCalculatorInterface
-{
-    public bool $called = false;
-
-    public function calculate(string $content): string
-    {
-        $this->called = true;
-
-        return hash('sha256', $content);
-    }
-}
-
-final class SpyPublisherStackFactory implements PublisherStackFactoryInterface
-{
-    public bool $called = false;
-
-    public int $argumentCount = 0;
-
-    public function __construct(private readonly ?ArtifactPublisherInterface $override = null)
-    {
-    }
-
-    public function compose(
-        ArtifactPublisherInterface $base,
-        ?RedactorInterface $redactor,
-        ?SamplingPolicyInterface $samplingPolicy,
-    ): ArtifactPublisherInterface {
-        $this->called = true;
-        $this->argumentCount = func_num_args();
-
-        return $this->override ?? $base;
-    }
-}
-
-final class SpyHealthAwarePublisherStackFactory implements HealthAwarePublisherStackFactoryInterface
-{
-    public ?InternalHealthReporterInterface $health = null;
-
-    public function compose(
-        ArtifactPublisherInterface $base,
-        ?RedactorInterface $redactor,
-        ?SamplingPolicyInterface $samplingPolicy,
-    ): ArtifactPublisherInterface {
-        return $base;
-    }
-
-    public function composeWithHealth(
-        ArtifactPublisherInterface $base,
-        ?RedactorInterface $redactor,
-        ?SamplingPolicyInterface $samplingPolicy,
-        InternalHealthReporterInterface $health,
-    ): ArtifactPublisherInterface {
-        $this->health = $health;
-
-        return $base;
-    }
-}
-
-final class TaggingRedactor implements RedactorInterface
-{
-    public int $calls = 0;
-
-    public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
-    {
-        ++$this->calls;
-        return new RedactedTagArtifact($artifact);
-    }
-}
-
-final readonly class RedactedTagArtifact implements ExecutionArtifactInterface
-{
-    public function __construct(private ExecutionArtifactInterface $inner)
-    {
-    }
-
-    public function normalize(): array
-    {
-        $normalized = $this->inner->normalize();
-        if (isset($normalized['name'])) {
-            $normalized['name'] = 'redacted-name';
-        }
-
-        return $normalized;
     }
 }

@@ -2475,6 +2475,12 @@ Code review fixes applied during Phase 6 completion:
 - `tools/coverage-threshold.php` now validates the threshold argument with `is_numeric` and rejects values outside 0–100, preventing a non-numeric typo from silently passing at 0%.
 - `tools/coverage-threshold.php` docblock no longer claims a "wrong suite" check; the script enforces the percentage threshold only and does not independently verify suite provenance.
 - `tests/Unit/SDK/Attribute/ExecutedAsMetadataReaderTest.php`: `testInvalidStringCallableResolvesToNull` was rewritten as `testNullReflectionResolverResolvesToNull`, exercising the null path through the public API by injecting a stub `CallableReflectionResolverInterface` instead of reflecting into the private `resolveFromReflection` method.
+- `tests/Unit/SDK/Builder/RunItBuilderTest.php`: `testWithActivityContextPolicyAcceptsValidValues` was converted from a `foreach` loop with assertions inside to `#[DataProvider('activityContextPolicies')]` with named cases (`fallback`, `drop`, `throw`), satisfying `tests.assertions_in_loops`.
+- `tests/Unit/SDK/Builder/RunItBuilderTest.php`: inline test doubles (`SpyHashCalculator`, `SpyPublisherStackFactory`, `SpyHealthAwarePublisherStackFactory`, `TaggingRedactor`, `RedactedTagArtifact`) were extracted to dedicated fixture files under `tests/Support/Fixture/`; unused imports were removed from the test class.
+
+Review findings skipped:
+- Coverage-threshold suite-provenance enforcement (workflow line 110 / plan item): intentionally deferred to Phase 7 per the plan; the threshold gate is a percentage check only, and isolation/suite-provenance controls are explicitly not part of Phase 6.
+- Making the coverage threshold non-blocking until isolation controls: contradicts the Phase 6 exit criteria ("coverage is enforced in CI"); the blocking threshold job in `.github/workflows/quality.yml` remains as approved.
 
 **Exit:** at least 95% isolated Unit statement coverage is enforced in CI, coverage attribution is verified by a negative control, PHPStan/style/architecture gates pass, and dependency status is current.
 

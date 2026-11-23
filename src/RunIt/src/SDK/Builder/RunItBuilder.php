@@ -114,7 +114,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
     ) {
     }
 
-    public static function create(): RunItBuilder
+    public static function create(): self
     {
         return new self();
     }
