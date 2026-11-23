@@ -12,22 +12,17 @@ use ItPack\RunIt\Application\Publication\OverflowStrategy;
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionId;
-use ItPack\RunIt\Domain\Observation\Observation;
-use ItPack\RunIt\Domain\Observation\ObservationId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
+use Tests\Support\Fixture\PublicationTestArtifactFactory;
 use Throwable;
 
 #[CoversClass(BufferedArtifactPublisher::class)]
 #[UsesClass(BufferConfiguration::class)]
 #[UsesClass(InMemoryArtifactPublisher::class)]
-#[UsesClass(Observation::class)]
-#[UsesClass(ObservationId::class)]
-#[UsesClass(ExecutionId::class)]
 final class BufferedLifecycleInvariantTest extends Unit
 {
     public function testThrowingReporterAfterNonHeadPriorityEvictionCanBeRetried(): void
@@ -57,10 +52,10 @@ final class BufferedLifecycleInvariantTest extends Unit
             new DeterministicArtifactByteEstimator(10, ['low' => 20, 'last' => 30, 'incoming' => 40]),
             $health,
         );
-        $first = $this->artifact('first', true);
-        $low = $this->artifact('low');
-        $last = $this->artifact('last', true);
-        $incoming = $this->artifact('incoming', true);
+        $first = PublicationTestArtifactFactory::priorityArtifact('first', true);
+        $low = PublicationTestArtifactFactory::priorityArtifact('low');
+        $last = PublicationTestArtifactFactory::priorityArtifact('last', true);
+        $incoming = PublicationTestArtifactFactory::priorityArtifact('incoming', true);
         $buffer->publish($first);
         $buffer->publish($low);
         $buffer->publish($last);
@@ -126,9 +121,9 @@ final class BufferedLifecycleInvariantTest extends Unit
             $health,
             $observer,
         );
-        $first = $this->artifact('first');
-        $second = $this->artifact('second');
-        $third = $this->artifact('third');
+        $first = PublicationTestArtifactFactory::priorityArtifact('first');
+        $second = PublicationTestArtifactFactory::priorityArtifact('second');
+        $third = PublicationTestArtifactFactory::priorityArtifact('third');
         $buffer->publish($first);
         $buffer->publish($second);
         $buffer->publish($third);
@@ -155,15 +150,5 @@ final class BufferedLifecycleInvariantTest extends Unit
         self::assertSame(0, $buffer->bufferedCount());
         self::assertSame(0, $buffer->estimatedBytes());
         self::assertSame(2, $buffer->droppedCount());
-    }
-
-    private function artifact(string $id, bool $high = false): Observation
-    {
-        $observationId = ObservationId::fromString($id);
-        $executionId = ExecutionId::fromString('execution');
-
-        return $high
-            ? Observation::error($observationId, $executionId, 'message')
-            : Observation::info($observationId, $executionId, 'message');
     }
 }
