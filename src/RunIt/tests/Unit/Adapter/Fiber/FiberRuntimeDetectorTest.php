@@ -7,10 +7,12 @@ namespace Tests\Unit\Adapter\Fiber;
 use Codeception\Test\Unit;
 use Fiber;
 use ItPack\RunIt\Adapter\Fiber\FiberRuntimeDetector;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * M11.2 — Fiber-only runtime detection.
  */
+#[CoversClass(FiberRuntimeDetector::class)]
 final class FiberRuntimeDetectorTest extends Unit
 {
     public function testNotInCoroutineOnMainStack(): void

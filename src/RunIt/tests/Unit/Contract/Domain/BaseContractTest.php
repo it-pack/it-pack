@@ -13,8 +13,10 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\NormalizableInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\FixedSequencedArtifact;
 
+#[CoversClass(StringIdentifierBehavior::class)]
 final class BaseContractTest extends Unit
 {
     public const array DATA = [

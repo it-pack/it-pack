@@ -7,11 +7,13 @@ namespace Tests\Unit\Adapter\Common;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\ConfigurableHashCalculator;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group adapter
  * @group security
  */
+#[CoversClass(ConfigurableHashCalculator::class)]
 final class ConfigurableHashCalculatorTest extends Unit
 {
     public function testDefaultAlgorithmIsSha256(): void

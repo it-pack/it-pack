@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Telemetry;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionClass;
 
 /**
@@ -13,6 +14,7 @@ use ReflectionClass;
  * literal OpenTelemetry attribute spelling and type. Changing a value here
  * changes the exported wire format.
  */
+#[CoversClass(AttributeValues::class)]
 final class AttributeValuesTest extends Unit
 {
     public function testConstantsMatchTheirLiteralValuesAndTypes(): void

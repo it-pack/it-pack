@@ -8,10 +8,12 @@ use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group contract
  */
+#[CoversClass(InvalidStringValueException::class)]
 final class InvalidStringValueExceptionTest extends Unit
 {
     public function testImplementsMarkerInterface(): void

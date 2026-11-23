@@ -11,6 +11,7 @@ use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
 use ItPack\RunIt\Application\Policy\FailExecutionOnOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
+use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
@@ -39,12 +40,14 @@ use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Random\RandomException;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Throwable;
 
+#[CoversClass(DefaultExecutionRunner::class)]
 final class DefaultExecutionRunnerTest extends Unit
 {
     public function testReturnsOperationResultUnchangedOnSuccess(): void

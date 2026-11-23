@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Recorder\DefaultOccurrenceRecorder;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -14,12 +15,14 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * @group application
  * @group recorder
  */
+#[CoversClass(DefaultOccurrenceRecorder::class)]
 final class DefaultOccurrenceRecorderTest extends Unit
 {
     private RunItTestKit $kit;

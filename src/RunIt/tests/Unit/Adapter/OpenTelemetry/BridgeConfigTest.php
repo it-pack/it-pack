@@ -9,8 +9,10 @@ use ItPack\RunIt\Adapter\OpenTelemetry\BridgeCapability;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 
+#[CoversClass(BridgeConfig::class)]
 final class BridgeConfigTest extends Unit
 {
     public function testDefaultHasNoProviders(): void

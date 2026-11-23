@@ -6,12 +6,14 @@ namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemorySnapshotStore;
+use ItPack\RunIt\Application\Recorder\DefaultSnapshotRecorder;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Throwable;
@@ -20,6 +22,7 @@ use Throwable;
  * @group application
  * @group recorder
  */
+#[CoversClass(DefaultSnapshotRecorder::class)]
 final class DefaultSnapshotRecorderTest extends Unit
 {
     private RunItTestKit $kit;

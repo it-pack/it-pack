@@ -18,9 +18,11 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\Psr\InMemoryLogger;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 
+#[CoversClass(ObservationLoggerPublisher::class)]
 final class ObservationLoggerPublisherTest extends Unit
 {
     public function testPublishesObservationWithLevelMessageContextAndCorrelation(): void

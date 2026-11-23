@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 use function Swoole\Coroutine\run;
 
@@ -23,6 +24,7 @@ use Tests\Support\Fixture\RunItTestKit;
 /**
  * M11.5 — coroutine-local execution context storage.
  */
+#[CoversClass(CoroutineContextStorage::class)]
 final class CoroutineContextStorageTest extends Unit
 {
     private function definition(): ExecutionDefinitionInterface

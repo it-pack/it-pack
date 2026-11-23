@@ -20,6 +20,7 @@ use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,6 +29,7 @@ use PHPUnit\Framework\TestCase;
  * The default deny-secret policy is applied at the domain boundary so the
  * projection never leaks secrets under any wiring.
  */
+#[CoversClass(ExecutionSnapshotFactory::class)]
 final class ExecutionContextRedactionTest extends TestCase
 {
     private function contextWithSecret(): ContextContract

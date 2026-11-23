@@ -64,11 +64,11 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
     }
 
     public function record(
-        string $message,
+        string                        $message,
         ?ObservationSeverityInterface $severity = null,
         ?AttributeCollectionInterface $attributes = null,
-        ?Throwable $throwable = null,
-        ?string $diagnosticCode = null,
+        ?Throwable                    $throwable = null,
+        ?string                       $diagnosticCode = null,
     ): ObservationInterface {
         [$activityId, $activityExportId, $valid] = $this->activity();
         $severity ??= ObservationSeverity::Info;

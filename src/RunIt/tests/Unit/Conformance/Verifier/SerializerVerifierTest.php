@@ -8,12 +8,14 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\SerializerVerifier;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
 
 /**
  * @group conformance
  */
+#[CoversClass(SerializerVerifier::class)]
 final class SerializerVerifierTest extends Unit
 {
     public function testPortReportsSerializerInterface(): void

@@ -18,7 +18,9 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(ExecutionLifecycleCoordinator::class)]
 final class ExecutionLifecycleCoordinatorTest extends Unit
 {
     private function running(): Execution

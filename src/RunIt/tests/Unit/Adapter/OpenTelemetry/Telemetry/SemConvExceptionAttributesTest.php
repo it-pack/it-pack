@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Telemetry;
 
 use Codeception\Test\Unit;
 use OpenTelemetry\SemConv\Attributes\ExceptionAttributes;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use ReflectionClass;
 
 /**
@@ -14,6 +15,7 @@ use ReflectionClass;
  * literal attribute key. Changing a constant here changes the exported span
  * event attributes.
  */
+#[CoversNothing]
 final class SemConvExceptionAttributesTest extends Unit
 {
     public function testConstantsMatchTheirLiteralKeys(): void

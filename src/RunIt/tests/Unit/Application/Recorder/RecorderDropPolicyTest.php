@@ -32,10 +32,12 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 use Tests\Support\Fixture\SequenceIdentifierGenerator;
 
+#[CoversClass(DefaultObservationRecorder::class)]
 final class RecorderDropPolicyTest extends Unit
 {
     public function testDropReturnsUnattestedArtifactsWithoutPublicationOrPersistence(): void

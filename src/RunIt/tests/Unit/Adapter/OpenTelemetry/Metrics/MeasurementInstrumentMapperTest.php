@@ -22,6 +22,7 @@ use OpenTelemetry\SDK\Metrics\Data\Gauge;
 use OpenTelemetry\SDK\Metrics\Data\Histogram;
 use OpenTelemetry\SDK\Metrics\Data\Metric;
 use OpenTelemetry\SDK\Metrics\Data\Sum;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
@@ -30,6 +31,7 @@ use Throwable;
 /**
  * M9.5 — Measurements to metrics.
  */
+#[CoversClass(DefaultMeasurementInstrumentMapper::class)]
 final class MeasurementInstrumentMapperTest extends Unit
 {
     private OtelTestKit $kit;

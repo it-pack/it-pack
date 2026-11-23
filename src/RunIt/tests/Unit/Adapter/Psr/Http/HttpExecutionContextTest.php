@@ -8,8 +8,10 @@ use ItPack\RunIt\Adapter\Psr\Http\HttpExecutionContext;
 use ItPack\RunIt\Adapter\Psr\Http\Psr7RequestContextExtractor;
 use ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(HttpExecutionContext::class)]
 final class HttpExecutionContextTest extends TestCase
 {
     public function testClassSatisfiesTheSharedContract(): void

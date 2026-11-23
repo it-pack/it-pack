@@ -27,12 +27,14 @@ use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 
 /**
  * M9.2 — Execution to trace mapping.
  */
+#[CoversClass(DefaultExecutionSpanMapper::class)]
 final class ExecutionSpanMapperTest extends Unit
 {
     private InMemoryExporter $spanExporter;

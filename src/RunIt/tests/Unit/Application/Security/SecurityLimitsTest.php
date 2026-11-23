@@ -8,11 +8,13 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidSecurityLimitException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group application
  * @group security
  */
+#[CoversClass(SecurityLimits::class)]
 final class SecurityLimitsTest extends Unit
 {
     public function testDefaultLimitsAreConservativeAndPositive(): void

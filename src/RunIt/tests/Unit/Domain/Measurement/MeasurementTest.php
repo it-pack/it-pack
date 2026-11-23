@@ -20,8 +20,10 @@ use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
+#[CoversClass(Measurement::class)]
 final class MeasurementTest extends Unit
 {
     public function testCounterRequiresIntegerValue(): void

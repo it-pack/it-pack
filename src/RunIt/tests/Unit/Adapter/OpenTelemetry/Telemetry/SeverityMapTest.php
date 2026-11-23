@@ -7,11 +7,13 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Telemetry;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group adapter
  * @group open-telemetry
  */
+#[CoversClass(SeverityMap::class)]
 final class SeverityMapTest extends Unit
 {
     public function testEveryRunItSeverityMapsToTheDocumentedOpenTelemetryBand(): void

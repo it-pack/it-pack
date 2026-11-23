@@ -8,12 +8,14 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
 /**
  * @group behavior
  * @group security
  */
+#[CoversClass(AttributeValidator::class)]
 final class AttributeValidatorTest extends Unit
 {
     public function testDefaultRejectsTooManyAttributes(): void

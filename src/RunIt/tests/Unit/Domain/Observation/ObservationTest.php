@@ -13,7 +13,9 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(Observation::class)]
 final class ObservationTest extends Unit
 {
     public function testSeverityLevelsAndErrorFlag(): void

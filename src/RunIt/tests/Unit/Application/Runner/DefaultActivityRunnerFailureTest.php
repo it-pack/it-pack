@@ -26,10 +26,12 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\SequenceIdentifierGenerator;
 
+#[CoversClass(DefaultActivityRunner::class)]
 final class DefaultActivityRunnerFailureTest extends Unit
 {
     public function testStartPublicationFailurePreservesResultAndCleansUp(): void

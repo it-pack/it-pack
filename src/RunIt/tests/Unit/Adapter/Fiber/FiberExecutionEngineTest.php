@@ -14,12 +14,14 @@ use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * M11.3 — Fiber execution engine.
  */
+#[CoversClass(FiberExecutionEngine::class)]
 final class FiberExecutionEngineTest extends Unit
 {
     private function kit(): RunItTestKit

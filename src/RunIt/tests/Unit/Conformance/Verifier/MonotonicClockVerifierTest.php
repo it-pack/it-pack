@@ -9,12 +9,14 @@ use ItPack\RunIt\Conformance\Verifier\MonotonicClockVerifier;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 
 /**
  * @group conformance
  */
+#[CoversClass(MonotonicClockVerifier::class)]
 final class MonotonicClockVerifierTest extends Unit
 {
     public function testPortReportsMonotonicClockInterface(): void

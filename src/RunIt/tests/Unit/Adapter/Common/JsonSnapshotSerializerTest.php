@@ -9,12 +9,14 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Contract\Exception\SerializationException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use JsonSerializable;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
 /**
  * @group adapter
  * @group security
  */
+#[CoversClass(JsonSnapshotSerializer::class)]
 final class JsonSnapshotSerializerTest extends Unit
 {
     public function testPrimitivePayloadNormalizes(): void

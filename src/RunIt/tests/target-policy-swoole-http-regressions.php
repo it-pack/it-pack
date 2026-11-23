@@ -49,11 +49,11 @@ $recorder = new class ($recorderError) implements ObservationRecorderInterface {
 
     /** Capture the observation arguments, then throw the configured error. */
     public function record(
-        string $message,
+        string                        $message,
         ?ObservationSeverityInterface $severity = null,
         ?AttributeCollectionInterface $attributes = null,
-        ?Throwable $throwable = null,
-        ?string $diagnosticCode = null,
+        ?Throwable                    $throwable = null,
+        ?string                       $diagnosticCode = null,
     ): ObservationInterface {
         ++$this->calls;
         $this->arguments[] = [$message, $severity, $attributes, $throwable, $diagnosticCode];

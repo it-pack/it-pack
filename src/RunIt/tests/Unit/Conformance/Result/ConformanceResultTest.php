@@ -8,10 +8,12 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Conformance\Result\ViolationSeverity;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group conformance
  */
+#[CoversClass(ConformanceResult::class)]
 final class ConformanceResultTest extends Unit
 {
     public function testAddReturnsANewImmutableResultCarryingTheViolation(): void

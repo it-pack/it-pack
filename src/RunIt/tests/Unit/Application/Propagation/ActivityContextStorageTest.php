@@ -17,7 +17,9 @@ use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
 use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(FiberActivityContextStorage::class)]
 final class ActivityContextStorageTest extends Unit
 {
     public function testNestingAndForeignTokensDoNotAlterExecutionStorage(): void

@@ -7,11 +7,13 @@ namespace Tests\Unit\Adapter\CloudEvents;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
 /**
  * M10.2 / M10.4 — CloudEvent envelope validation and structure.
  */
+#[CoversClass(CloudEvent::class)]
 final class CloudEventTest extends Unit
 {
     public function testCreateProducesStructuredRepresentation(): void

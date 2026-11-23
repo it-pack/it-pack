@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Recorder\DefaultMeasurementRecorder;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -12,12 +13,14 @@ use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * @group application
  * @group recorder
  */
+#[CoversClass(DefaultMeasurementRecorder::class)]
 final class DefaultMeasurementRecorderTest extends Unit
 {
     private RunItTestKit $kit;

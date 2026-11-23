@@ -15,11 +15,13 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M10.2 — occurrence to CloudEvent mapping.
  */
+#[CoversClass(DefaultOccurrenceToCloudEventMapper::class)]
 final class OccurrenceToCloudEventMapperTest extends Unit
 {
     private DefaultOccurrenceToCloudEventMapper $mapper;

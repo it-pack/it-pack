@@ -10,10 +10,12 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSerializerInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Adapter\CloudEvents\Serialization\DefaultCloudEventJsonSerializer;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * M10.4 — structured JSON serialization, size limits, and malformed handling.
  */
+#[CoversClass(CloudEvent::class)]
 final class CloudEventJsonSerializerTest extends Unit
 {
     private CloudEventSerializerInterface $serializer;

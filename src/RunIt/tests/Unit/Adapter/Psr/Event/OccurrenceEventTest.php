@@ -22,11 +22,13 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\Instant;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
 use Tests\Support\Fixture\Psr\RecordingEventDispatcher;
 use Throwable;
 
+#[CoversClass(OccurrenceEvent::class)]
 final class OccurrenceEventTest extends Unit
 {
     public function testWrapperPreservesOccurrenceImmutability(): void

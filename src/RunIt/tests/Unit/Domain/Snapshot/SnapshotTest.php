@@ -15,8 +15,10 @@ use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
+#[CoversClass(Snapshot::class)]
 final class SnapshotTest extends Unit
 {
     private function calculator(): DeterministicHashCalculator

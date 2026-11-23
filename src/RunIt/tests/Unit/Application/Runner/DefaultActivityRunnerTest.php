@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Runner\DefaultActivityRunner;
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -16,6 +17,7 @@ use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
@@ -23,6 +25,7 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group application
  * @group activity
  */
+#[CoversClass(DefaultActivityRunner::class)]
 final class DefaultActivityRunnerTest extends Unit
 {
     private RunItTestKit $kit;

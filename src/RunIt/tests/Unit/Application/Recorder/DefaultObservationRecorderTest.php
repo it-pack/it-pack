@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Recorder\DefaultObservationRecorder;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -13,6 +14,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
@@ -20,6 +22,7 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group application
  * @group recorder
  */
+#[CoversClass(DefaultObservationRecorder::class)]
 final class DefaultObservationRecorderTest extends Unit
 {
     private RunItTestKit $kit;

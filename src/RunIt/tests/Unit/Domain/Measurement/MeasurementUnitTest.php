@@ -6,12 +6,14 @@ namespace Tests\Unit\Domain\Measurement;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Truth table over the closed measurement-unit vocabulary.
  *
  * @group domain
  */
+#[CoversClass(MeasurementUnit::class)]
 final class MeasurementUnitTest extends Unit
 {
     public function testEveryUnitCarriesItsStableLowercaseLabel(): void

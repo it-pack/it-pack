@@ -8,11 +8,13 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Psr\Log\ObservationRecordingLogger;
 use ItPack\RunIt\Application\Publication\PublicationGuard;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
 use Stringable;
 use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 
+#[CoversClass(ObservationRecordingLogger::class)]
 final class ObservationRecordingLoggerTest extends Unit
 {
     public function testLogsAreRecordedAsObservationsWithMappedSeverity(): void

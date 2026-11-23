@@ -14,12 +14,14 @@ use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * M11.3 — default synchronous execution engine.
  */
+#[CoversClass(SynchronousExecutionEngine::class)]
 final class SynchronousExecutionEngineTest extends Unit
 {
     private function scope(): ExecutionScopeInterface
