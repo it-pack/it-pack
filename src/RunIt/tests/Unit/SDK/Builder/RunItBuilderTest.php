@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Builder;
 
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
@@ -901,6 +902,58 @@ final class RunItBuilderTest extends TestCase
             $spy->called,
             'configured hash calculator must be wired into the default snapshot factory'
         );
+    }
+
+    public function testWithActivityContextPolicyAcceptsValidValues(): void
+    {
+        foreach (['fallback', 'drop', 'throw'] as $policy) {
+            $base = $this->builder();
+            assert($base instanceof RunItBuilder);
+            $builder = $base->withActivityContextPolicy($policy);
+            self::assertNotSame($base, $builder);
+            $runtime = $builder->build();
+            self::assertInstanceOf(RunItInterface::class, $runtime);
+        }
+    }
+
+    public function testWithActivityContextPolicyRejectsInvalidValues(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown activity context policy.');
+        $base = $this->builder();
+        assert($base instanceof RunItBuilder);
+        $base->withActivityContextPolicy('invalid-policy');
+    }
+
+    public function testWithActivityContextPolicyReturnsClone(): void
+    {
+        $base = $this->builder();
+        assert($base instanceof RunItBuilder);
+        $configured = $base->withActivityContextPolicy('drop');
+        self::assertNotSame($base, $configured);
+    }
+
+    public function testWithActivityContextAttachFailureFallback(): void
+    {
+        $base = $this->builder();
+        assert($base instanceof RunItBuilder);
+        $enabled = $base->withActivityContextAttachFailureFallback(true);
+        $runtime = $enabled->build();
+        self::assertInstanceOf(RunItInterface::class, $runtime);
+
+        $disabled = $this->builder();
+        assert($disabled instanceof RunItBuilder);
+        $disabled = $disabled->withActivityContextAttachFailureFallback(false);
+        $runtime = $disabled->build();
+        self::assertInstanceOf(RunItInterface::class, $runtime);
+    }
+
+    public function testWithActivityContextAttachFailureFallbackReturnsClone(): void
+    {
+        $base = $this->builder();
+        assert($base instanceof RunItBuilder);
+        $configured = $base->withActivityContextAttachFailureFallback(true);
+        self::assertNotSame($base, $configured);
     }
 
     public function testBuildAcceptsAllCustomSeams(): void

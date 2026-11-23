@@ -8,6 +8,7 @@ use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use Tests\Support\Fixture\SDK\AttributedService;
 use Tests\Support\Fixture\SDK\SampleService;
 
@@ -168,5 +169,12 @@ final class ExecutedAsMetadataReaderTest extends TestCase
 
         self::assertNotNull($metadata);
         self::assertSame('service.static', $metadata->name);
+    }
+
+    public function testInvalidStringCallableResolvesToNull(): void
+    {
+        $method = new ReflectionMethod(DefaultExecutedAsMetadataReader::class, 'resolveFromReflection');
+
+        self::assertNull($method->invoke($this->reader, null));
     }
 }
