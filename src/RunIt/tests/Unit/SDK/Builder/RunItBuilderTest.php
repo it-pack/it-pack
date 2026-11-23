@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\SDK\Builder;
 
 use Codeception\Attribute\DataProvider;
-use Generator;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
@@ -151,41 +150,11 @@ final class RunItBuilderTest extends TestCase
         self::assertInstanceOf(DefaultRunIt::class, $runtime);
     }
 
-    public function testBuildValidatesRequiredDependencies(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-        $this->buildMissing('publisher');
-    }
-
-    #[dataProvider('requiredDependencies')]
-    public function testBuildValidatesRequiredPublisher(string $dependency): void
+    #[DataProvider('requiredDependencies')]
+    public function testBuildValidatesRequiredDependency(string $dependency): void
     {
         $this->expectException(MissingBuilderDependencyException::class);
         $this->buildMissing($dependency);
-    }
-
-    public function testBuildValidatesRequiredClock(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-        $this->buildMissing('clock');
-    }
-
-    public function testBuildValidatesRequiredSequenceAllocator(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-        $this->buildMissing('sequenceAllocator');
-    }
-
-    public function testBuildValidatesRequiredSerializer(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-        $this->buildMissing('snapshotSerializer');
-    }
-
-    public function testBuildValidatesRequiredIdentifierGenerator(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-        $this->buildMissing('identifierGenerator');
     }
 
     public function testBuiltRuntimeExecutesOperationAndReturnsResult(): void
@@ -875,7 +844,7 @@ final class RunItBuilderTest extends TestCase
         self::assertNotSame($base, $builder);
         $runner = $builder->build()->executionRunner();
         /** @var DefaultExecutionRunner $runner */
-        self::assertSame($policy, $runner->activityContextPolicy);
+        self::assertSame($policy, $runner->activityContextPolicy());
     }
 
     /** @return iterable<string, array{string}> */
@@ -932,13 +901,14 @@ final class RunItBuilderTest extends TestCase
         );
     }
 
-    public function requiredDependencies(): Generator
+    /** @return iterable<string, array{string}> */
+    public static function requiredDependencies(): iterable
     {
-        yield ['publisher'];
-        yield ['clock'];
-        yield ['sequenceAllocator'];
-        yield ['snapshotSerializer'];
-        yield ['identifierGenerator'];
+        yield 'publisher' => ['publisher'];
+        yield 'clock' => ['clock'];
+        yield 'sequenceAllocator' => ['sequenceAllocator'];
+        yield 'snapshotSerializer' => ['snapshotSerializer'];
+        yield 'identifierGenerator' => ['identifierGenerator'];
     }
 
     private function buildMissing(string $skip): void

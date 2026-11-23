@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Adapter\Null\NullArtifactPublisher;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\RunItInterface;
 
@@ -23,7 +24,8 @@ final class RunItFactories
 {
     public static function nullRuntime(): RunItInterface
     {
-        return self::configuredBuilder()
+        return self::configuredDefaultBuilder()
+            ->withPublisher(new NullArtifactPublisher())
             ->build()
         ;
     }
@@ -54,6 +56,7 @@ final class RunItFactories
             ->withClock(new SystemMonotonicClock())
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer());
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+        ;
     }
 }

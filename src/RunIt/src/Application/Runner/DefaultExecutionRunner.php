@@ -112,46 +112,46 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
      * @param Closure(Throwable): void|null $onPublicationFailure receives publication errors so they can be reported
      *      without replacing the business result
      */
-    public FailSafeArtifactPublisher $safePublisher;
+    private FailSafeArtifactPublisher $safePublisher;
 
-    public ExecutionEngineInterface  $engine;
+    private ExecutionEngineInterface  $engine;
 
     /** @var ArrayObject<string, bool> */
-    public ArrayObject $healthState;
+    private ArrayObject $healthState;
 
     public function __construct(
-        public CurrentExecutionInterface              $currentExecution,
-        public ContextStorageInterface                $contextStorage,
-        public ArtifactPublisherInterface             $publisher,
-        public SerializerInterface                    $serializer,
-        public ExecutionFactoryInterface              $executionFactory,
-        public ExecutionLifecycleCoordinatorInterface $coordinator,
-        public ExecutionSnapshotFactoryInterface      $snapshotFactory,
-        public NestedExecutionPolicyInterface         $nestedPolicy,
-        public ExecutionCompletionPolicyInterface     $completionPolicy,
-        public MonotonicClockInterface                $clock,
-        public SequenceAllocatorInterface             $sequenceAllocator,
+        private CurrentExecutionInterface              $currentExecution,
+        private ContextStorageInterface                $contextStorage,
+        private ArtifactPublisherInterface             $publisher,
+        private SerializerInterface                    $serializer,
+        private ExecutionFactoryInterface              $executionFactory,
+        private ExecutionLifecycleCoordinatorInterface $coordinator,
+        private ExecutionSnapshotFactoryInterface      $snapshotFactory,
+        private NestedExecutionPolicyInterface         $nestedPolicy,
+        private ExecutionCompletionPolicyInterface     $completionPolicy,
+        private MonotonicClockInterface                $clock,
+        private SequenceAllocatorInterface             $sequenceAllocator,
         /** @var StringIdentifierFactoryInterface<ExecutionIdInterface> */
-        public StringIdentifierFactoryInterface       $executionIdFactory,
+        private StringIdentifierFactoryInterface       $executionIdFactory,
         /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
-        public StringIdentifierFactoryInterface       $activityIdFactory,
+        private StringIdentifierFactoryInterface       $activityIdFactory,
         /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
-        public StringIdentifierFactoryInterface       $observationIdFactory,
+        private StringIdentifierFactoryInterface       $observationIdFactory,
         /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
-        public StringIdentifierFactoryInterface       $occurrenceIdFactory,
+        private StringIdentifierFactoryInterface       $occurrenceIdFactory,
         /** @var StringIdentifierFactoryInterface<SnapshotIdInterface> */
-        public StringIdentifierFactoryInterface       $snapshotIdFactory,
-        public HashCalculatorInterface                $hashCalculator,
-        public ThrowableMapperInterface               $throwableMapper,
-        public ?Closure                               $onPublicationFailure = null,
-        public ?SnapshotStoreInterface                $snapshotStore = null,
-        public ?Closure                               $onSnapshotStoreFailure = null,
+        private StringIdentifierFactoryInterface       $snapshotIdFactory,
+        private HashCalculatorInterface                $hashCalculator,
+        private ThrowableMapperInterface               $throwableMapper,
+        private ?Closure                               $onPublicationFailure = null,
+        private ?SnapshotStoreInterface                $snapshotStore = null,
+        private ?Closure                               $onSnapshotStoreFailure = null,
         ?ExecutionEngineInterface                     $engine = null,
-        public SecurityLimits                         $limits = new SecurityLimits(),
-        public ProvenanceAuthority                   $authority = new ProvenanceAuthority(),
-        public ?ActivityContextStorageInterface      $activityContextStorage = null,
-        public string                                  $activityContextPolicy = 'fallback',
-        public bool                                  $runOnActivityContextAttachFailure = false,
+        private SecurityLimits                         $limits = new SecurityLimits(),
+        private ProvenanceAuthority                   $authority = new ProvenanceAuthority(),
+        private ?ActivityContextStorageInterface      $activityContextStorage = null,
+        private string                                  $activityContextPolicy = 'fallback',
+        private bool                                  $runOnActivityContextAttachFailure = false,
     ) {
         $this->healthState = new ArrayObject(['reporting' => false]);
         $health = new readonly class (fn (Throwable $failure, ExecutionArtifactInterface $artifact) =>
@@ -177,6 +177,11 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         );
         $this->safePublisher = new FailSafeArtifactPublisher($bounded, new FailOpenPolicy(), $health);
         $this->engine = $engine ?? new SynchronousExecutionEngine();
+    }
+
+    public function activityContextPolicy(): string
+    {
+        return $this->activityContextPolicy;
     }
 
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
