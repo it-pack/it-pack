@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 complete, exit criteria demonstrated 2026-11-20; Phase 3 complete, 2026-11-21; Phase 4 complete, 2026-11-21; Phase 5 complete, 2026-11-22; Phase 6 complete, quality gates pass 2026-11-23; Phase 7 in progress).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; Phase 1 checklist complete with tracked follow-ups; Phase 2 complete, exit criteria demonstrated 2026-11-20; Phase 3 complete, 2026-11-21; Phase 4 complete, 2026-11-21; Phase 5 complete, 2026-11-22; Phase 6 coverage-threshold gate complete 2026-11-23, attribution and isolation enforcement deferred to Phase 7; Phase 7 in progress).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -2457,7 +2457,7 @@ filtering, collector cleanup and isolation from other suites are demonstrated.
 - [x] Update stale DepTrac references in `docs/QA.md` and architecture docs to accurately describe PHPArkitect and the effective rules. Update ADRs first if the intended boundary itself changes.
 - [x] Re-run `composer audit`, `composer audit --no-dev`, and `composer why doctrine/annotations --tree`; track the abandoned dependency through PHPBench and `just-bases/php-qa-base`. Do not imply that an abandoned development dependency is an active vulnerability or introduce unsupported pins to suppress the warning.
 
-**Phase 6 complete (2026-11-23):** On PHP 8.5.13, `composer analyse`, `composer cs:check`, `composer refactor:dry`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, `composer coverage:threshold`, and `composer security:audit` all pass. `composer api:check` reports one pre-existing addition (`DefaultExecutionRunner::activityContextPolicy()`) not yet reflected in the baseline; this addition predates this phase and is unrelated to Phase 7 work. PHPStan reported no errors; no baseline was changed. Rector dry-run and CS-Fixer dry-run both report no changes needed. Both Composer audits reported no security advisories; `doctrine/annotations` 2.0.2 remains abandoned as a development dependency through PHPBench and `just-bases/php-qa-base`.
+**Phase 6 coverage-threshold gate (2026-11-23):** On PHP 8.5.13, `composer analyse`, `composer cs:check`, `composer refactor:dry`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, `composer coverage:threshold`, `composer api:check`, and `composer security:audit` all pass. PHPStan reported no errors; no baseline was changed. Rector dry-run and CS-Fixer dry-run both report no changes needed. Both Composer audits reported no security advisories; `doctrine/annotations` 2.0.2 remains abandoned as a development dependency through PHPBench and `just-bases/php-qa-base`.
 
 Coverage reached 95.01% (6,513/6,855 Unit statements) on PHP 8.5.13 with PCOV, exceeding the 95% target. Nine new focused Unit tests were added across three test files:
 
