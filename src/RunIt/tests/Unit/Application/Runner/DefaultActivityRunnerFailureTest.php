@@ -100,7 +100,7 @@ final class DefaultActivityRunnerFailureTest extends Unit
         );
 
         $result = $runner->run($activity, static function () use ($scope): string {
-            self::assertNotSame(ActivityId::fromString('prior-act'), $scope->currentActivityId());
+            self::assertSame('test-act-1', $scope->currentActivityId()?->toString());
             return 'result';
         });
 

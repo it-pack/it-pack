@@ -955,16 +955,16 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $inner = $this->innerPublisher();
         $publisher = $this->classifier($inner);
 
-        // Build deeply nested attributes to exceed MAX_NODES (1024) while
-        // keeping each map below the per-map attribute limit (64).
-        $nested = ['value' => 'leaf'];
-        for ($i = 0; $i < 20; $i++) {
-            $nested = ['level' => $nested];
+        // Shallow, wide nested data to exceed MAX_NODES (1024) while staying
+        // below MAX_DEPTH (16): 64 attributes, each a map of 64 scalar entries.
+        $wide = [];
+        for ($j = 0; $j < 64; $j++) {
+            $wide["k_$j"] = 'v';
         }
 
         $attributes = [];
         for ($i = 0; $i < 64; $i++) {
-            $attributes["key_$i"] = $nested;
+            $attributes["attr_$i"] = $wide;
         }
 
         $artifact = new readonly class ($attributes) implements RedactedArtifactInterface {
@@ -998,7 +998,12 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $publisher->publish($artifact);
 
         self::assertCount(1, $inner->published());
-        self::assertInstanceOf(ClassifiedArtifact::class, $inner->published()[0]);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+        // Node budget exhaustion truncates the attribute map: fewer than all 64
+        // input attributes survive classification.
+        $normalized = $published->normalize();
+        self::assertLessThan(64, count((array)($normalized['attributes'] ?? [])));
     }
 
     public function testMeasurementMissingExecutionIdIsDropped(): void
@@ -1039,7 +1044,10 @@ final class ClassifyingArtifactPublisherTest extends Unit
             'attributes' => [],
         ]);
 
-        $this->assertPublishedOnce($publisher, $mock, $inner, ['name' => 'req']);
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+        self::assertSame('req', $published->normalize()['name']);
     }
 
     public function testMeasurementInvalidUnitIsNotTyped(): void
@@ -1059,7 +1067,10 @@ final class ClassifyingArtifactPublisherTest extends Unit
             'attributes' => [],
         ]);
 
-        $this->assertPublishedOnce($publisher, $mock, $inner, ['name' => 'req']);
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+        self::assertSame('req', $published->normalize()['name']);
     }
 
     public function testMeasurementCounterFloatValueIsNotTyped(): void
@@ -1317,7 +1328,10 @@ final class ClassifyingArtifactPublisherTest extends Unit
             'result' => null,
         ]);
 
-        $this->assertPublishedOnce($publisher, $mock, $inner, ['id' => 'exec-1']);
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+        self::assertSame('exec-1', $published->normalize()['id']);
     }
 
     public function testExecutionTerminalWithoutThrowableIsNotTyped(): void
@@ -1487,7 +1501,10 @@ final class ClassifyingArtifactPublisherTest extends Unit
             'throwable' => null,
         ]);
 
-        $this->assertPublishedOnce($publisher, $mock, $inner, ['id' => 'act-1']);
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+        self::assertSame('act-1', $published->normalize()['id']);
     }
 
     public function testActivityInvalidThrowableIsNotTyped(): void
@@ -1731,27 +1748,15 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
     /**
      * @throws Throwable
-     * @param array<string, mixed>|null $expectedFields
      */
     public function assertPublishedOnce(
         ClassifyingArtifactPublisher $publisher,
         ExecutionArtifactInterface $mock,
-        RecordingArtifactPublisher $inner,
-        ?array $expectedFields = null
+        RecordingArtifactPublisher $inner
     ): void {
         $publisher->publish($mock);
 
         self::assertCount(1, $inner->published());
-
-        if ($expectedFields !== null) {
-            $published = $inner->published()[0];
-            self::assertInstanceOf(ClassifiedArtifact::class, $published);
-            $normalized = $published->normalize();
-            foreach ($expectedFields as $field => $expected) {
-                self::assertArrayHasKey($field, $normalized, "Field '$field' missing from published artifact");
-                self::assertSame($expected, $normalized[$field], "Field '$field' has unexpected value");
-            }
-        }
     }
 
     private function innerPublisher(): RecordingArtifactPublisher

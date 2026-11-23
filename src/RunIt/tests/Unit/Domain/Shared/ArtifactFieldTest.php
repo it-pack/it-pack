@@ -6,13 +6,18 @@ namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use ReflectionClass;
 
 /**
  * Wire-contract verification: every ArtifactField constant must match its
  * literal normalized projection key. Changing a constant value here changes
  * the exported artifact projection and silently breaks redaction.
+ *
+ * This test performs reflection-based constant checks only and does not
+ * exercise production code paths.
  */
+#[CoversNothing]
 final class ArtifactFieldTest extends Unit
 {
     public function testConstantsMatchTheirLiteralValues(): void
