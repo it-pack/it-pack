@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\SDK\Builder;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
-use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
-use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
-use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
-use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Propagation\StackActivityContextStorage;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
@@ -24,6 +19,7 @@ use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\RunItInterface;
 use ReflectionClass;
 use RuntimeException;
+use Tests\Support\Fixture\RunItFactories;
 
 /**
  * Concurrency validation at builder assembly time.
@@ -35,27 +31,17 @@ use RuntimeException;
  */
 final class ConcurrencyValidationTest extends Unit
 {
-    private function builder(): RunItBuilder
-    {
-        return RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-        ;
-    }
+    private function engine(
+        bool $supportsFibers = false,
+    ): ExecutionEngineInterface {
+        return new readonly class (true, $supportsFibers, false) implements ExecutionEngineInterface {
+            public function __construct(
+                private bool $concurrent,
+                private bool $supportsFibers,
+                private bool $supportsCoroutines,
+            ) {
+            }
 
-    public function testNonConcurrentEngineWithDefaultStackStorageIsAccepted(): void
-    {
-        $runtime = $this->builder()->build();
-
-        self::assertInstanceOf(RunItInterface::class, $runtime);
-    }
-
-    public function testConcurrentEngineWithSharedStackStorageIsRejected(): void
-    {
-        $engine = new class () implements ExecutionEngineInterface {
             public function run(ExecutionScopeInterface $scope, callable $operation): mixed
             {
                 return $operation($scope);
@@ -63,13 +49,29 @@ final class ConcurrencyValidationTest extends Unit
 
             public function capability(): EngineCapabilityInterface
             {
-                return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: true);
+                return new EngineCapability(
+                    supportsFibers: $this->supportsFibers,
+                    supportsCoroutines: $this->supportsCoroutines,
+                    concurrent: $this->concurrent,
+                );
             }
         };
+    }
+
+    public function testNonConcurrentEngineWithDefaultStackStorageIsAccepted(): void
+    {
+        $runtime = RunItFactories::configuredBuilder()->build();
+
+        self::assertInstanceOf(RunItInterface::class, $runtime);
+    }
+
+    public function testConcurrentEngineWithSharedStackStorageIsRejected(): void
+    {
+        $engine = $this->engine();
 
         $this->expectException(IncompatibleContextStorageException::class);
 
-        $this->builder()
+        RunItFactories::configuredBuilder()
             ->withExecutionEngine($engine)
             ->build()
         ;
@@ -77,19 +79,9 @@ final class ConcurrencyValidationTest extends Unit
 
     public function testConcurrentEngineWithIsolatedFiberStorageIsAccepted(): void
     {
-        $engine = new class () implements ExecutionEngineInterface {
-            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
-            {
-                return $operation($scope);
-            }
+        $engine = $this->engine(supportsFibers: true);
 
-            public function capability(): EngineCapabilityInterface
-            {
-                return new EngineCapability(supportsFibers: true, supportsCoroutines: false, concurrent: true);
-            }
-        };
-
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withExecutionEngine($engine)
             ->withContextStorage(new FiberContextStorage())
             ->build()
@@ -100,20 +92,10 @@ final class ConcurrencyValidationTest extends Unit
 
     public function testConcurrentEngineRejectsSharedActivityStorage(): void
     {
-        $engine = new class () implements ExecutionEngineInterface {
-            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
-            {
-                return $operation($scope);
-            }
-
-            public function capability(): EngineCapabilityInterface
-            {
-                return new EngineCapability(supportsFibers: true, supportsCoroutines: false, concurrent: true);
-            }
-        };
+        $engine = $this->engine(supportsFibers: true);
 
         $this->expectException(IncompatibleContextStorageException::class);
-        $this->builder()
+        RunItFactories::configuredBuilder()
             ->withExecutionEngine($engine)
             ->withContextStorage(new FiberContextStorage())
             ->withActivityContextStorage(new StackActivityContextStorage())
@@ -123,24 +105,14 @@ final class ConcurrencyValidationTest extends Unit
 
     public function testConcurrentEngineWithIsolatedStorageAndRejectingValidatorIsRejected(): void
     {
-        $engine = new class () implements ExecutionEngineInterface {
-            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
-            {
-                return $operation($scope);
-            }
-
-            public function capability(): EngineCapabilityInterface
-            {
-                return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: true);
-            }
-        };
+        $engine = $this->engine();
 
         $distinctMessage = 'custom validator rejected the pairing';
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage($distinctMessage);
 
-        $this->builder()
+        RunItFactories::configuredBuilder()
             ->withExecutionEngine($engine)
             ->withContextStorage(new FiberContextStorage())
             ->withConcurrencyValidator(
@@ -156,21 +128,11 @@ final class ConcurrencyValidationTest extends Unit
 
     public function testConcurrentEngineWithSharedStackStorageAndAcceptingValidatorIsRejected(): void
     {
-        $engine = new class () implements ExecutionEngineInterface {
-            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
-            {
-                return $operation($scope);
-            }
-
-            public function capability(): EngineCapabilityInterface
-            {
-                return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: true);
-            }
-        };
+        $engine = $this->engine();
 
         $this->expectException(IncompatibleContextStorageException::class);
 
-        $this->builder()
+        RunItFactories::configuredBuilder()
             ->withExecutionEngine($engine)
             ->withConcurrencyValidator(
                 static function (EngineCapabilityInterface $capability, ContextStorageInterface $storage): void {
@@ -184,21 +146,11 @@ final class ConcurrencyValidationTest extends Unit
 
     public function testConcurrentEngineWithIsolatedStorageAndAcceptingValidatorIsAccepted(): void
     {
-        $engine = new class () implements ExecutionEngineInterface {
-            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
-            {
-                return $operation($scope);
-            }
-
-            public function capability(): EngineCapabilityInterface
-            {
-                return new EngineCapability(supportsFibers: true, supportsCoroutines: false, concurrent: true);
-            }
-        };
+        $engine = $this->engine(supportsFibers: true);
 
         $validatorCalled = false;
 
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withExecutionEngine($engine)
             ->withContextStorage(new FiberContextStorage())
             ->withConcurrencyValidator(
@@ -220,7 +172,7 @@ final class ConcurrencyValidationTest extends Unit
         $capturedCapability = null;
         $capturedStorage = null;
 
-        $runtime = $this->builder()
+        RunItFactories::configuredBuilder()
             ->withConcurrencyValidator(
                 static function (EngineCapabilityInterface $capability, ContextStorageInterface $storage) use (
                     &$capturedCapability,
@@ -233,7 +185,6 @@ final class ConcurrencyValidationTest extends Unit
             ->build()
         ;
 
-        self::assertInstanceOf(RunItInterface::class, $runtime);
         self::assertInstanceOf(EngineCapability::class, $capturedCapability);
         self::assertFalse($capturedCapability->concurrent);
         self::assertInstanceOf(ContextStorageInterface::class, $capturedStorage);
@@ -241,20 +192,10 @@ final class ConcurrencyValidationTest extends Unit
 
     public function testExceptionMessageIdentifiesPairingAndDirectsToIsolatedStorage(): void
     {
-        $engine = new class () implements ExecutionEngineInterface {
-            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
-            {
-                return $operation($scope);
-            }
-
-            public function capability(): EngineCapabilityInterface
-            {
-                return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: true);
-            }
-        };
+        $engine = $this->engine();
 
         try {
-            $this->builder()->withExecutionEngine($engine)->build();
+            RunItFactories::configuredBuilder()->withExecutionEngine($engine)->build();
 
             self::fail('expected IncompatibleContextStorageException');
         } catch (IncompatibleContextStorageException $incompatibleContextStorageException) {

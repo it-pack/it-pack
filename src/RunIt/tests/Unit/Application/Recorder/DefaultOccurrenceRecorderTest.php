@@ -34,14 +34,7 @@ final class DefaultOccurrenceRecorderTest extends Unit
      */
     private function occurrences(): array
     {
-        $result = [];
-        foreach ($this->kit->artifacts() as $artifact) {
-            if ($artifact instanceof OccurrenceInterface) {
-                $result[] = $artifact;
-            }
-        }
-
-        return $result;
+        return $this->kit->artifactsOf(OccurrenceInterface::class);
     }
 
     public function testOccurrenceCarriesTypeSourceAndData(): void

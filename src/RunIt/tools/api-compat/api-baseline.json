@@ -1999,7 +1999,10 @@
         "implements": {
             "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ExecutionSpanStoreInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ExecutionSpanStoreInterface"
         },
-        "constants": [],
+        "constants": {
+            "DEFAULT_CAPACITY": "public",
+            "MIN_CAPACITY": "public"
+        },
         "methods": {
             "__construct": {
                 "static": false,
@@ -2018,7 +2021,7 @@
                 "params": [
                     {
                         "name": "executionId",
-                        "type": "string",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface|string",
                         "optional": false
                     },
                     {
@@ -2034,7 +2037,7 @@
                 "params": [
                     {
                         "name": "activityId",
-                        "type": "string",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface|string",
                         "optional": false
                     },
                     {
@@ -2050,7 +2053,7 @@
                 "params": [
                     {
                         "name": "executionId",
-                        "type": "string",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface|string",
                         "optional": false
                     }
                 ]
@@ -2061,7 +2064,7 @@
                 "params": [
                     {
                         "name": "activityId",
-                        "type": "string",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface|string",
                         "optional": false
                     }
                 ]
@@ -2681,7 +2684,13 @@
         "implements": {
             "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface"
         },
-        "constants": [],
+        "constants": {
+            "KIND_CONSUMER": "public",
+            "KIND_PRODUCER": "public",
+            "KIND_SERVER": "public",
+            "KIND_CLIENT": "public",
+            "KIND_INTERNAL": "public"
+        },
         "methods": {
             "toSpanKind": {
                 "static": false,
@@ -11522,6 +11531,7 @@
             "OCCURRENCE": "public",
             "SNAPSHOT": "public",
             "UNKNOWN": "public",
+            "TYPES": "public",
             "INTERFACES": "public",
             "Execution": "public",
             "Observation": "public",
@@ -17900,6 +17910,62 @@
                 "static": true,
                 "return": "ItPack\\RunIt\\Domain\\Observation\\Observation",
                 "params": [
+                    {
+                        "name": "id",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationIdInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "activityId",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "diagnosticCode",
+                        "type": "null|string",
+                        "optional": true
+                    },
+                    {
+                        "name": "attributes",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\AttributeCollectionInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "throwableDescription",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ThrowableDescriptionInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "instant",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "sequence",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ArtifactSequenceInterface",
+                        "optional": true
+                    }
+                ]
+            },
+            "atSeverity": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Observation\\Observation",
+                "params": [
+                    {
+                        "name": "severity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                        "optional": false
+                    },
                     {
                         "name": "id",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationIdInterface",

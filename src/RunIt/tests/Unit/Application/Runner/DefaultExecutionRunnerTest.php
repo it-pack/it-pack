@@ -145,7 +145,7 @@ final class DefaultExecutionRunnerTest extends Unit
         self::assertSame(ExecutionStatus::Succeeded, $executions[0]->status());
         self::assertTrue($executions[0]->status()->isTerminal());
 
-        $snapshots = $this->snapshots($kit);
+        $snapshots = $kit->artifactsOf(SnapshotInterface::class);
         self::assertCount(1, $snapshots);
     }
 
@@ -618,10 +618,7 @@ final class DefaultExecutionRunnerTest extends Unit
 
         self::assertSame('result', $result);
 
-        $activities = array_values(array_filter(
-            $kit->artifacts(),
-            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ActivityInterface,
-        ));
+        $activities = $kit->artifactsOf(ActivityInterface::class);
         self::assertCount(2, $activities);
         self::assertSame('succeeded', $activities[1]->status()->label());
     }
@@ -651,19 +648,13 @@ final class DefaultExecutionRunnerTest extends Unit
             return 'result';
         });
 
-        $executions = array_values(array_filter(
-            $kit->artifacts(),
-            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ExecutionInterface,
-        ));
+        $executions = $kit->artifactsOf(ExecutionInterface::class);
         self::assertNotEmpty($executions);
         /** @var ExecutionInterface $execution */
         $execution = end($executions);
         self::assertSame('failed', $execution->status()->label());
 
-        $observations = array_values(array_filter(
-            $kit->artifacts(),
-            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface,
-        ));
+        $observations = $kit->artifactsOf(ObservationInterface::class);
         self::assertNotEmpty($observations);
         $hasCritical = array_any(
             $observations,
@@ -701,21 +692,6 @@ final class DefaultExecutionRunnerTest extends Unit
         }
 
         return $executions;
-    }
-
-    /**
-     * @return list<SnapshotInterface>
-     */
-    private function snapshots(RunItTestKit $kit): array
-    {
-        $snapshots = [];
-        foreach ($kit->artifacts() as $artifact) {
-            if ($artifact instanceof SnapshotInterface) {
-                $snapshots[] = $artifact;
-            }
-        }
-
-        return $snapshots;
     }
 
     /** @return iterable<string, array{bool}> */

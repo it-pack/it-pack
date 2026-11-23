@@ -32,14 +32,7 @@ final class DefaultMeasurementRecorderTest extends Unit
      */
     private function measurements(): array
     {
-        $result = [];
-        foreach ($this->kit->artifacts() as $artifact) {
-            if ($artifact instanceof MeasurementInterface) {
-                $result[] = $artifact;
-            }
-        }
-
-        return $result;
+        return $this->kit->artifactsOf(MeasurementInterface::class);
     }
 
     public function testExecutionLevelMeasurementBindsExecutionAndPublishes(): void

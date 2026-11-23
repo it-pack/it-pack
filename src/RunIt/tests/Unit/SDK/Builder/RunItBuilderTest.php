@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\SDK\Builder;
 
 use Codeception\Attribute\DataProvider;
+use Generator;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
@@ -58,12 +59,12 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\DefaultRunIt;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
-use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 use Tests\Support\Fixture\RedactedTagArtifact;
+use Tests\Support\Fixture\RunItFactories;
 use Tests\Support\Fixture\SpyHashCalculator;
 use Tests\Support\Fixture\SpyHealthAwarePublisherStackFactory;
 use Tests\Support\Fixture\SpyPublisherStackFactory;
@@ -76,17 +77,6 @@ use Throwable;
 #[CoversClass(MissingBuilderDependencyException::class)]
 final class RunItBuilderTest extends TestCase
 {
-    private function builder(): RunItBuilder
-    {
-        return RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-        ;
-    }
-
     private function definition(): ExecutionDefinition
     {
         return ExecutionDefinition::create(
@@ -156,15 +146,22 @@ final class RunItBuilderTest extends TestCase
 
     public function testBuildReturnsInterfaceBackedRuntime(): void
     {
-        $runtime = $this->builder()->build();
+        $runtime = RunItFactories::configuredBuilder()->build();
 
-        self::assertInstanceOf(RunItInterface::class, $runtime);
+        self::assertInstanceOf(DefaultRunIt::class, $runtime);
     }
 
-    public function testBuildValidatesRequiredPublisher(): void
+    public function testBuildValidatesRequiredDependencies(): void
     {
         $this->expectException(MissingBuilderDependencyException::class);
         $this->buildMissing('publisher');
+    }
+
+    #[dataProvider('requiredDependencies')]
+    public function testBuildValidatesRequiredPublisher(string $dependency): void
+    {
+        $this->expectException(MissingBuilderDependencyException::class);
+        $this->buildMissing($dependency);
     }
 
     public function testBuildValidatesRequiredClock(): void
@@ -193,7 +190,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testBuiltRuntimeExecutesOperationAndReturnsResult(): void
     {
-        $runtime = $this->builder()->build();
+        $runtime = RunItFactories::configuredBuilder()->build();
 
         $result = $runtime->run($this->definition(), static fn (): string => 'value');
 
@@ -211,7 +208,7 @@ final class RunItBuilderTest extends TestCase
                 return ++$this->sequence === 1 ? 'caller-business-execution-id' : 'caller-id-' . $this->sequence;
             }
         };
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
             ->withIdentifierGenerator($generator)
             ->build()
@@ -232,7 +229,7 @@ final class RunItBuilderTest extends TestCase
     public function testSamplingPolicyDropsArtifacts(): void
     {
         $spy = new RecordingArtifactPublisher();
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
             ->withSamplingPolicy(new NeverSamplePolicy())
             ->build()
@@ -247,7 +244,7 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new RecordingArtifactPublisher();
         $redactor = new TaggingRedactor();
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
             ->withRedactor($redactor)
             ->build()
@@ -263,7 +260,7 @@ final class RunItBuilderTest extends TestCase
     #[DataProvider('immutableSeams')]
     public function testSeamReturnsNewBuilderInstance(string $seam): void
     {
-        $base = $this->builder();
+        $base = RunItFactories::configuredBuilder();
         $configured = match ($seam) {
             'hashCalculator' => $base->withHashCalculator(new DeterministicHashCalculator()),
             'executionFactory' => $base->withExecutionFactory(new ExecutionFactory()),
@@ -314,7 +311,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testWithExecutionEngineInstallsTheInjectedEngine(): void
     {
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withExecutionEngine(new class () implements ExecutionEngineInterface {
                 public function run(ExecutionScopeInterface $scope, callable $operation): mixed
                 {
@@ -340,7 +337,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testWithNestedExecutionPolicyDrivesNestedRunSemantics(): void
     {
-        $runtime = $this->builder()->withNestedExecutionPolicy(new ActivityOnlyPolicy())->build();
+        $runtime = RunItFactories::configuredBuilder()->withNestedExecutionPolicy(new ActivityOnlyPolicy())->build();
 
         $inner = null;
 
@@ -370,7 +367,7 @@ final class RunItBuilderTest extends TestCase
     {
         $factory = new SpyPublisherStackFactory();
 
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisherStackFactory($factory)
             ->withRedactor(new TaggingRedactor())
             ->build()
@@ -389,7 +386,7 @@ final class RunItBuilderTest extends TestCase
     {
         $factory = new SpyHealthAwarePublisherStackFactory();
 
-        $this->builder()->withPublisherStackFactory($factory)->build();
+        RunItFactories::configuredBuilder()->withPublisherStackFactory($factory)->build();
 
         self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
     }
@@ -406,7 +403,7 @@ final class RunItBuilderTest extends TestCase
                 return 'synthetic-secret-identity-' . ++$this->sequence;
             }
         };
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withIdentifierGenerator($generator)
             ->withRedactor(null)
             ->withPublisherStackFactory($factory)
@@ -448,7 +445,7 @@ final class RunItBuilderTest extends TestCase
     {
         $factory = new SpyHealthAwarePublisherStackFactory();
         $failures = [];
-        $this->builder()
+        RunItFactories::configuredBuilder()
             ->withPublisherStackFactory($factory)
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
@@ -471,7 +468,7 @@ final class RunItBuilderTest extends TestCase
     {
         $failures = [];
 
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withSecurityLimits(new SecurityLimits(maxArtifactsPerExecution: 1))
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
@@ -512,7 +509,7 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new RecordingArtifactPublisher();
 
-        $runtime = $this->builder()->withPublisher($spy)->build();
+        $runtime = RunItFactories::configuredBuilder()->withPublisher($spy)->build();
 
         $thrown = new RuntimeException('secret failure detail');
 
@@ -562,7 +559,7 @@ final class RunItBuilderTest extends TestCase
                 return true;
             }
         };
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
             ->withSamplingPolicy($sampling)
             ->build()
@@ -597,7 +594,7 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new RecordingArtifactPublisher();
 
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
             ->withRedactor(null)
             ->build()
@@ -626,7 +623,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testSecurityLimitsPropagateToActivityDepthGate(): void
     {
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withSecurityLimits(new SecurityLimits(maxActivityDepth: 1))
             ->build()
         ;
@@ -664,7 +661,7 @@ final class RunItBuilderTest extends TestCase
     {
         $sink = new InMemoryArtifactPublisher();
         $dropReports = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
             ->withRedactor(null)
             ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
@@ -700,7 +697,7 @@ final class RunItBuilderTest extends TestCase
     {
         $sink = new RecordingArtifactPublisher();
         $failures = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
             ->withSnapshotFactory($this->snapshotFactory())
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
@@ -744,7 +741,7 @@ final class RunItBuilderTest extends TestCase
 
             return $snapshot;
         });
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
             ->withSnapshotFactory($factory)
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
@@ -772,7 +769,7 @@ final class RunItBuilderTest extends TestCase
         $failures = [];
         $attributes = $this->createMock(AttributeCollectionInterface::class);
         $attributes->method('toArray')->willThrowException(new RuntimeException('sensitive normalization error'));
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             })
@@ -816,7 +813,7 @@ final class RunItBuilderTest extends TestCase
     public function testPublicationFailureHandlerReceivesAdapterFailure(): void
     {
         $failures = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher(new ThrowingArtifactPublisher())
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
@@ -833,7 +830,7 @@ final class RunItBuilderTest extends TestCase
     public function testSnapshotStoreFailureHandlerReceivesStoreFailure(): void
     {
         $storeFailures = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withSnapshotStore(new ThrowingSnapshotStore())
             ->withSnapshotStoreFailureHandler(static function (Throwable $failure) use (&$storeFailures): void {
                 $storeFailures[] = $failure;
@@ -855,7 +852,7 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new SpyHashCalculator();
 
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher(new InMemoryArtifactPublisher())
             ->withHashCalculator($spy)
             ->build()
@@ -873,7 +870,7 @@ final class RunItBuilderTest extends TestCase
     #[DataProvider('activityContextPolicies')]
     public function testWithActivityContextPolicyAcceptsValidValues(string $policy): void
     {
-        $base = $this->builder();
+        $base = RunItFactories::configuredBuilder();
         $builder = $base->withActivityContextPolicy($policy);
         self::assertNotSame($base, $builder);
         $runner = $builder->build()->executionRunner();
@@ -893,13 +890,13 @@ final class RunItBuilderTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown activity context policy.');
-        $base = $this->builder();
+        $base = RunItFactories::configuredBuilder();
         $base->withActivityContextPolicy('invalid-policy');
     }
 
     public function testWithActivityContextAttachFailureFallback(): void
     {
-        $base = $this->builder();
+        $base = RunItFactories::configuredBuilder();
         $enabled = $base->withActivityContextAttachFailureFallback(true);
         self::assertNotSame($base, $enabled);
 
@@ -917,7 +914,7 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new SpyHashCalculator();
 
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher(new InMemoryArtifactPublisher())
             ->withHashCalculator($spy)
             ->withExecutionFactory(new ExecutionFactory())
@@ -933,6 +930,15 @@ final class RunItBuilderTest extends TestCase
             $spy->called,
             'configured hash calculator must be invoked through the custom snapshot factory'
         );
+    }
+
+    public function requiredDependencies(): Generator
+    {
+        yield ['publisher'];
+        yield ['clock'];
+        yield ['sequenceAllocator'];
+        yield ['snapshotSerializer'];
+        yield ['identifierGenerator'];
     }
 
     private function buildMissing(string $skip): void

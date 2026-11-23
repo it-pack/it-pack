@@ -9,8 +9,6 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Adapter\Memory\InMemorySnapshotStore;
-use ItPack\RunIt\Adapter\Null\NullArtifactPublisher;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\RunItInterface;
 
@@ -25,26 +23,37 @@ final class RunItFactories
 {
     public static function nullRuntime(): RunItInterface
     {
-        return RunItBuilder::create()
-            ->withPublisher(new NullArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+        return self::configuredBuilder()
             ->build()
         ;
     }
 
     public static function inMemory(): RunItInterface
     {
-        return RunItBuilder::create()
+        return self::configuredDefaultBuilder()
             ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withSnapshotStore(new InMemorySnapshotStore())
             ->build()
         ;
+    }
+
+    /**
+     * Returns a fully configured, unbuilt builder matching the defaults used by
+     * builder-setup tests. Collaborators and defaults match across tests, so the
+     * setup is reused here instead of duplicated.
+     */
+    public static function configuredBuilder(): RunItBuilder
+    {
+        return self::configuredDefaultBuilder()
+            ->withPublisher(new InMemoryArtifactPublisher())
+        ;
+    }
+
+    public static function configuredDefaultBuilder(): RunItBuilder
+    {
+        return RunItBuilder::create()
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer());
     }
 }
