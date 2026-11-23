@@ -29,6 +29,7 @@
         "open-telemetry/sem-conv": "^1.45"
     },
     "require-dev": {
+        "ext-simplexml": "*",
         "codeception/module-asserts": "^3.3",
         "codeception/module-phpbrowser": "^4.1",
         "infection/codeception-adapter": "^0.4",
