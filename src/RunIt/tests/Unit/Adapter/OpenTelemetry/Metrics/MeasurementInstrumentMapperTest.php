@@ -285,4 +285,88 @@ final class MeasurementInstrumentMapperTest extends Unit
         $mapper->mapRedactedMeasurement(['name' => 'valid', 'kind' => 'gauge', 'unit' => 'count', 'value' => 1.5]);
         self::assertNotNull($this->kit->metric('valid'));
     }
+
+    public function testMapRedactedMeasurementWithNoMeterProviderReturnsSilently(): void
+    {
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            meterProvider: null,
+            cache: new InstrumentCache(64),
+            metricAttributeAllowList: [],
+        );
+        $mapper->mapRedactedMeasurement([
+            'name' => 'items', 'kind' => 'counter', 'unit' => 'count', 'value' => 5,
+        ]);
+
+        self::assertCount(0, $this->kit->collectMetrics());
+    }
+
+    public function testMapRedactedMeasurementWithInvalidNameReturnsSilently(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+            }
+        };
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            $this->kit->meterProvider,
+            new InstrumentCache(64),
+            [],
+            $health,
+        );
+        $mapper->mapRedactedMeasurement(['name' => '', 'kind' => 'counter', 'unit' => 'count', 'value' => 5]);
+        $mapper->mapRedactedMeasurement(['name' => null, 'kind' => 'counter', 'unit' => 'count', 'value' => 5]);
+
+        self::assertSame(0, $health->calls);
+        self::assertNull($this->kit->metric(''));
+    }
+
+    public function testInstrumentCacheHitOnRecord(): void
+    {
+        $cache = new InstrumentCache(64);
+        $mapper = new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, $cache, []);
+        $measurement = Measurement::counter(
+            MeasurementName::fromString('cached'),
+            ExecutionId::fromString('exec-1'),
+            1,
+        );
+
+        $mapper->record($measurement);
+        $mapper->record($measurement);
+
+        self::assertTrue($cache->has('cached|count|counter'));
+    }
+
+    public function testInstrumentCacheHitOnMapRedacted(): void
+    {
+        $cache = new InstrumentCache(64);
+        $mapper = new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, $cache, []);
+        $normalized = ['name' => 'cached', 'kind' => 'counter', 'unit' => 'count', 'value' => 1];
+
+        $mapper->mapRedactedMeasurement($normalized);
+        $mapper->mapRedactedMeasurement($normalized);
+
+        self::assertTrue($cache->has('cached|count|counter'));
+    }
+
+    public function testRedactedAttributesWithNonStringKeysAreFiltered(): void
+    {
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            $this->kit->meterProvider,
+            new InstrumentCache(64),
+            ['region']
+        );
+        $mapper->mapRedactedMeasurement([
+            'name' => 'attrs', 'kind' => 'counter', 'unit' => 'count', 'value' => 1,
+            'attributes' => [0 => 'non-string-key', 'region' => 'eu'],
+        ]);
+
+        $metric = $this->kit->metric('attrs');
+        self::assertNotNull($metric);
+        $attributes = $this->firstAttributes($metric);
+        self::assertSame('eu', $attributes['region'] ?? null);
+        self::assertArrayNotHasKey(0, $attributes);
+    }
 }
