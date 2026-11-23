@@ -12,10 +12,10 @@ they wire the bridge. See `docs/adr/ADR-020-opentelemetry-bridge-placement.md`.
 
 ## Required optional packages
 
-| Signal | Package | Required |
-|--------|---------|----------|
+| Signal                                       | Package              | Required                   |
+|----------------------------------------------|----------------------|----------------------------|
 | Mapping (traces, metrics, logs, propagation) | `open-telemetry/api` | Yes, when using the bridge |
-| Real exporters (OTLP, stdout, etc.) | `open-telemetry/sdk` | Only for actual export |
+| Real exporters (OTLP, stdout, etc.)          | `open-telemetry/sdk` | Only for actual export     |
 
 `open-telemetry/api` is a `require-dev` dependency; `open-telemetry/sdk` is used only
 by tests and examples. The bridge **never** configures global OpenTelemetry providers.
@@ -23,18 +23,18 @@ Every provider is injected through `BridgeConfig`.
 
 ## Conceptual mappings
 
-| RunIt concept | OpenTelemetry signal |
-|---------------|----------------------|
-| Execution (root) | Root span, kind derived from execution kind |
-| Execution (child) | Child span of the parent execution's span |
-| Activity | Span parented to its execution or parent activity |
-| Execution/Activity status | `Ok` for succeeded, `Error` (with reason) for failed, cancelled, timed_out |
-| Throwable | `exception` span event on the failing span |
-| Measurement (counter, size) | `Counter` |
-| Measurement (gauge) | `Gauge` |
-| Measurement (duration, ratio) | `Histogram` |
-| Observation | Log record (severity, message, attributes, correlation) |
-| Occurrence / Snapshot | Log record and/or span event under policy |
+| RunIt concept                 | OpenTelemetry signal                                                       |
+|-------------------------------|----------------------------------------------------------------------------|
+| Execution (root)              | Root span, kind derived from execution kind                                |
+| Execution (child)             | Child span of the parent execution's span                                  |
+| Activity                      | Span parented to its execution or parent activity                          |
+| Execution/Activity status     | `Ok` for succeeded, `Error` (with reason) for failed, cancelled, timed_out |
+| Throwable                     | `exception` span event on the failing span                                 |
+| Measurement (counter, size)   | `Counter`                                                                  |
+| Measurement (gauge)           | `Gauge`                                                                    |
+| Measurement (duration, ratio) | `Histogram`                                                                |
+| Observation                   | Log record (severity, message, attributes, correlation)                    |
+| Occurrence / Snapshot         | Log record and/or span event under policy                                  |
 
 Secret context entries are never propagated, and high-cardinality dimensions
 (ids, correlation) are excluded from metric attributes by default.
