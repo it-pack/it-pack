@@ -13,6 +13,7 @@ use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -64,6 +65,47 @@ final class DefaultActivityRunnerFailureTest extends Unit
     public function testOptInAttachFailurePreservesBusinessException(): void
     {
         $this->exerciseFailure('attach-business');
+    }
+
+    public function testRunWithoutActivityStorageSetsCurrentActivityId(): void
+    {
+        $kit = new RunItTestKit();
+        $execution = $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static fn ($scope) => $scope->execution()
+        );
+
+        $context = $this->createMock(ExecutionContextInterface::class);
+        $scope = $kit->buildScope($execution, $context);
+
+        $priorActivityId = ActivityId::fromString('prior-act');
+        $scope->setCurrentActivityId($priorActivityId);
+
+        $runner = new DefaultActivityRunner(
+            $scope,
+            $scope->execution()->executionId(),
+            $kit->allocator,
+            $kit->clock,
+            $kit->publisher,
+            new DefaultThrowableMapper(),
+            new StringIdentifierFactory(
+                ActivityId::fromString(...),
+                new SequenceIdentifierGenerator('test-act'),
+            ),
+        );
+
+        $activity = ActivityDefinition::create(
+            ActivityName::fromString('activity'),
+            ActivityKind::fromString('task'),
+        );
+
+        $result = $runner->run($activity, static function () use ($scope): string {
+            self::assertSame('test-act-1', $scope->currentActivityId()?->toString());
+            return 'result';
+        });
+
+        self::assertSame('result', $result);
+        self::assertSame($priorActivityId, $scope->currentActivityId());
     }
 
     public function testFailedNestedAttachSuppressesOuterAndOverlappingRecordingsUntilRestored(): void

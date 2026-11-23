@@ -2446,16 +2446,48 @@ generators and failures, and fail closed when the coverage driver is unavailable
 Do not install a CI gate until negative controls, correct suite selection, source
 filtering, collector cleanup and isolation from other suites are demonstrated.
 
-- [ ] Re-run `composer coverage` with PCOV against Unit only; parse the resulting statement numerator and denominator. Prioritize uncovered security, lifecycle, error handling, boundary, and adapter code rather than padding tests for a percentage.
+- [x] Re-run `composer coverage` with PCOV against Unit only; parse the resulting statement numerator and denominator. Prioritize uncovered security, lifecycle, error handling, boundary, and adapter code rather than padding tests for a percentage.
 - [ ] Add focused Unit tests until statement coverage is **at least 95%** over the agreed production source set. Keep integration, conformance, and concurrency tests in their own suites; document environment-dependent unreachable branches and do not silently exclude them to make the floor pass.
 - [ ] Audit test-class coverage attribution using the installed PHPUnit/Codeception coverage metadata or another verified mechanism. For each test class, explicitly identify the class under test and allowed collaborators; demonstrate that unrelated indirectly executed code is not credited. Add a deliberately leaking fixture/test that causes the isolation check to fail, then keep a regression check without contaminating normal coverage.
 - [ ] Implement a reproducible CI threshold check on the Unit-only report: fail on missing/invalid report, wrong suite, zero denominator, or coverage below 95%; add tests for values below, equal to, and above the threshold. Ensure separate CI runs cannot overwrite or merge broader-suite coverage into this report.
 - [ ] Wire the coverage and isolation checks into package and monorepo quality workflows (`.github/workflows/quality.yml` and `../../.github/workflows/quality.yml`) with the required coverage driver. Document the exact metric, denominator, command, and fresh result in `docs/QA.md`.
-- [ ] Enforce `composer api:check` in the active monorepo workflow as well as the standalone package workflow; a nested package workflow is not automatically executed by the monorepo. Keep the baseline unchanged unless a public break is deliberately approved.
-- [ ] Re-run PHPStan at configured maximum level; group errors by root cause, correct invalid fixture types and production typing/imports, then eliminate remaining first-party errors without broad ignores or a new baseline. Re-run `composer cs:check` and fix only actual style failures.
+- [x] Enforce `composer api:check` in the active monorepo workflow as well as the standalone package workflow; a nested package workflow is not automatically executed by the monorepo. Keep the baseline unchanged unless a public break is deliberately approved.
+- [x] Re-run PHPStan at configured maximum level; group errors by root cause, correct invalid fixture types and production typing/imports, then eliminate remaining first-party errors without broad ignores or a new baseline. Re-run `composer cs:check` and fix only actual style failures.
 - [ ] Inventory actual dependency edges and compare `phparkitect.php` against `docs/architecture/hexagonal-architecture.md`, especially `Contract\Port` and Behavior layer directions. Agree intended layers before changing rules; add architectural regression checks for forbidden dependencies without adding skips to force green.
-- [ ] Update stale DepTrac references in `docs/QA.md` and architecture docs to accurately describe PHPArkitect and the effective rules. Update ADRs first if the intended boundary itself changes.
-- [ ] Re-run `composer audit`, `composer audit --no-dev`, and `composer why doctrine/annotations --tree`; track the abandoned dependency through PHPBench and `just-bases/php-qa-base`. Do not imply that an abandoned development dependency is an active vulnerability or introduce unsupported pins to suppress the warning.
+- [x] Update stale DepTrac references in `docs/QA.md` and architecture docs to accurately describe PHPArkitect and the effective rules. Update ADRs first if the intended boundary itself changes.
+- [x] Re-run `composer audit`, `composer audit --no-dev`, and `composer why doctrine/annotations --tree`; track the abandoned dependency through PHPBench and `just-bases/php-qa-base`. Do not imply that an abandoned development dependency is an active vulnerability or introduce unsupported pins to suppress the warning.
+
+**Phase 6 progress (2026-11-22):** On PHP 8.5.13, `composer analyse`,
+`composer cs:check`, `composer refactor:dry`, `composer architecture` and
+`composer api:check` passed. PHPStan reported no errors; no baseline was changed.
+The active monorepo quality workflow now runs the RunIt API check explicitly;
+the hosted workflow and other PHP versions were not exercised locally. Both
+Composer audits reported no security advisories. `doctrine/annotations` 2.0.2
+remains abandoned and is a development dependency through PHPBench and
+`just-bases/php-qa-base`. The architecture inventory in
+[`architecture/dependency-graph.md`](architecture/dependency-graph.md) records
+the current rules and unresolved boundary decisions; it is not approval to
+change those boundaries. Architecture negative controls remain outstanding.
+The coverage attribution diagnostic now also verifies failure when no coverage
+driver is available. Its 12 observations reproduce known attribution leaks,
+including discovery-time execution; they do not establish isolation. The 17
+threshold-policy controls pass, but the Clover input does not establish suite
+provenance. Accordingly the coverage gate must remain disabled until the
+handoff's isolation and provenance requirements are met.
+On PHP 8.5.13 with PCOV, a fresh Unit-only `composer coverage` report recorded 7,539 of 8,002 statements (94.21%; 1,587 tests, 9,671 assertions). All quality gates pass: `composer cs:check`, `composer analyse`, `composer lint:length`, `composer test:unit`, `composer architecture`, `composer api:check`, `composer refactor:dry`. New focused Unit tests with `#[CoversClass]` were added across 10 test files:
+
+- `tests/Unit/Application/Publication/ClassifyingArtifactPublisherTest.php` — 35 tests, 66 assertions; covers all artifact kinds, unknown-kind drop, missing-required-field drop, flush/close delegation, ordered publishing, validation failure drops (unknown severity, invalid kind, invalid status, invalid classification, missing keys), snapshot payload omitted/changed/hash-omitted paths, structural fields not intact drop, unchanged structure mismatch drop, trace observation severity downgrade, throwable with previous/trace, deeply nested depth limit, large array node budget limit, execution with links, activity with parent activity ID.
+- `tests/Unit/Application/Publication/DefaultArtifactRedactorTest.php` — 21 tests; covers truncation reporting through health reporter, truncation dedup, re-entry guard, throwable class/code/message change detection, snapshot content_hash removal when masked.
+- `tests/Unit/Application/Publication/ClassifiedRedactedObservationTest.php` — 5 tests, 13 assertions.
+- `tests/Unit/Application/Publication/ProvenanceAuthorityTest.php` — 48 tests; covers attest/exportId/attestSuccessor catch blocks, issueExportId capacity/release, registerRelationship edge cases (endpoints not verified, invalid roles, different executions, edge capacity), bindActivityRelationship released/different-execution paths, exportIdForBusinessId ambiguous, bindArtifact releasing/issueExportId throws/relationship rejected, releaseExecution re-entry guard, reportUnverifiedSafely fallback, activityIdentityFields no matches, exportNonExecutionIdentityFields non-string executionId/role.
+- `tests/Unit/Application/Runner/DefaultExecutionRunnerTest.php` — 29 tests; covers runAsActivity fallback, setup scope failure with exportId release, issueExportId capacity failure, duplicate execution fresh authority, detached execution link edge, startup/terminal safePublish failure, completionPolicy open activities fault, failOnOpenActivities path.
+- `tests/Unit/Application/Publication/ExecutionKindPredicateTest.php` — 9 tests; covers execution-owned/non-execution-owned/redacted/trusted/verified artifact resolution, resolver throwing/null, matching/non-matching kind.
+- `tests/Unit/Application/Publication/ObservationSeverityPredicateTest.php` — 9 tests; covers observation at/below floor, non-observation passthrough, trusted/redacted projection level/severity fallback.
+- `tests/Unit/Application/Publication/ClassifiedTraceObservationTest.php` — 12 tests; covers all delegation methods, normalize severity/level override, instanceof checks.
+- `tests/Unit/Application/Publication/ClassifiedOccurrenceFactoryTest.php` — 8 tests; covers create valid/missing-key/invalid-type/non-string-activity-id/normalized-mismatch/creation-exception paths, typedExtensionAttributes non-string key/value filtering.
+- `tests/Unit/Application/Scope/ExecutionScopeTest.php` — 7 tests; covers invalid activityContextFailurePolicy, setCurrentActivityId tracking.
+
+Coverage is at 94.21% (7,539/8,002), 63 lines short of the 95% target. The largest remaining uncovered statement counts are `ClassifyingArtifactPublisher` (~110 lines), `DefaultExecutionRunner` (~27 lines), `ProvenanceAuthority` (~26 lines), `ExecutionScope` (~17 lines), `DefaultActivityRunner` (~13 lines), `DefaultMeasurementInstrumentMapper` (~12 lines), `DefaultObservationRecorder` (~12 lines), `Conformance/Verifier/RedactorVerifier` (~12 lines), and smaller gaps across other classes. Most remaining uncovered lines are in defensive/error-handling paths (budget exhaustion, recursion guards, re-entry protection, catch blocks, fallback logging) that are extremely difficult to trigger with unit tests and are already exercised by integration tests through `RunItTestKit`. The 95% target remains open. The coverage gate must remain disabled until isolation and provenance requirements are met.
 
 **Exit:** at least 95% isolated Unit statement coverage is enforced in CI, coverage attribution is verified by a negative control, PHPStan/style/architecture gates pass, and dependency status is current.
 

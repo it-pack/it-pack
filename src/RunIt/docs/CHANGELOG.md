@@ -28,6 +28,17 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Replaced hard-coded artifact-type values and normalized artifact-field keys in
+  the CloudEvents and OpenTelemetry adapters (`CloudEventPublisher`,
+  `TelemetryPublisher`, the execution/activity span mappers, and
+  `SpanMapperBehavior`) with the corresponding `ArtifactType` enum constants and
+  `ArtifactField` interface constants. OpenTelemetry exception attribute keys are
+  now emitted via `OpenTelemetry\SemConv\Attributes\ExceptionAttributes`.
+  Serialized names, values, dispatch ordering, fallback behavior, health sentinel
+  values, and schemas are unchanged; no new serialized fields were introduced.
+- `open-telemetry/sem-conv` is now a mandatory production dependency
+  (`^1.45`); the OpenTelemetry API and SDK remain optional suggestions.
+
 - Added long-lived publisher and custom-store retention regressions, and a
   reproducible synthetic comparison with the historical OpenTelemetry store.
   These test and benchmark changes do not change runtime behavior or public API.
@@ -398,6 +409,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
     The kind/context-key value objects now also link to their SKOS schemes
     (`runit-tax:ActivityKinds`, `runit-tax:ExecutionKinds`,
     `runit-tax:ContextKeys`, `runit-tax:OccurrenceTypes`).
+- Replaced hard-coded artifact-type values and normalized artifact-field keys
+  throughout `src/RunIt/src/Application/` with the corresponding `ArtifactType`
+  enum cases/constants and `ArtifactField` interface constants. Serialized names,
+  values, public signatures, classification, provenance, redaction, dispatch
+  order, fallback behavior, and schemas are unchanged; no new serialized fields
+  were introduced.
 
 ## Unreleased — Phase 0 (P0)
 

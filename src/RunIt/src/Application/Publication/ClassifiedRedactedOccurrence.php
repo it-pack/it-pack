@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
@@ -25,7 +26,7 @@ final readonly class ClassifiedRedactedOccurrence implements OccurrenceInterface
 
     public function artifactType(): string
     {
-        return 'occurrence';
+        return ArtifactType::OCCURRENCE;
     }
 
     public function id(): OccurrenceIdInterface

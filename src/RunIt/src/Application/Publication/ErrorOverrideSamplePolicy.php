@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
@@ -44,7 +45,7 @@ final readonly class ErrorOverrideSamplePolicy implements SamplingPolicyInterfac
         }
 
         if (($artifact instanceof TrustedArtifactProjectionInterface || $artifact instanceof VerifiedArtifactProjection)
-            && $artifact->artifactType() === 'observation') {
+            && $artifact->artifactType() === ArtifactType::OBSERVATION) {
             $normalized = $artifact->normalize();
             $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
 
@@ -52,7 +53,7 @@ final readonly class ErrorOverrideSamplePolicy implements SamplingPolicyInterfac
         }
 
         if ($artifact instanceof RedactedArtifactInterface
-            && $artifact->artifactType() === 'observation') {
+            && $artifact->artifactType() === ArtifactType::OBSERVATION) {
             $normalized = $artifact->normalize();
             $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
 

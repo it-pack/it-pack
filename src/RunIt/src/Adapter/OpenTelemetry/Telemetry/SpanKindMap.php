@@ -19,6 +19,16 @@ use OpenTelemetry\API\Trace\SpanKind;
  */
 final class SpanKindMap implements SpanKindMapInterface
 {
+    public const string KIND_CONSUMER = 'consumer';
+
+    public const string KIND_PRODUCER = 'producer';
+
+    public const string KIND_SERVER = 'server';
+
+    public const string KIND_CLIENT = 'client';
+
+    public const string KIND_INTERNAL = 'internal';
+
     /**
      * @return int<0,4>
      */
@@ -26,22 +36,12 @@ final class SpanKindMap implements SpanKindMapInterface
     {
         $normalized = strtolower($kind);
 
-        if (str_contains($normalized, 'consumer')) {
-            return SpanKind::KIND_CONSUMER;
-        }
-
-        if (str_contains($normalized, 'producer')) {
-            return SpanKind::KIND_PRODUCER;
-        }
-
-        if (str_contains($normalized, 'server')) {
-            return SpanKind::KIND_SERVER;
-        }
-
-        if (str_contains($normalized, 'client')) {
-            return SpanKind::KIND_CLIENT;
-        }
-
-        return SpanKind::KIND_INTERNAL;
+        return match (true) {
+            str_contains($normalized, self::KIND_CONSUMER) => SpanKind::KIND_CONSUMER,
+            str_contains($normalized, self::KIND_PRODUCER) => SpanKind::KIND_PRODUCER,
+            str_contains($normalized, self::KIND_SERVER) => SpanKind::KIND_SERVER,
+            str_contains($normalized, self::KIND_CLIENT) => SpanKind::KIND_CLIENT,
+            default => SpanKind::KIND_INTERNAL,
+        };
     }
 }

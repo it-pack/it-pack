@@ -7,10 +7,19 @@ namespace Tests\Unit\Application\Runner;
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
+use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
+use ItPack\RunIt\Application\Policy\FailExecutionOnOpenActivitiesPolicy;
+use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
+use ItPack\RunIt\Application\Scope\ExecutionScope;
+use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
+use ItPack\RunIt\Contract\Application\NestedExecutionMode;
+use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -21,10 +30,16 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Activity\ActivityStatus;
+use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use Random\RandomException;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
@@ -32,11 +47,6 @@ use Throwable;
 
 final class DefaultExecutionRunnerTest extends Unit
 {
-    private function definition(): ExecutionDefinitionInterface
-    {
-        return ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch'));
-    }
-
     public function testReturnsOperationResultUnchangedOnSuccess(): void
     {
         $kit = new RunItTestKit();
@@ -59,35 +69,37 @@ final class DefaultExecutionRunnerTest extends Unit
         self::assertSame('value', $kit->runner->run($definition, static fn (): string => 'value'));
     }
 
-    public function testSetupFailuresReleaseOnlyIssuedProvenance(): void
+    /**
+     * @throws RandomException
+     */
+    #[DataProvider('stages')]
+    public function testSetupFailuresReleaseOnlyIssuedProvenance(string $stage): void
     {
-        foreach (['factory', 'coordinator', 'duplicate'] as $stage) {
-            $authority = new ProvenanceAuthority();
-            $failure = new RuntimeException('setup failure');
-            $factory = self::createStub(ExecutionFactoryInterface::class);
-            $coordinator = self::createStub(ExecutionLifecycleCoordinatorInterface::class);
-            if ($stage === 'factory' || $stage === 'duplicate') {
-                $factory->method('create')->willThrowException($failure);
-            } else {
-                $factory->method('create')->willReturn(self::createStub(ExecutionInterface::class));
-                $coordinator->method('start')->willThrowException($failure);
-            }
-
-            if ($stage === 'duplicate') {
-                $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
-            }
-
-            $kit = new RunItTestKit(coordinator: $coordinator, authority: $authority, executionFactory: $factory);
-            $caught = null;
-            try {
-                $kit->runner->run($this->definition(), static fn (): null => null);
-            } catch (Throwable $throwable) {
-                $caught = $throwable;
-            }
-
-            self::assertSame($failure, $caught);
-            self::assertSame($stage === 'duplicate', $authority->hasLiveRecords('exec-1'));
+        $authority = new ProvenanceAuthority();
+        $failure = new RuntimeException('setup failure');
+        $factory = self::createStub(ExecutionFactoryInterface::class);
+        $coordinator = self::createStub(ExecutionLifecycleCoordinatorInterface::class);
+        if ($stage === 'factory' || $stage === 'duplicate') {
+            $factory->method('create')->willThrowException($failure);
+        } else {
+            $factory->method('create')->willReturn(self::createStub(ExecutionInterface::class));
+            $coordinator->method('start')->willThrowException($failure);
         }
+
+        if ($stage === 'duplicate') {
+            $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        }
+
+        $kit = new RunItTestKit(coordinator: $coordinator, authority: $authority, executionFactory: $factory);
+        $caught = null;
+        try {
+            $kit->runner->run($this->definition(), static fn (): null => null);
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertSame($failure, $caught);
+        self::assertSame($stage === 'duplicate', $authority->hasLiveRecords('exec-1'));
     }
 
     public function testActivityOnlyModeWithoutCurrentExecutionRunsAFullExecution(): void
@@ -230,13 +242,6 @@ final class DefaultExecutionRunnerTest extends Unit
         self::assertSame('publisher down', $captured->getMessage());
     }
 
-    /** @return iterable<string, array{bool}> */
-    public static function businessOutcomes(): iterable
-    {
-        yield 'success' => [false];
-        yield 'failure' => [true];
-    }
-
     #[DataProvider('businessOutcomes')]
     public function testHealthCallbackPublishingFailureIsBoundedAndGuardResets(bool $fails): void
     {
@@ -286,36 +291,6 @@ final class DefaultExecutionRunnerTest extends Unit
         self::assertGreaterThan(0, $firstReports);
         self::assertSame($firstReports + 1, $reports);
         self::assertNull($kit->storage->current());
-    }
-
-    /**
-     * @return list<ExecutionInterface>
-     */
-    private function executions(RunItTestKit $kit): array
-    {
-        $executions = [];
-        foreach ($kit->artifacts() as $artifact) {
-            if ($artifact instanceof ExecutionInterface && $artifact->status()->isTerminal()) {
-                $executions[] = $artifact;
-            }
-        }
-
-        return $executions;
-    }
-
-    /**
-     * @return list<SnapshotInterface>
-     */
-    private function snapshots(RunItTestKit $kit): array
-    {
-        $snapshots = [];
-        foreach ($kit->artifacts() as $artifact) {
-            if ($artifact instanceof SnapshotInterface) {
-                $snapshots[] = $artifact;
-            }
-        }
-
-        return $snapshots;
     }
 
     public function testStartupSetupFaultIsReportedAndRethrown(): void
@@ -449,5 +424,310 @@ final class DefaultExecutionRunnerTest extends Unit
         $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
 
         self::assertSame('value', $result);
+    }
+
+    public function testRejectsNestedExecutionWhenCurrentExists(): void
+    {
+        $kit = new RunItTestKit(nestedPolicy: new RejectNestedPolicy());
+
+        $caught = null;
+        try {
+            $kit->runner->run($this->definition(), static function () use ($kit): string {
+                $kit->runner->run(
+                    ExecutionDefinition::create(ExecutionName::fromString('inner'), ExecutionKind::fromString('step')),
+                    static fn (): string => 'inner'
+                );
+
+                return 'outer';
+            });
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertInstanceOf(RejectedNestedExecutionException::class, $caught);
+    }
+
+    public function testPublicationFailureCallbackThrowingFallsBackAndPreservesResult(): void
+    {
+        $kit = new RunItTestKit(
+            publisher: new ThrowingArtifactPublisher(),
+            onPublicationFailure: static function (Throwable $e): never {
+                throw new RuntimeException('callback broken');
+            },
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'business-value');
+
+        self::assertSame('business-value', $result);
+        self::assertNull($kit->storage->current());
+    }
+
+    public function testRunAsActivityFallsBackToChildExecutionWhenCurrentIsNull(): void
+    {
+        $policy = new class () implements NestedExecutionPolicyInterface {
+            public function resolve(
+                ?ExecutionScopeInterface $current,
+                ExecutionDefinitionInterface $definition
+            ): NestedExecutionMode {
+                return NestedExecutionMode::ActivityOnly;
+            }
+        };
+        $kit = new RunItTestKit(nestedPolicy: $policy);
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'root');
+
+        self::assertSame('root', $result);
+    }
+
+    public function testSetupScopeFailureReleasesIssuedExportId(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $failure = new RuntimeException('create broken');
+        $factory = self::createStub(ExecutionFactoryInterface::class);
+        $factory->method('create')->willThrowException($failure);
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $kit = new RunItTestKit(
+            authority: $authority,
+            executionFactory: $factory,
+        );
+        $caught = null;
+        try {
+            $kit->runner->run($this->definition(), static fn (): null => null);
+        } catch (Throwable $throwable) {
+            $caught = $throwable;
+        }
+
+        self::assertSame($failure, $caught);
+        self::assertCount(1, $authority->allRecords());
+    }
+
+    public function testIssueExportIdCapacityFailureIsReported(): void
+    {
+        $authority = new ProvenanceAuthority(null, 1, 10, 1024);
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $kit = new RunItTestKit(authority: $authority);
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
+    }
+
+    public function testDuplicateExecutionGetsFreshAuthority(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $kit = new RunItTestKit(authority: $authority);
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
+        self::assertTrue($authority->hasLiveRecords('exec-1'));
+    }
+
+    public function testDetachedExecutionRegistersLinkEdge(): void
+    {
+        $kit = new RunItTestKit(nestedPolicy: new DetachedExecutionPolicy());
+        $innerResult = null;
+
+        $outer = $kit->runner->run($this->definition(), static function () use ($kit, &$innerResult): string {
+            $inner = $kit->runner->run(
+                ExecutionDefinition::create(ExecutionName::fromString('inner'), ExecutionKind::fromString('step')),
+                static fn (): string => 'inner-result',
+            );
+            $innerResult = $inner;
+            return 'outer';
+        });
+
+        self::assertSame('outer', $outer);
+        self::assertSame('inner-result', $innerResult);
+    }
+
+    public function testStartupPublishFailureIsReportedAndOperationStillRuns(): void
+    {
+        $kit = new RunItTestKit(publisher: new ThrowingArtifactPublisher());
+        $captured = null;
+        $kit = new RunItTestKit(
+            publisher: new ThrowingArtifactPublisher(),
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'business-value');
+
+        self::assertSame('business-value', $result);
+        self::assertInstanceOf(Throwable::class, $captured);
+        self::assertSame('publisher down', $captured->getMessage());
+    }
+
+    public function testCompletionPolicyOpenActivitiesFaultIsReported(): void
+    {
+        $captured = null;
+        $completionPolicy = new class () implements ExecutionCompletionPolicyInterface {
+            public function resolveOpenActivities(ExecutionScopeInterface $scope, array $openActivities): void
+            {
+                throw new RuntimeException('open activities broken');
+            }
+        };
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+            completionPolicy: $completionPolicy,
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
+        self::assertInstanceOf(RuntimeException::class, $captured);
+        self::assertSame('open activities broken', $captured->getMessage());
+    }
+
+    public function testTerminalPublishFailureIsReportedAndResultPreserved(): void
+    {
+        $captured = null;
+        $kit = new RunItTestKit(
+            publisher: new ThrowingArtifactPublisher(),
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'business-value');
+
+        self::assertSame('business-value', $result);
+        self::assertInstanceOf(Throwable::class, $captured);
+    }
+
+    public function testFailOnOpenActivitiesMarksExecutionFailed(): void
+    {
+        $kit = new RunItTestKit(
+            completionPolicy: new FailExecutionOnOpenActivitiesPolicy(),
+        );
+        $definition = $this->definition();
+        $activityDef = ActivityDefinition::create(
+            ActivityName::fromString('load'),
+            ActivityKind::fromString('io')
+        );
+
+        $result = $kit->runner->run($definition, function ($scope) use ($activityDef): string {
+            $scope->activities()->run($activityDef, static fn (): string => 'inner');
+            return 'result';
+        });
+
+        self::assertSame('result', $result);
+
+        $activities = array_values(array_filter(
+            $kit->artifacts(),
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ActivityInterface,
+        ));
+        self::assertCount(2, $activities);
+        self::assertSame('succeeded', $activities[1]->status()->label());
+    }
+
+    public function testOpenActivityAtCompletionFailsExecution(): void
+    {
+        $kit = new RunItTestKit(
+            completionPolicy: new FailExecutionOnOpenActivitiesPolicy(),
+        );
+        $definition = $this->definition();
+        $activityDef = ActivityDefinition::create(
+            ActivityName::fromString('load'),
+            ActivityKind::fromString('io')
+        );
+
+        $kit->runner->run($definition, function ($scope) use ($activityDef): string {
+            /** @var ExecutionScope $scope */
+            $scope->activities()->run($activityDef, static fn (): string => 'inner');
+
+            // Manually track an additional activity as open without completing it,
+            // so it remains open when the execution completes.
+            $openActivity = $this->createMock(ActivityInterface::class);
+            $openActivity->method('status')->willReturn(ActivityStatus::Running);
+
+            $scope->trackOpenActivity($openActivity);
+
+            return 'result';
+        });
+
+        $executions = array_values(array_filter(
+            $kit->artifacts(),
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        /** @var ExecutionInterface $execution */
+        $execution = end($executions);
+        self::assertSame('failed', $execution->status()->label());
+
+        $observations = array_values(array_filter(
+            $kit->artifacts(),
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface,
+        ));
+        self::assertNotEmpty($observations);
+        $hasCritical = array_any(
+            $observations,
+            fn (ObservationInterface $observation): bool => $observation->severity()->label() === 'critical',
+        );
+        self::assertTrue($hasCritical, 'Expected a critical observation for open activity');
+    }
+
+    public function testIssueExportIdCapacityThrowsWhenNotDuplicate(): void
+    {
+        $authority = new ProvenanceAuthority(null, 1, 10, 1024, 1);
+        $authority->issueExportId('execution', 'execution', 'other-exec', 'other-exec');
+
+        $kit = new RunItTestKit(authority: $authority);
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
+    }
+
+    private function definition(): ExecutionDefinitionInterface
+    {
+        return ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch'));
+    }
+
+    /**
+     * @return list<ExecutionInterface>
+     */
+    private function executions(RunItTestKit $kit): array
+    {
+        $executions = [];
+        foreach ($kit->artifacts() as $artifact) {
+            if ($artifact instanceof ExecutionInterface && $artifact->status()->isTerminal()) {
+                $executions[] = $artifact;
+            }
+        }
+
+        return $executions;
+    }
+
+    /**
+     * @return list<SnapshotInterface>
+     */
+    private function snapshots(RunItTestKit $kit): array
+    {
+        $snapshots = [];
+        foreach ($kit->artifacts() as $artifact) {
+            if ($artifact instanceof SnapshotInterface) {
+                $snapshots[] = $artifact;
+            }
+        }
+
+        return $snapshots;
+    }
+
+    /** @return iterable<string, array{bool}> */
+    public function businessOutcomes(): iterable
+    {
+        yield 'success' => [false];
+        yield 'failure' => [true];
+    }
+
+    /** @return iterable<array{string}> */
+    public function stages(): iterable
+    {
+        return [['factory'], ['coordinator'], ['duplicate']];
     }
 }

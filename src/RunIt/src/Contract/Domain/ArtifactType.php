@@ -22,6 +22,15 @@ enum ArtifactType: string
 
     public const string UNKNOWN = 'unknown';
 
+    public const array TYPES = [
+        self::EXECUTION,
+        self::OBSERVATION,
+        self::ACTIVITY,
+        self::MEASUREMENT,
+        self::OCCURRENCE,
+        self::SNAPSHOT,
+    ];
+
     public const array INTERFACES = [
         self::EXECUTION => ExecutionInterface::class,
         self::OBSERVATION => ObservationInterface::class,
@@ -38,15 +47,13 @@ enum ArtifactType: string
     case Occurrence = self::OCCURRENCE;
     case Snapshot = self::SNAPSHOT;
 
-
-
     public static function valid(ExecutionArtifactInterface $artifact): bool
     {
-        if ($artifact instanceof TypedExecutionArtifactInterface) {
-            return true;
-        }
-
-        return array_any(self::INTERFACES, static fn (string $interface): bool => $artifact instanceof $interface);
+        return $artifact instanceof TypedExecutionArtifactInterface
+            || array_any(
+                self::INTERFACES,
+                static fn (string $interface): bool => $artifact instanceof $interface
+            );
     }
 
     public static function type(ExecutionArtifactInterface $artifact): string

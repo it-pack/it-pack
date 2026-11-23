@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
@@ -94,7 +95,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
         $this->applyRedactedStatus($span, $normalized);
 
-        $snapshotAttributes = $normalized['attributes'] ?? null;
+        $snapshotAttributes = $normalized[ArtifactField::ATTRIBUTES] ?? null;
         /** @var array<array-key, mixed>|null $snapshotAttributes */
         $this->setRedactedAttributes($span, $snapshotAttributes);
 
@@ -113,7 +114,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
      */
     private function setRedactedParentActivity(array $normalized, array $attributes): array
     {
-        $parentActivityId = $normalized['parent_activity_id'] ?? null;
+        $parentActivityId = $normalized[ArtifactField::PARENT_ACTIVITY_ID] ?? null;
         if (is_string($parentActivityId)) {
             $attributes[AttributeKeys::ACTIVITY_PARENT_ID] = $parentActivityId;
         }
@@ -126,8 +127,8 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
      */
     private function applyRedactedStatus(SpanInterface $span, array $normalized): void
     {
-        if (is_string($normalized['status'] ?? null)) {
-            $this->setRedactedStatus($span, $normalized['status']);
+        if (is_string($normalized[ArtifactField::STATUS] ?? null)) {
+            $this->setRedactedStatus($span, $normalized[ArtifactField::STATUS]);
         }
     }
 
@@ -136,10 +137,10 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
      */
     private function recordRedactedThrowableFromNormalized(SpanInterface $span, array $normalized): void
     {
-        $throwable = $normalized['throwable'] ?? null;
+        $throwable = $normalized[ArtifactField::THROWABLE] ?? null;
         /** @var array<string, mixed>|null $throwable */
         $throwable = is_array($throwable) ? $throwable : null;
-        $this->recordRedactedThrowable($span, $throwable === null ? null : ['throwable' => $throwable]);
+        $this->recordRedactedThrowable($span, $throwable === null ? null : [ArtifactField::THROWABLE => $throwable]);
     }
 
     /**
@@ -147,7 +148,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
      */
     private function recordRedactedActivityId(SpanInterface $span, array $normalized): void
     {
-        $activityId = $normalized['id'] ?? null;
+        $activityId = $normalized[ArtifactField::ID] ?? null;
         if (is_string($activityId)) {
             $this->store->recordActivity($activityId, $span->getContext());
         }
@@ -164,10 +165,10 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
      */
     private function buildRedactedActivityAttributes(array $normalized, string $name): array
     {
-        $activityId = $normalized['id'] ?? null;
-        $kind = $normalized['kind'] ?? null;
-        $executionId = $normalized['execution_id'] ?? null;
-        $status = $normalized['status'] ?? null;
+        $activityId = $normalized[ArtifactField::ID] ?? null;
+        $kind = $normalized[ArtifactField::KIND] ?? null;
+        $executionId = $normalized[ArtifactField::EXECUTION_ID] ?? null;
+        $status = $normalized[ArtifactField::STATUS] ?? null;
 
         return [
             AttributeKeys::ACTIVITY_ID => is_string($activityId) ? $activityId : AttributeValues::EMPTY_IDENTITY,
@@ -183,7 +184,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
      */
     private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
     {
-        $parentActivityId = $normalized['parent_activity_id'] ?? null;
+        $parentActivityId = $normalized[ArtifactField::PARENT_ACTIVITY_ID] ?? null;
         if (is_string($parentActivityId)) {
             $parentSpan = $this->store->activityContext($parentActivityId);
             if ($parentSpan instanceof SpanContextInterface) {
@@ -191,7 +192,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
             }
         }
 
-        $executionId = $normalized['execution_id'] ?? null;
+        $executionId = $normalized[ArtifactField::EXECUTION_ID] ?? null;
         if (is_string($executionId)) {
             $executionSpan = $this->store->executionContext($executionId);
             if ($executionSpan instanceof SpanContextInterface) {

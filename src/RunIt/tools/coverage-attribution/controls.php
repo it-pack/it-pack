@@ -95,6 +95,30 @@ foreach (['leak' => 1, 'allowed' => 0] as $case => $expected) {
     runControl('direct ' . $case, [...$php, 'direct.php', $case], $directory, $environment, $check);
 }
 
+$withoutDriver = [PHP_BINARY, '-d', 'pcov.enabled=0', '-d', 'xdebug.mode=off'];
+$environment['XDEBUG_MODE'] = 'off';
+$missingDriver = static fn (int $status, string $output): bool => $status !== 0
+    && (
+        str_contains($output, 'No code coverage driver available')
+        || str_contains($output, 'No coverage driver is available')
+        || str_contains($output, 'xdebug.mode')
+    );
+runControl(
+    'direct missing driver',
+    [...$withoutDriver, 'direct.php', 'allowed'],
+    $directory,
+    $environment,
+    $missingDriver,
+);
+runControl(
+    'Codeception missing driver',
+    [...$withoutDriver, '../../vendor/bin/codecept', 'run', 'Unit', '--filter', 'testTarget', '--coverage',
+        '--no-colors'],
+    $directory,
+    $environment,
+    $missingDriver,
+);
+
 fwrite(STDOUT, "Reports and provider marker retained in $temporary\n");
 fwrite(STDOUT, 'Codeception accepting the leak and provider controls is an observed enforcement failure, '
     . "not proof of isolation.\n");

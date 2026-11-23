@@ -16,11 +16,13 @@ use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M9.3 — Activity to span mapping.
  */
+#[CoversClass(DefaultActivitySpanMapper::class)]
 final class ActivitySpanMapperTest extends Unit
 {
     private InMemoryExporter $spanExporter;
@@ -149,7 +151,47 @@ final class ActivitySpanMapperTest extends Unit
         $activity = RunItArtifactFactory::activity('act-none', 'exec-1', 'parse', 'internal', 'succeeded');
 
         $mapper->map($activity);
+        $mapper->mapRedactedActivity(['id' => 'redacted']);
 
         self::assertCount(0, $this->spans());
+        self::assertNull($this->store->activityContext('redacted'));
+    }
+
+    public function testRedactedActivityUsesParentAndOnlyExportsScalarAttributes(): void
+    {
+        $this->mapExecution('exec-1');
+        $this->mapper->mapRedactedActivity([
+            'id' => 'parent', 'execution_id' => 'exec-1', 'name' => 'parent',
+            'status' => 'succeeded', 'started_at' => 100, 'ended_at' => 101,
+        ]);
+        $this->mapper->mapRedactedActivity([
+            'id' => 'child', 'execution_id' => 'exec-1', 'parent_activity_id' => 'parent',
+            'name' => 'child', 'kind' => 'internal', 'status' => 'failed',
+            'started_at' => 102, 'ended_at' => 103,
+            'attributes' => ['safe' => 'visible', 'count' => 2, 'nested' => ['secret' => 'hidden'], '' => 'hidden'],
+            'throwable' => ['class' => 'SafeError', 'message' => '[redacted]'],
+        ]);
+
+        $spans = $this->spans();
+        self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[2]->getParentSpanId());
+        self::assertSame('parent', $spans[2]->getAttributes()->get(AttributeKeys::ACTIVITY_PARENT_ID));
+        self::assertSame('visible', $spans[2]->getAttributes()->get('safe'));
+        self::assertSame(2, $spans[2]->getAttributes()->get('count'));
+        self::assertNull($spans[2]->getAttributes()->get('nested'));
+        self::assertSame(StatusCode::STATUS_ERROR, $spans[2]->getStatus()->getCode());
+        self::assertSame('[redacted]', $spans[2]->getEvents()[0]->getAttributes()->get('exception.message'));
+        self::assertSame($spans[2]->getContext()->getSpanId(), $this->store->activityContext('child')?->getSpanId());
+    }
+
+    public function testRedactedActivityWithoutIdentityUsesFallbacks(): void
+    {
+        $this->mapper->mapRedactedActivity(['id' => 42, 'name' => '', 'status' => null]);
+
+        $span = $this->span(0);
+        self::assertNotSame('', $span->getName());
+        self::assertSame('', $span->getAttributes()->get(AttributeKeys::ACTIVITY_ID));
+        self::assertCount(0, $span->getEvents());
+        self::assertNull($this->store->activityContext('42'));
     }
 }

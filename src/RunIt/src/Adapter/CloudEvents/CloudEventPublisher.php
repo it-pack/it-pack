@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterf
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventFactory;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
@@ -61,7 +62,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
         }
 
         if (($artifact instanceof RedactedArtifactInterface || $artifact instanceof TrustedArtifactProjectionInterface)
-            && $artifact->artifactType() === 'occurrence') {
+            && $artifact->artifactType() === ArtifactType::OCCURRENCE) {
             $this->sink->send($this->mapRedacted($artifact));
 
             return;
@@ -82,10 +83,10 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
         $normalized = $artifact->normalize();
 
         $id = $this->redactedString($normalized, ArtifactField::ID, 'redacted');
-        $source = $this->redactedString($normalized, 'source', 'runit://redacted');
+        $source = $this->redactedString($normalized, ArtifactField::SOURCE, 'runit://redacted');
         $type = $this->redactedString($normalized, ArtifactField::TYPE, 'runit.artifact.redacted');
-        $subject = $this->redactedStringOrNull($normalized, 'subject');
-        $time = $this->redactedIntOrNull($normalized, 'time');
+        $subject = $this->redactedStringOrNull($normalized, ArtifactField::SUBJECT);
+        $time = $this->redactedIntOrNull($normalized, ArtifactField::TIME);
 
         $extensions = $this->buildRedactedExtensions($normalized);
 
@@ -138,7 +139,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
                 $normalized[ArtifactField::EXECUTION_ID] ?? null,
                 ''
             ),
-            CloudEventExtensionKey::Sequence->value => $this->asInt($normalized['sequence'] ?? null),
+            CloudEventExtensionKey::Sequence->value => $this->asInt($normalized[ArtifactField::SEQUENCE] ?? null),
             'redacted' => true,
         ];
 
