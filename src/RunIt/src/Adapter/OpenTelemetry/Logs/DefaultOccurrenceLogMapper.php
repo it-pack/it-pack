@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
+use ItPack\RunIt\Adapter\Common\Behavior\RedactedFieldAccess;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\LogEmitterBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
@@ -32,6 +33,7 @@ use OpenTelemetry\API\Trace\Span;
 final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
 {
     use LogEmitterBehavior;
+    use RedactedFieldAccess;
 
     /**
      * @param list<string> $occurrenceLogAttributeAllowList extension-attribute keys exported to logs;
@@ -192,22 +194,22 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::SNAPSHOT_ID => $this->redactedStringField(
+            AttributeKeys::SNAPSHOT_ID => $this->redactedString(
                 $normalized,
                 ArtifactField::ID,
                 AttributeValues::REDACTED_ID
             ),
-            AttributeKeys::SNAPSHOT_TYPE => $this->redactedStringField(
+            AttributeKeys::SNAPSHOT_TYPE => $this->redactedString(
                 $normalized,
                 ArtifactField::TYPE,
                 AttributeValues::REDACTED_TYPE
             ),
-            AttributeKeys::SNAPSHOT_CLASSIFICATION => $this->redactedStringField(
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => $this->redactedString(
                 $normalized,
                 ArtifactField::CLASSIFICATION,
                 AttributeValues::UNKNOWN_CLASSIFICATION
             ),
-            AttributeKeys::EXECUTION_ID => $this->redactedStringField(
+            AttributeKeys::EXECUTION_ID => $this->redactedString(
                 $normalized,
                 ArtifactField::EXECUTION_ID,
                 AttributeValues::EMPTY_IDENTITY
@@ -221,16 +223,6 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         return $attributes;
-    }
-
-    /**
-     * @param array<string, mixed> $normalized
-     */
-    private function redactedStringField(array $normalized, string $key, string $default): string
-    {
-        $value = $normalized[$key] ?? null;
-
-        return is_string($value) ? $value : $default;
     }
 
     /**
@@ -258,11 +250,6 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     }
 
     /**
-     * Builds the occurrence-specific attribute set for a redacted occurrence
-     * projection. Occurrence identity (id, type, source) and correlation fields
-     * (execution, activity) are preserved, together with the redaction marker.
-     * Extension attributes are intentionally not re-exported.
-     *
      * @param array<string, mixed> $normalized
      * @return array<string, mixed>
      */
@@ -270,22 +257,22 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::OCCURRENCE_ID => $this->redactedStringField(
+            AttributeKeys::OCCURRENCE_ID => $this->redactedString(
                 $normalized,
                 ArtifactField::ID,
                 AttributeValues::REDACTED_ID
             ),
-            AttributeKeys::OCCURRENCE_TYPE => $this->redactedStringField(
+            AttributeKeys::OCCURRENCE_TYPE => $this->redactedString(
                 $normalized,
                 ArtifactField::TYPE,
                 AttributeValues::REDACTED_TYPE
             ),
-            AttributeKeys::OCCURRENCE_SOURCE => $this->redactedStringField(
+            AttributeKeys::OCCURRENCE_SOURCE => $this->redactedString(
                 $normalized,
                 ArtifactField::SOURCE,
                 AttributeValues::REDACTED_SOURCE
             ),
-            AttributeKeys::EXECUTION_ID => $this->redactedStringField(
+            AttributeKeys::EXECUTION_ID => $this->redactedString(
                 $normalized,
                 ArtifactField::EXECUTION_ID,
                 AttributeValues::EMPTY_IDENTITY

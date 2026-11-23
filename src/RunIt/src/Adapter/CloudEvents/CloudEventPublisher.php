@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterf
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventFactory;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
+use ItPack\RunIt\Adapter\Common\Behavior\RedactedFieldAccess;
 use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -34,6 +35,8 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
  */
 final readonly class CloudEventPublisher implements ArtifactPublisherInterface
 {
+    use RedactedFieldAccess;
+
     public function __construct(
         private OccurrenceToCloudEventMapperInterface $mapper,
         private CloudEventSinkInterface               $sink,
@@ -114,22 +117,6 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
 
     /**
      * @param array<string, mixed> $normalized
-     */
-    private function redactedStringOrNull(array $normalized, string $key): ?string
-    {
-        return $this->asStringOrNull($normalized[$key] ?? null);
-    }
-
-    /**
-     * @param array<string, mixed> $normalized
-     */
-    private function redactedIntOrNull(array $normalized, string $key): ?int
-    {
-        return $this->asIntOrNull($normalized[$key] ?? null);
-    }
-
-    /**
-     * @param array<string, mixed> $normalized
      * @return array<string, mixed>
      */
     private function buildRedactedExtensions(array $normalized): array
@@ -143,7 +130,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
             'redacted' => true,
         ];
 
-        $activityId = $this->asStringOrNull($normalized[ArtifactField::ACTIVITY_ID] ?? null);
+        $activityId = $this->redactedStringOrNull($normalized, ArtifactField::ACTIVITY_ID);
         if ($activityId !== null) {
             $extensions[CloudEventExtensionKey::ActivityId->value] = $activityId;
         }
@@ -156,18 +143,8 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
         return is_string($value) || is_int($value) || is_float($value) ? (string) $value : $fallback;
     }
 
-    private function asStringOrNull(mixed $value): ?string
-    {
-        return is_string($value) ? $value : null;
-    }
-
     private function asInt(mixed $value): int
     {
         return is_int($value) ? $value : 0;
-    }
-
-    private function asIntOrNull(mixed $value): ?int
-    {
-        return is_int($value) ? $value : null;
     }
 }

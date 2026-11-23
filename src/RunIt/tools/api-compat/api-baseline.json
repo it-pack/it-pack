@@ -9451,6 +9451,11 @@
                     }
                 ]
             },
+            "activityContextPolicy": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
             "run": {
                 "static": false,
                 "return": "mixed",

@@ -196,6 +196,57 @@ final class ArtifactTypeTest extends Unit
         self::assertSame('unknown', $constants['UNKNOWN']);
     }
 
+    #[DataProvider('provideCases')]
+    public function testTypeFromTypedExecutionArtifact(string $type): void
+    {
+        $instance = $this->createTypedExecutionArtifactImplementation($type);
+
+        self::assertSame($type, ArtifactType::type($instance));
+    }
+
+    public function testTypeFromTypedExecutionArtifactUnknownTypeReturnsUnknown(): void
+    {
+        $instance = $this->createTypedExecutionArtifactImplementation('not-a-real-type');
+
+        self::assertSame('unknown', ArtifactType::type($instance));
+    }
+
+    #[DataProvider('provideMockMapping')]
+    public function testTypeFromInstance(string $type, ExecutionArtifactInterface $instance): void
+    {
+        self::assertSame($type, ArtifactType::type($instance));
+    }
+
+    public function testTypeFromArbitraryArtifactReturnsUnknown(): void
+    {
+        $instance = $this->createImplementation();
+
+        self::assertSame('unknown', ArtifactType::type($instance));
+    }
+
+    public function testValidNonTypedArtifactMatchingInterfaceIsValid(): void
+    {
+        $instance = $this->createMock(ExecutionInterface::class);
+
+        self::assertTrue(ArtifactType::valid($instance));
+    }
+
+    public function testFromArtifactThrowsValueErrorForArbitraryArtifact(): void
+    {
+        $this->expectException(ValueError::class);
+        $this->expectExceptionMessage('Unknown artifact type:');
+
+        ArtifactType::fromArtifact($this->createImplementation());
+    }
+
+    public function testIsInstanceReturnsFalseForMismatchedInterface(): void
+    {
+        $type = ArtifactType::from('execution');
+        $instance = $this->createMock(ObservationInterface::class);
+
+        self::assertFalse($type->isInstance($instance));
+    }
+
     ###########################
     # HELPERS
     ###########################
@@ -263,4 +314,20 @@ final class ArtifactTypeTest extends Unit
 
         return $result;
     }
+
+    /**
+     * @return array<array{0: string, 1: ExecutionArtifactInterface|MockObject}>
+     * @phpstan-ignore method.unused
+     */
+    private function provideMockMapping(): array
+    {
+        $result = [];
+        foreach (ArtifactType::INTERFACES as $type => $interface) {
+            $result[] = [$type, $this->createMock($interface)];
+        }
+
+        return $result;
+    }
+
+
 }

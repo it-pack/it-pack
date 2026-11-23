@@ -32,6 +32,7 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\TypedExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
@@ -174,11 +175,13 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
             return;
         }
 
-        if (method_exists($artifact, 'artifactType')) {
-            $artifactType = $artifact->artifactType();
-            $this->dispatchRedactedArtifact(is_string($artifactType) ? $artifactType : '', $artifact->normalize());
-
-            return;
+        if ($artifact instanceof TypedExecutionArtifactInterface || method_exists($artifact, 'artifactType')) {
+            $type = $artifact->artifactType();
+            /** @noinspection PhpConditionAlreadyCheckedInspection */
+            $this->dispatchRedactedArtifact(
+                is_string($type) ? $type : '',
+                $artifact->normalize()
+            );
         }
     }
 

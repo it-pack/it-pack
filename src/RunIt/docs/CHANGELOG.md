@@ -38,6 +38,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   values, and schemas are unchanged; no new serialized fields were introduced.
 - `open-telemetry/sem-conv` is now a mandatory production dependency
   (`^1.45`); the OpenTelemetry API and SDK remain optional suggestions.
+- Extracted repeated redacted-field accessors (`is_string`/`is_int` null-coalescing
+  reads of `ArtifactField::*` keys with safe defaults) from `CloudEventPublisher`
+  and `DefaultOccurrenceLogMapper` into the shared `Adapter\Common\RedactedFieldAccess`
+  trait. The trait is used by both adapters; no behavior changed and no public API
+  was added, removed, or modified. Existing contract tests remain green and a new
+  `RedactedFieldAccessTest` covers the trait in isolation.
 
 - Added long-lived publisher and custom-store retention regressions, and a
   reproducible synthetic comparison with the historical OpenTelemetry store.
