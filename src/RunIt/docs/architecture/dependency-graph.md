@@ -51,7 +51,7 @@ layer decision must precede changes to the rules:
 - `Adapter/OpenTelemetry/BridgeConfig.php` imports OpenTelemetry APIs, and
   `Adapter/CloudEvents/Sink/Psr18CloudEventSink.php` imports PSR HTTP APIs.
   These are examples, not a complete external-dependency inventory.
-- `Adapter\Common\RedactedFieldAccess` is a shared trait used by both
+- `ItPack\RunIt\Adapter\Common\Behavior\RedactedFieldAccess` is a shared trait used by both
   `Adapter\CloudEvents\CloudEventPublisher` and
   `Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper` for type-checked
   redacted-field extraction from normalized artifact projections. It centralizes

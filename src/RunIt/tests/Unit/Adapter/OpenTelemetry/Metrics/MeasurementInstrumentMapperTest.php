@@ -356,7 +356,7 @@ final class MeasurementInstrumentMapperTest extends Unit
         $mapper = new DefaultMeasurementInstrumentMapper(
             $this->kit->meterProvider,
             new InstrumentCache(64),
-            ['region']
+            ['region', '0']
         );
         $mapper->mapRedactedMeasurement([
             'name' => 'attrs', 'kind' => 'counter', 'unit' => 'count', 'value' => 1,
