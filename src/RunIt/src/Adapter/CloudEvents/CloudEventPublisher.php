@@ -10,7 +10,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterf
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventFactory;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
-use ItPack\RunIt\Adapter\Common\RedactedFieldAccess;
+use ItPack\RunIt\Adapter\Common\Behavior\RedactedFieldAccess;
 use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;

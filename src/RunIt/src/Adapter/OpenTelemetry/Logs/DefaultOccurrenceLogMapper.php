@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
-use ItPack\RunIt\Adapter\Common\RedactedFieldAccess;
+use ItPack\RunIt\Adapter\Common\Behavior\RedactedFieldAccess;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\LogEmitterBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
