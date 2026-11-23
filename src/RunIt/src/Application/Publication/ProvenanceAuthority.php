@@ -789,7 +789,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         );
         if ($pos !== false) {
             array_splice($this->byBusinessExecution[$bizKey], $pos, 1);
-            if ([] === $this->byBusinessExecution[$bizKey]) {
+            if ($this->byBusinessExecution[$bizKey] === []) {
                 unset($this->byBusinessExecution[$bizKey]);
             }
         }
