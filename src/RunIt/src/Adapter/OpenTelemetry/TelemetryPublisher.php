@@ -16,6 +16,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
@@ -23,6 +24,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultActivitySpanMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
@@ -31,6 +33,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
 use Throwable;
 
@@ -189,37 +192,37 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
      */
     private function dispatchRedactedArtifact(string $artifactType, array $normalized): void
     {
-        if ($artifactType === 'observation') {
+        if ($artifactType === ArtifactType::OBSERVATION) {
             $this->publishRedactedObservation($normalized);
 
             return;
         }
 
-        if ($artifactType === 'execution') {
+        if ($artifactType === ArtifactType::EXECUTION) {
             $this->executionMapper->mapRedactedExecution($normalized);
 
             return;
         }
 
-        if ($artifactType === 'activity') {
+        if ($artifactType === ArtifactType::ACTIVITY) {
             $this->activityMapper->mapRedactedActivity($normalized);
 
             return;
         }
 
-        if ($artifactType === 'measurement') {
+        if ($artifactType === ArtifactType::MEASUREMENT) {
             $this->dispatchRedactedMeasurement($normalized);
 
             return;
         }
 
-        if ($artifactType === 'occurrence') {
+        if ($artifactType === ArtifactType::OCCURRENCE) {
             $this->occurrenceMapper->mapRedactedOccurrence($normalized);
 
             return;
         }
 
-        if ($artifactType === 'snapshot') {
+        if ($artifactType === ArtifactType::SNAPSHOT) {
             $this->occurrenceMapper->mapRedactedSnapshot($normalized);
 
             return;
@@ -290,7 +293,10 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
                 new readonly class () implements ExecutionArtifactInterface {
                     public function normalize(): array
                     {
-                        return ['id' => 'redacted', 'type' => 'runit.artifact.redacted'];
+                        return [
+                            ArtifactField::ID       => AttributeValues::REDACTED_ID,
+                            ArtifactField::TYPE     => AttributeValues::REDACTED_TYPE,
+                        ];
                     }
                 },
             );

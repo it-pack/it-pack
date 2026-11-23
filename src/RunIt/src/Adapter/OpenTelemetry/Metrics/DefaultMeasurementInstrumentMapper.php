@@ -8,6 +8,7 @@ use ArrayObject;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedMeasurementInstrumentMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
@@ -187,7 +188,10 @@ final class DefaultMeasurementInstrumentMapper implements
                     new readonly class () implements ExecutionArtifactInterface {
                         public function normalize(): array
                         {
-                            return ['id' => 'redacted', 'type' => 'runit.artifact.redacted'];
+                            return [
+                                ArtifactField::ID       => AttributeValues::REDACTED_ID,
+                                ArtifactField::TYPE     => AttributeValues::REDACTED_TYPE,
+                            ];
                         }
                     },
                 );

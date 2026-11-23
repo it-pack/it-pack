@@ -18,6 +18,7 @@ use ItPack\RunIt\Contract\Domain\TypedExecutionArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
+use ReflectionClass;
 use ValueError;
 
 /**
@@ -179,6 +180,20 @@ final class ArtifactTypeTest extends Unit
             $instance->artifactType(),
             $resolved->value
         );
+    }
+
+    public function testConstantValuesMatchTheirLiteralSpellings(): void
+    {
+        $reflection = new ReflectionClass(ArtifactType::class);
+        $constants = $reflection->getConstants();
+
+        self::assertSame('execution', $constants['EXECUTION']);
+        self::assertSame('observation', $constants['OBSERVATION']);
+        self::assertSame('activity', $constants['ACTIVITY']);
+        self::assertSame('measurement', $constants['MEASUREMENT']);
+        self::assertSame('occurrence', $constants['OCCURRENCE']);
+        self::assertSame('snapshot', $constants['SNAPSHOT']);
+        self::assertSame('unknown', $constants['UNKNOWN']);
     }
 
     ###########################

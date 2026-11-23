@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
@@ -86,26 +87,26 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
         $attributes = $this->buildRedactedExecutionAttributes($normalized, $name);
 
-        $parentId = $normalized['parent_execution_id'] ?? null;
+        $parentId = $normalized[ArtifactField::PARENT_EXECUTION_ID] ?? null;
         if (is_string($parentId)) {
             $attributes[AttributeKeys::EXECUTION_PARENT_ID] = $parentId;
         }
 
         $span->setAttributes($attributes);
 
-        $statusValue = $normalized['status'] ?? null;
+        $statusValue = $normalized[ArtifactField::STATUS] ?? null;
         if (is_string($statusValue)) {
             $this->setRedactedStatus($span, $statusValue);
         }
 
-        $result = $normalized['result'] ?? null;
+        $result = $normalized[ArtifactField::RESULT] ?? null;
         /** @var array<string, mixed>|null $result */
         $this->recordRedactedThrowable($span, $result);
 
         $endedAt = $this->resolveRedactedEndedAt($normalized);
         $this->endSpanAt($span, $endedAt);
 
-        $executionId = $normalized['id'] ?? null;
+        $executionId = $normalized[ArtifactField::ID] ?? null;
         if (is_string($executionId)) {
             $this->store->recordExecution($executionId, $span->getContext());
         }
@@ -122,9 +123,9 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
      */
     private function buildRedactedExecutionAttributes(array $normalized, string $name): array
     {
-        $executionId = $normalized['id'] ?? null;
-        $kind = $normalized['kind'] ?? null;
-        $status = $normalized['status'] ?? null;
+        $executionId = $normalized[ArtifactField::ID] ?? null;
+        $kind = $normalized[ArtifactField::KIND] ?? null;
+        $status = $normalized[ArtifactField::STATUS] ?? null;
 
         return [
             AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : AttributeValues::EMPTY_IDENTITY,
@@ -139,7 +140,7 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
      */
     private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
     {
-        $parentId = $normalized['parent_execution_id'] ?? null;
+        $parentId = $normalized[ArtifactField::PARENT_EXECUTION_ID] ?? null;
         if (!is_string($parentId)) {
             return null;
         }
