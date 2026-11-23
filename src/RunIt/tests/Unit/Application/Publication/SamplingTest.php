@@ -62,6 +62,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use stdClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Tests\Support\Fixture\PublicationTestArtifactFactory;
 use Throwable;
 
 /**
@@ -785,37 +786,21 @@ final class SamplingTest extends Unit
         );
     }
 
-    private function observation(string $severity = 'info', string $execution = 'exec-1'): ExecutionArtifactInterface
-    {
-        $id = ObservationId::fromString('obs');
-        $executionId = ExecutionId::fromString($execution);
-
-        return match ($severity) {
-            'debug' => Observation::debug($id, $executionId, 'msg'),
-            'notice' => Observation::notice($id, $executionId, 'msg'),
-            'warning' => Observation::warning($id, $executionId, 'msg'),
-            'error' => Observation::error($id, $executionId, 'msg'),
-            'critical' => Observation::critical($id, $executionId, 'msg'),
-            'alert' => Observation::alert($id, $executionId, 'msg'),
-            'emergency' => Observation::emergency($id, $executionId, 'msg'),
-            default => Observation::info($id, $executionId, 'msg'),
-        };
-    }
-
     public function testAlwaysAndNever(): void
     {
-        $alwaysResult = new AlwaysSamplePolicy()->sample($this->observation());
-        $neverResult = new NeverSamplePolicy()->sample($this->observation());
+        $alwaysResult = new AlwaysSamplePolicy()->sample(PublicationTestArtifactFactory::observation());
+        $neverResult = new NeverSamplePolicy()->sample(PublicationTestArtifactFactory::observation());
         self::assertTrue($alwaysResult);
         self::assertFalse($neverResult);
     }
 
     public function testRatioIsDeterministic(): void
     {
-        self::assertTrue(new RatioSamplePolicy(0.5, static fn (): float => 0.1)->sample($this->observation()));
-        self::assertFalse(new RatioSamplePolicy(0.5, static fn (): float => 0.9)->sample($this->observation()));
-        self::assertFalse(new RatioSamplePolicy(0.0)->sample($this->observation()));
-        self::assertTrue(new RatioSamplePolicy(1.0)->sample($this->observation()));
+        $observation = PublicationTestArtifactFactory::observation();
+        self::assertTrue(new RatioSamplePolicy(0.5, static fn (): float => 0.1)->sample($observation));
+        self::assertFalse(new RatioSamplePolicy(0.5, static fn (): float => 0.9)->sample($observation));
+        self::assertFalse(new RatioSamplePolicy(0.0)->sample(PublicationTestArtifactFactory::observation()));
+        self::assertTrue(new RatioSamplePolicy(1.0)->sample(PublicationTestArtifactFactory::observation()));
     }
 
     public function testRatioApproximatesOverVolume(): void
@@ -825,7 +810,7 @@ final class SamplingTest extends Unit
         $total = 4000;
 
         for ($i = 0; $i < $total; $i++) {
-            if ($policy->sample($this->observation())) {
+            if ($policy->sample(PublicationTestArtifactFactory::observation())) {
                 $kept++;
             }
         }
@@ -844,26 +829,26 @@ final class SamplingTest extends Unit
 
         $policy = new ExecutionKindSamplePolicy($resolver, ['http.request' => true, 'cli.command' => false]);
 
-        self::assertTrue($policy->sample($this->observation('info', 'exec-1')));
-        self::assertFalse($policy->sample($this->observation('info', 'exec-2')));
+        self::assertTrue($policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-1')));
+        self::assertFalse($policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-2')));
     }
 
     public function testSeverityPolicyKeepsErrorsAndDropsNoise(): void
     {
         $policy = new SeveritySamplePolicy(ObservationSeverity::Warning->level());
 
-        self::assertFalse($policy->sample($this->observation('debug')));
-        self::assertFalse($policy->sample($this->observation('info')));
-        self::assertTrue($policy->sample($this->observation('warning')));
-        self::assertTrue($policy->sample($this->observation('error')));
+        self::assertFalse($policy->sample(PublicationTestArtifactFactory::observation('debug')));
+        self::assertFalse($policy->sample(PublicationTestArtifactFactory::observation('info')));
+        self::assertTrue($policy->sample(PublicationTestArtifactFactory::observation('warning')));
+        self::assertTrue($policy->sample(PublicationTestArtifactFactory::observation('error')));
     }
 
     public function testErrorOverrideWinsOverOrdinaryPolicy(): void
     {
         $policy = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
 
-        self::assertTrue($policy->sample($this->observation('error')));
-        self::assertFalse($policy->sample($this->observation('info')));
+        self::assertTrue($policy->sample(PublicationTestArtifactFactory::observation('error')));
+        self::assertFalse($policy->sample(PublicationTestArtifactFactory::observation('info')));
     }
 
     public function testGenericNonObservationCannotUseSeveritySampling(): void
@@ -895,8 +880,8 @@ final class SamplingTest extends Unit
 
         $policy = new HeadBasedSamplingPolicy($inner);
 
-        $first = $policy->sample($this->observation('info', 'exec-1'));
-        $second = $policy->sample($this->observation('info', 'exec-1'));
+        $first = $policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-1'));
+        $second = $policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-1'));
 
         self::assertTrue($first);
         self::assertTrue($second, 'The second artifact follows the first execution decision (head-based).');
@@ -970,15 +955,15 @@ final class SamplingTest extends Unit
             limits: new SecurityLimits(maxTrackedExecutions: 1),
         );
 
-        $policy->sample($this->observation('info', 'exec-1'));
+        $policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-1'));
         self::assertSame(1, $inner->calls);
 
         // A second execution evicts the first key from the bounded cache...
-        $policy->sample($this->observation('info', 'exec-2'));
+        $policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-2'));
         self::assertSame(2, $inner->calls);
 
         // ...so the first execution is re-decided instead of being retained forever.
-        $policy->sample($this->observation('info', 'exec-1'));
+        $policy->sample(PublicationTestArtifactFactory::observation('info', 'exec-1'));
         self::assertSame(3, $inner->calls, 'an evicted execution key must be re-decided through the wrapped policy');
     }
 
@@ -990,15 +975,15 @@ final class SamplingTest extends Unit
         $sink = new InMemoryArtifactPublisher();
         $publisher = new SamplingArtifactPublisher(new NeverSamplePolicy(), $sink);
 
-        $publisher->publish($this->observation('info'));
-        $publisher->publish($this->observation('error'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('info'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('error'));
 
         self::assertCount(0, $sink->published());
 
         $keep = new SamplingArtifactPublisher(new AlwaysSamplePolicy(), new InMemoryArtifactPublisher());
         $keepSink = new InMemoryArtifactPublisher();
         $keep = new SamplingArtifactPublisher(new AlwaysSamplePolicy(), $keepSink);
-        $keep->publish($this->observation('info'));
+        $keep->publish(PublicationTestArtifactFactory::observation('info'));
 
         self::assertCount(1, $keepSink->published());
     }
@@ -1068,8 +1053,8 @@ final class SamplingTest extends Unit
         $sink = new InMemoryArtifactPublisher();
         $publisher = new SamplingArtifactPublisher(new NeverSamplePolicy(), $sink, $health);
 
-        $publisher->publish($this->observation());
-        $publisher->publish($this->observation());
+        $publisher->publish(PublicationTestArtifactFactory::observation());
+        $publisher->publish(PublicationTestArtifactFactory::observation());
 
         self::assertSame(2, $health->calls);
         self::assertSame([], $sink->published());
@@ -1091,7 +1076,7 @@ final class SamplingTest extends Unit
         $sink = new InMemoryArtifactPublisher();
         $publisher = new PublisherStackFactory()->composeWithHealth($sink, null, new NeverSamplePolicy(), $health);
 
-        $publisher->publish($this->observation());
+        $publisher->publish(PublicationTestArtifactFactory::observation());
 
         self::assertSame(1, $health->calls);
         self::assertSame([], $sink->published());
@@ -1123,7 +1108,7 @@ final class SamplingTest extends Unit
         $id = ExecutionId::fromString('exec-1');
         $changed = Observation::info(ObservationId::fromString('changed'), $id, 'keep', attributes: $attributes);
         $rejected = Observation::info(ObservationId::fromString('rejected'), $id, 'reject', attributes: $attributes);
-        $unchanged = $this->observation();
+        $unchanged = PublicationTestArtifactFactory::observation();
 
         $publisher->publish($changed);
         $publisher->publish($rejected);
@@ -1148,7 +1133,7 @@ final class SamplingTest extends Unit
     public function testUnsafeStackHandlesNullDecorators(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $artifact = $this->observation();
+        $artifact = PublicationTestArtifactFactory::observation();
         self::assertSame($sink, $this->unsafeTestStack($sink, null, null));
 
         $sampling = new class () implements SamplingPolicyInterface {
@@ -1232,7 +1217,7 @@ final class SamplingTest extends Unit
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $error = Observation::error(ObservationId::fromString('error'), $id, 'error', attributes: $attributes);
         $info = Observation::info(ObservationId::fromString('info'), $id, 'info', attributes: $attributes);
-        $unchanged = $this->observation('error');
+        $unchanged = PublicationTestArtifactFactory::observation('error');
         $redacted = $redactor->redact($error);
 
         // Error override applies to redacted observations via normalized level.
@@ -1283,8 +1268,8 @@ final class SamplingTest extends Unit
             'dropped',
             attributes: $attributes,
         );
-        $unknown = $this->observation('info', 'exec-3');
-        $unchanged = $this->observation();
+        $unknown = PublicationTestArtifactFactory::observation('info', 'exec-3');
+        $unchanged = PublicationTestArtifactFactory::observation();
 
         // Execution kind resolves from redacted normalized execution_id.
         self::assertTrue($policy->sample($kept));

@@ -100,3 +100,11 @@ jobs:
 
       - name: Run test suites
         run: composer test
+
+      - name: Run Unit coverage (RunIt only)
+        if: matrix.pkg == 'RunIt'
+        run: composer coverage -- --silent
+
+      - name: Check coverage threshold (RunIt only)
+        if: matrix.pkg == 'RunIt'
+        run: composer coverage:threshold

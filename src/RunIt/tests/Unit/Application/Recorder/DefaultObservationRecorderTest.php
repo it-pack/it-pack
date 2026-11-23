@@ -34,14 +34,7 @@ final class DefaultObservationRecorderTest extends Unit
      */
     private function observations(): array
     {
-        $result = [];
-        foreach ($this->kit->artifacts() as $artifact) {
-            if ($artifact instanceof ObservationInterface) {
-                $result[] = $artifact;
-            }
-        }
-
-        return $result;
+        return $this->kit->artifactsOf(ObservationInterface::class);
     }
 
     public function testObservationWithoutActivityBindsExecutionOnly(): void

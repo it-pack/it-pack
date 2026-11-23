@@ -12,28 +12,16 @@ use ItPack\RunIt\Application\Publication\OverflowStrategy;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionId;
-use ItPack\RunIt\Domain\Observation\Observation;
-use ItPack\RunIt\Domain\Observation\ObservationId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionProperty;
 use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
+use Tests\Support\Fixture\PublicationTestArtifactFactory;
 use Throwable;
 
 #[CoversClass(BufferedArtifactPublisher::class)]
 final class BufferedQueueTest extends Unit
 {
-    private function artifact(string $id, bool $high = false): Observation
-    {
-        $observationId = ObservationId::fromString($id);
-        $executionId = ExecutionId::fromString('execution');
-
-        return $high
-            ? Observation::error($observationId, $executionId, 'message')
-            : Observation::info($observationId, $executionId, 'message');
-    }
-
     private function publisher(
         ArtifactPublisherInterface $sink,
         int $capacity,
@@ -65,17 +53,17 @@ final class BufferedQueueTest extends Unit
             }
         };
         $publisher = $this->publisher($sink, 2050, OverflowStrategy::DropLowPriority, $health);
-        $first = $this->artifact('first', true);
+        $first = PublicationTestArtifactFactory::priorityArtifact('first', true);
         $low = [];
         $incoming = [];
         $publisher->publish($first);
         for ($i = 0; $i < 2049; ++$i) {
-            $low[] = $this->artifact('low-' . $i);
+            $low[] = PublicationTestArtifactFactory::priorityArtifact('low-' . $i);
             $publisher->publish($low[$i]);
         }
 
         for ($i = 0; $i < 2050; ++$i) {
-            $incoming[] = $this->artifact('incoming-' . $i, true);
+            $incoming[] = PublicationTestArtifactFactory::priorityArtifact('incoming-' . $i, true);
             $publisher->publish($incoming[$i]);
         }
 
@@ -129,17 +117,17 @@ final class BufferedQueueTest extends Unit
         };
         $publisher = $this->publisher($sink, 1025, OverflowStrategy::DropLowPriority, $health);
         $health->publisher = $publisher;
-        $first = $this->artifact('first', true);
+        $first = PublicationTestArtifactFactory::priorityArtifact('first', true);
         $publisher->publish($first);
         $low = [];
         for ($i = 0; $i < 1024; ++$i) {
-            $low[] = $this->artifact('low-' . $i);
+            $low[] = PublicationTestArtifactFactory::priorityArtifact('low-' . $i);
             $publisher->publish($low[$i]);
         }
 
         $incoming = [];
         for ($i = 0; $i < 1024; ++$i) {
-            $incoming[] = $this->artifact('incoming-' . $i, true);
+            $incoming[] = PublicationTestArtifactFactory::priorityArtifact('incoming-' . $i, true);
             $publisher->publish($incoming[$i]);
         }
 
@@ -162,8 +150,8 @@ final class BufferedQueueTest extends Unit
     {
         $sink = new InMemoryArtifactPublisher();
         $publisher = $this->publisher($sink, 3, OverflowStrategy::DropNewest);
-        $first = $this->artifact('first');
-        $second = $this->artifact('second');
+        $first = PublicationTestArtifactFactory::priorityArtifact('first');
+        $second = PublicationTestArtifactFactory::priorityArtifact('second');
         $publisher->publish($first);
         $buffer = new ReflectionProperty(BufferedArtifactPublisher::class, 'buffer');
         $items = $buffer->getValue($publisher);
@@ -186,9 +174,9 @@ final class BufferedQueueTest extends Unit
      */
     public function testSinkCanPublishDuringDrainAfterHeadRemoval(): void
     {
-        $first = $this->artifact('first');
-        $second = $this->artifact('second');
-        $third = $this->artifact('third');
+        $first = PublicationTestArtifactFactory::priorityArtifact('first');
+        $second = PublicationTestArtifactFactory::priorityArtifact('second');
+        $third = PublicationTestArtifactFactory::priorityArtifact('third');
         $sink = new class ($third) implements ArtifactPublisherInterface {
             public ?BufferedArtifactPublisher $publisher = null;
 

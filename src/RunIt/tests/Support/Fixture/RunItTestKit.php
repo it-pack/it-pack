@@ -237,4 +237,25 @@ final class RunItTestKit
 
         return [];
     }
+
+    /**
+     * Returns the published artifacts of the given type, in publication order,
+     * reindexed as a sequential list.
+     *
+     * @template T of ExecutionArtifactInterface
+     * @param class-string<T> $type
+     * @return list<T>
+     */
+    public function artifactsOf(string $type): array
+    {
+        $result = [];
+        foreach ($this->artifacts() as $artifact) {
+            if ($artifact instanceof $type) {
+                /** @var T $artifact */
+                $result[] = $artifact;
+            }
+        }
+
+        return $result;
+    }
 }

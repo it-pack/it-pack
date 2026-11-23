@@ -34,14 +34,7 @@ final class DefaultSnapshotRecorderTest extends Unit
      */
     private function snapshots(): array
     {
-        $result = [];
-        foreach ($this->kit->artifacts() as $artifact) {
-            if ($artifact instanceof SnapshotInterface) {
-                $result[] = $artifact;
-            }
-        }
-
-        return $result;
+        return $this->kit->artifactsOf(SnapshotInterface::class);
     }
 
     public function testCheckpointSnapshotIsPublishedAndBoundToExecution(): void

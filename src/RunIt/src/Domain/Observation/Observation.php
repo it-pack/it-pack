@@ -249,17 +249,17 @@ final readonly class Observation implements ObservationInterface
         );
     }
 
-    private static function atSeverity(
+    public static function atSeverity(
         ObservationSeverityInterface $severity,
         ObservationIdInterface $id,
         ExecutionIdInterface $executionId,
         string $message,
-        ?ActivityIdInterface $activityId,
-        ?string $diagnosticCode,
-        ?AttributeCollectionInterface $attributes,
-        ?ThrowableDescriptionInterface $throwableDescription,
-        ?InstantInterface $instant,
-        ?ArtifactSequenceInterface $sequence,
+        ?ActivityIdInterface $activityId = null,
+        ?string $diagnosticCode = null,
+        ?AttributeCollectionInterface $attributes = null,
+        ?ThrowableDescriptionInterface $throwableDescription = null,
+        ?InstantInterface $instant = null,
+        ?ArtifactSequenceInterface $sequence = null,
     ): self {
         return new self(
             $id,

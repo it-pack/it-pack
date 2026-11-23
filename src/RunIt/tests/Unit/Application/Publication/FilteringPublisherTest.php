@@ -22,7 +22,6 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Observation\Observation;
-use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
@@ -34,6 +33,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use Tests\Support\Fixture\PublicationTestArtifactFactory;
 
 /**
  * @group application
@@ -48,12 +48,10 @@ use PHPUnit\Framework\Attributes\UsesClass;
 #[CoversClass(RoutingArtifactPublisher::class)]
 #[UsesClass(InMemoryArtifactPublisher::class)]
 #[UsesClass(PublicationRoute::class)]
-#[UsesClass(ExecutionId::class)]
 #[UsesClass(ExecutionKind::class)]
 #[UsesClass(Measurement::class)]
 #[UsesClass(MeasurementName::class)]
 #[UsesClass(Observation::class)]
-#[UsesClass(ObservationId::class)]
 #[UsesClass(Occurrence::class)]
 #[UsesClass(OccurrenceId::class)]
 #[UsesClass(OccurrenceType::class)]
@@ -68,7 +66,7 @@ final class FilteringPublisherTest extends Unit
     {
         $filter = new CompositeArtifactFilter([]);
 
-        self::assertTrue($filter->accepts($this->observation()));
+        self::assertTrue($filter->accepts(PublicationTestArtifactFactory::observation()));
     }
 
     public function testAnyMatchCompositeAcceptsWhenASingleFilterAccepts(): void
@@ -88,25 +86,7 @@ final class FilteringPublisherTest extends Unit
 
         $anyMatch = new CompositeArtifactFilter([$reject, $accept], requireAll: false);
 
-        self::assertTrue($anyMatch->accepts($this->observation()));
-    }
-
-    private function observation(string $severity = 'info', string $execution = 'exec-1'): ExecutionArtifactInterface
-    {
-        $id = ObservationId::fromString('obs');
-        $executionId = ExecutionId::fromString($execution);
-
-        return match ($severity) {
-            'debug' => Observation::debug($id, $executionId, 'msg'),
-            'info' => Observation::info($id, $executionId, 'msg'),
-            'notice' => Observation::notice($id, $executionId, 'msg'),
-            'warning' => Observation::warning($id, $executionId, 'msg'),
-            'error' => Observation::error($id, $executionId, 'msg'),
-            'critical' => Observation::critical($id, $executionId, 'msg'),
-            'alert' => Observation::alert($id, $executionId, 'msg'),
-            'emergency' => Observation::emergency($id, $executionId, 'msg'),
-            default => Observation::info($id, $executionId, 'msg'),
-        };
+        self::assertTrue($anyMatch->accepts(PublicationTestArtifactFactory::observation()));
     }
 
     private function occurrence(string $execution = 'exec-1'): ExecutionArtifactInterface
@@ -143,7 +123,7 @@ final class FilteringPublisherTest extends Unit
         $sink = new InMemoryArtifactPublisher();
         $publisher = new FilteringArtifactPublisher(new ArtifactTypeFilter([Observation::class]), $sink);
 
-        $publisher->publish($this->observation());
+        $publisher->publish(PublicationTestArtifactFactory::observation());
         $publisher->publish($this->occurrence());
         $publisher->publish($this->measurement());
 
@@ -160,8 +140,8 @@ final class FilteringPublisherTest extends Unit
 
         $publisher = new FilteringArtifactPublisher(new ExecutionKindFilter($resolver, ['http.request']), $sink);
 
-        $publisher->publish($this->observation('info', 'exec-1'));
-        $publisher->publish($this->observation('info', 'exec-2'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('info', 'exec-1'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('info', 'exec-2'));
 
         self::assertCount(1, $sink->published());
     }
@@ -174,10 +154,10 @@ final class FilteringPublisherTest extends Unit
             $sink
         );
 
-        $publisher->publish($this->observation('debug'));
-        $publisher->publish($this->observation('info'));
-        $publisher->publish($this->observation('warning'));
-        $publisher->publish($this->observation('error'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('debug'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('info'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('warning'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('error'));
         $publisher->publish($this->measurement());
 
         self::assertCount(3, $sink->published());
@@ -189,7 +169,7 @@ final class FilteringPublisherTest extends Unit
         $publisher = new FilteringArtifactPublisher(new OccurrenceTypeFilter(['itpack.test.event.v1']), $sink);
 
         $publisher->publish($this->occurrence());
-        $publisher->publish($this->observation());
+        $publisher->publish(PublicationTestArtifactFactory::observation());
 
         self::assertCount(1, $sink->published());
     }
@@ -204,8 +184,8 @@ final class FilteringPublisherTest extends Unit
 
         $publisher = new FilteringArtifactPublisher($filter, $sink);
 
-        $publisher->publish($this->observation('info'));
-        $publisher->publish($this->observation('warning'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('info'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('warning'));
         $publisher->publish($this->occurrence());
 
         self::assertCount(1, $sink->published());
@@ -223,7 +203,7 @@ final class FilteringPublisherTest extends Unit
         ], $fallback);
 
         $publisher->publish($this->occurrence());
-        $publisher->publish($this->observation('info'));
+        $publisher->publish(PublicationTestArtifactFactory::observation('info'));
         $publisher->publish($this->measurement());
 
         self::assertCount(1, $occurrences->published());

@@ -97,10 +97,47 @@ final class BridgeConfigTest extends Unit
     {
         $config = new BridgeConfigBuilder()
             ->withOccurrenceLogAttributeAllowList(['tenantflag'])
+            ->withOccurrenceSpanEvents(false)
             ->build()
         ;
 
         self::assertSame(['tenantflag'], $config->occurrenceLogAttributeAllowList);
         self::assertSame([], BridgeConfig::default()->occurrenceLogAttributeAllowList, 'default stays unrestricted');
+    }
+
+    public function testOccurrenceLoggingFlowsThroughTheBuilder(): void
+    {
+        $default = BridgeConfig::default();
+        self::assertTrue($default->mapOccurrencesToLogs);
+
+        $config = new BridgeConfigBuilder()
+            ->withOccurrenceLogging(false)
+            ->build()
+        ;
+
+        self::assertFalse($config->mapOccurrencesToLogs);
+
+        $original = new BridgeConfigBuilder();
+        $modified = $original->withOccurrenceLogging(false);
+        self::assertFalse($modified->build()->mapOccurrencesToLogs);
+        self::assertTrue($original->build()->mapOccurrencesToLogs);
+    }
+
+    public function testOccurrenceSpanEventsFlowsThroughTheBuilder(): void
+    {
+        $default = BridgeConfig::default();
+        self::assertTrue($default->mapOccurrencesToSpanEvents);
+
+        $config = new BridgeConfigBuilder()
+            ->withOccurrenceSpanEvents(false)
+            ->build()
+        ;
+
+        self::assertFalse($config->mapOccurrencesToSpanEvents);
+
+        $original = new BridgeConfigBuilder();
+        $modified = $original->withOccurrenceSpanEvents(false);
+        self::assertFalse($modified->build()->mapOccurrencesToSpanEvents);
+        self::assertTrue($original->build()->mapOccurrencesToSpanEvents);
     }
 }

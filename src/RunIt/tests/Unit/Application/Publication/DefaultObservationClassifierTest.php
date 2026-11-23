@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Publication;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
@@ -229,34 +230,42 @@ final class DefaultObservationClassifierTest extends Unit
         self::assertStringNotContainsString('secret', json_encode($fields, JSON_THROW_ON_ERROR));
     }
 
-    public function testLowAttributeLimitsReportAndDropRatherThanTruncateThrowable(): void
+    #[DataProvider('attributeLimits')]
+    public function testLowAttributeLimitsReportAndDropRatherThanTruncateThrowable(int $limit): void
     {
-        foreach (range(1, 4) as $limit) {
-            $reports = [];
-            $health = new CallbackHealthReporter(static function (
-                Throwable $error,
-                ExecutionArtifactInterface $artifact,
-            ) use (&$reports): void {
-                $reports[] = [$error->getMessage(), $artifact->normalize()];
-            });
-            $sink = new InMemoryArtifactPublisher();
-            $classifier = new DefaultObservationClassifier(
-                $sink,
-                $health,
-                new SecurityLimits(maxAttributeCount: $limit),
-            );
-            $classifier->publish(new RedactedArtifact([
-                'id' => 'export-observation', 'execution_id' => 'export-execution',
-                'severity' => 'error', 'timestamp' => 1, 'sequence' => 1,
-                'message' => 'secret', 'throwable' => [
-                    'class' => 'RuntimeException', 'code' => 42, 'message' => 'secret',
-                    'previous' => ['class' => 'InvalidArgumentException', 'code' => 7],
-                ],
-            ], 'observation'));
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $error,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = [$error->getMessage(), $artifact->normalize()];
+        });
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultObservationClassifier(
+            $sink,
+            $health,
+            new SecurityLimits(maxAttributeCount: $limit),
+        );
+        $classifier->publish(new RedactedArtifact([
+            'id' => 'export-observation', 'execution_id' => 'export-execution',
+            'severity' => 'error', 'timestamp' => 1, 'sequence' => 1,
+            'message' => 'secret', 'throwable' => [
+                'class' => 'RuntimeException', 'code' => 42, 'message' => 'secret',
+                'previous' => ['class' => 'InvalidArgumentException', 'code' => 7],
+            ],
+        ], 'observation'));
 
-            self::assertCount(0, $sink->published(), 'limit ' . $limit);
-            self::assertCount(1, $reports, 'limit ' . $limit);
-            self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
-        }
+        self::assertCount(0, $sink->published());
+        self::assertCount(1, $reports);
+        self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
+    }
+
+    /** @return iterable<string, array{0: int}> */
+    public static function attributeLimits(): iterable
+    {
+        yield 'limit 1' => [1];
+        yield 'limit 2' => [2];
+        yield 'limit 3' => [3];
+        yield 'limit 4' => [4];
     }
 }

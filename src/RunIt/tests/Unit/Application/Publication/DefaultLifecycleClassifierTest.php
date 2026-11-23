@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Publication;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
@@ -157,32 +158,40 @@ final class DefaultLifecycleClassifierTest extends Unit
         self::assertSame(['status' => 'cancelled', 'throwable' => null], $sink->published()[0]->normalize()['result']);
     }
 
-    public function testLowAttributeLimitsReportAndDropIncompleteThrowableStructures(): void
+    #[DataProvider('attributeLimits')]
+    public function testLowAttributeLimitsReportAndDropIncompleteThrowableStructures(int $limit): void
     {
-        foreach (range(1, 4) as $limit) {
-            $reports = [];
-            $health = new CallbackHealthReporter(static function (
-                Throwable $error,
-                ExecutionArtifactInterface $artifact,
-            ) use (&$reports): void {
-                $reports[] = [$error->getMessage(), $artifact->normalize()];
-            });
-            $sink = new InMemoryArtifactPublisher();
-            $classifier = new DefaultLifecycleClassifier($sink, $health, new SecurityLimits(maxAttributeCount: $limit));
-            $throwable = ['class' => 'RuntimeException', 'code' => 42, 'message' => 'secret',
-                'previous' => ['class' => 'InvalidArgumentException', 'code' => 7]];
-            $classifier->publish(new VerifiedArtifactProjection([
-                'id' => 'export-execution', 'status' => 'failed', 'started_at' => 1, 'ended_at' => 2,
-                'sequence' => 3, 'linked_execution_ids' => [], 'result' => ['throwable' => $throwable],
-            ], 'execution'));
-            $classifier->publish(new VerifiedArtifactProjection([
-                'id' => 'export-activity', 'execution_id' => 'export-execution', 'status' => 'failed',
-                'started_at' => 1, 'ended_at' => 2, 'sequence' => 4, 'throwable' => $throwable,
-            ], 'activity'));
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $error,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = [$error->getMessage(), $artifact->normalize()];
+        });
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new DefaultLifecycleClassifier($sink, $health, new SecurityLimits(maxAttributeCount: $limit));
+        $throwable = ['class' => 'RuntimeException', 'code' => 42, 'message' => 'secret',
+            'previous' => ['class' => 'InvalidArgumentException', 'code' => 7]];
+        $classifier->publish(new VerifiedArtifactProjection([
+            'id' => 'export-execution', 'status' => 'failed', 'started_at' => 1, 'ended_at' => 2,
+            'sequence' => 3, 'linked_execution_ids' => [], 'result' => ['throwable' => $throwable],
+        ], 'execution'));
+        $classifier->publish(new VerifiedArtifactProjection([
+            'id' => 'export-activity', 'execution_id' => 'export-execution', 'status' => 'failed',
+            'started_at' => 1, 'ended_at' => 2, 'sequence' => 4, 'throwable' => $throwable,
+        ], 'activity'));
 
-            self::assertCount(0, $sink->published(), 'limit ' . $limit);
-            self::assertCount(2, $reports, 'limit ' . $limit);
-            self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
-        }
+        self::assertCount(0, $sink->published());
+        self::assertCount(2, $reports);
+        self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
+    }
+
+    /** @return iterable<string, array{0: int}> */
+    public static function attributeLimits(): iterable
+    {
+        yield 'limit 1' => [1];
+        yield 'limit 2' => [2];
+        yield 'limit 3' => [3];
+        yield 'limit 4' => [4];
     }
 }

@@ -71,3 +71,16 @@ jobs:
           coverage: none
       - uses: ramsey/composer-install@v3
       - run: composer examples
+
+  coverage:
+    name: Unit statement coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: pcov
+      - uses: ramsey/composer-install@v3
+      - run: composer coverage
+      - run: composer coverage:threshold

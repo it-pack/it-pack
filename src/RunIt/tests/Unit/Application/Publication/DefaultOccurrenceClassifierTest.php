@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Publication;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
@@ -98,14 +99,9 @@ final class DefaultOccurrenceClassifierTest extends Unit
         self::assertInstanceOf(OccurrenceInterface::class, $policy->seen);
         self::assertCount(1, $sink->published());
         self::assertInstanceOf(OccurrenceInterface::class, $sink->published()[0]);
-        foreach ([$policy->seen, $sink->published()[0]] as $projected) {
-            $fields = $projected->normalize();
-            self::assertSame($occurrenceId, $fields['id']);
-            self::assertSame($executionId, $fields['execution_id']);
-            self::assertSame('runit.redacted.v1', $fields['type']);
-            self::assertStringNotContainsString('secret', json_encode($fields, JSON_THROW_ON_ERROR));
-            self::assertStringNotContainsString('business', json_encode($fields, JSON_THROW_ON_ERROR));
-        }
+
+        $this->assertSanitizedProjection($policy->seen, $occurrenceId, $executionId);
+        $this->assertSanitizedProjection($sink->published()[0], $occurrenceId, $executionId);
 
         self::assertSame('custom-source', $occurrence->source());
     }
@@ -130,7 +126,8 @@ final class DefaultOccurrenceClassifierTest extends Unit
         ]]], $reports);
     }
 
-    public function testNegativeTimeOrSequenceIsDroppedWithoutPayload(): void
+    #[DataProvider('negativeTimeSequenceFields')]
+    public function testNegativeTimeOrSequenceIsDroppedWithoutPayload(string $field): void
     {
         $reports = [];
         $health = new CallbackHealthReporter(static function (
@@ -141,18 +138,23 @@ final class DefaultOccurrenceClassifierTest extends Unit
         });
         $sink = new InMemoryArtifactPublisher();
         $classifier = new DefaultOccurrenceClassifier($sink, $health, new SecurityLimits());
-        foreach (['time', 'sequence'] as $field) {
-            $fields = [
-                'id' => 'secret-id', 'execution_id' => 'secret-execution', 'time' => 0,
-                'sequence' => 0, 'data' => 'secret-data',
-            ];
-            $fields[$field] = -1;
-            $classifier->publish(new RedactedArtifact($fields, 'occurrence'));
-        }
+        $fields = [
+            'id' => 'secret-id', 'execution_id' => 'secret-execution', 'time' => 0,
+            'sequence' => 0, 'data' => 'secret-data',
+        ];
+        $fields[$field] = -1;
+        $classifier->publish(new RedactedArtifact($fields, 'occurrence'));
 
         self::assertCount(0, $sink->published());
-        self::assertCount(2, $reports);
+        self::assertCount(1, $reports);
         self::assertStringNotContainsString('secret', json_encode($reports, JSON_THROW_ON_ERROR));
+    }
+
+    /** @return iterable<string, array{0: string}> */
+    public static function negativeTimeSequenceFields(): iterable
+    {
+        yield 'time' => ['time'];
+        yield 'sequence' => ['sequence'];
     }
 
     public function testExplicitRedactorChoicesStillApplyOccurrencePolicy(): void
@@ -193,15 +195,10 @@ final class DefaultOccurrenceClassifierTest extends Unit
         $stack->publish($occurrence);
         self::assertInstanceOf(OccurrenceInterface::class, $policy->seen);
         self::assertCount(1, $sink->published());
-        foreach ([$policy->seen, $sink->published()[0]] as $artifact) {
-            $fields = $artifact->normalize();
-            self::assertSame($id, $fields['id']);
-            self::assertSame($executionId, $fields['execution_id']);
-            self::assertSame('runit.redacted.v1', $fields['type']);
-            self::assertSame('runit:redacted', $fields['source']);
-            self::assertNull($fields['data']);
-            self::assertStringNotContainsString('custom', json_encode($fields, JSON_THROW_ON_ERROR));
-        }
+        self::assertInstanceOf(OccurrenceInterface::class, $sink->published()[0]);
+
+        $this->assertRedactedProjection($policy->seen, $id, $executionId);
+        $this->assertRedactedProjection($sink->published()[0], $id, $executionId);
     }
 
     public function testThrowingHealthReporterDoesNotLeakItsException(): void
@@ -235,5 +232,32 @@ final class DefaultOccurrenceClassifierTest extends Unit
 
             unlink($path);
         }
+    }
+
+    private function assertSanitizedProjection(
+        ExecutionArtifactInterface $projected,
+        ?string $occurrenceId,
+        ?string $executionId,
+    ): void {
+        $fields = $projected->normalize();
+        self::assertSame($occurrenceId, $fields['id']);
+        self::assertSame($executionId, $fields['execution_id']);
+        self::assertSame('runit.redacted.v1', $fields['type']);
+        self::assertStringNotContainsString('secret', json_encode($fields, JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('business', json_encode($fields, JSON_THROW_ON_ERROR));
+    }
+
+    private function assertRedactedProjection(
+        ExecutionArtifactInterface $projected,
+        ?string $id,
+        string $executionId,
+    ): void {
+        $fields = $projected->normalize();
+        self::assertSame($id, $fields['id']);
+        self::assertSame($executionId, $fields['execution_id']);
+        self::assertSame('runit.redacted.v1', $fields['type']);
+        self::assertSame('runit:redacted', $fields['source']);
+        self::assertNull($fields['data']);
+        self::assertStringNotContainsString('custom', json_encode($fields, JSON_THROW_ON_ERROR));
     }
 }

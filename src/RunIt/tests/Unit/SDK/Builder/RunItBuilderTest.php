@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Builder;
 
+use Codeception\Attribute\DataProvider;
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
@@ -18,13 +20,13 @@ use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
+use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
-use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -35,10 +37,7 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
-use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
@@ -57,12 +56,18 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
+use ItPack\RunIt\SDK\DefaultRunIt;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
-use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
+use Tests\Support\Fixture\RedactedTagArtifact;
+use Tests\Support\Fixture\RunItFactories;
+use Tests\Support\Fixture\SpyHashCalculator;
+use Tests\Support\Fixture\SpyHealthAwarePublisherStackFactory;
+use Tests\Support\Fixture\SpyPublisherStackFactory;
+use Tests\Support\Fixture\TaggingRedactor;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingSnapshotStore;
 use Throwable;
@@ -71,23 +76,58 @@ use Throwable;
 #[CoversClass(MissingBuilderDependencyException::class)]
 final class RunItBuilderTest extends TestCase
 {
-    private function builder(): RunItBuilderInterface
-    {
-        return RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-        ;
-    }
-
     private function definition(): ExecutionDefinition
     {
         return ExecutionDefinition::create(
             ExecutionName::fromString('builder.spec'),
             ExecutionKind::fromString('operation')
         );
+    }
+
+    private function snapshotFactory(?HashCalculatorInterface $hashCalculator = null): ExecutionSnapshotFactory
+    {
+        return new ExecutionSnapshotFactory(
+            new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
+            $hashCalculator ?? new DeterministicHashCalculator(),
+        );
+    }
+
+    /**
+     * @param list<ExecutionArtifactInterface> $published
+     * @return list<ExecutionArtifactInterface>
+     */
+    private function executionsOf(array $published): array
+    {
+        return array_values(array_filter(
+            $published,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+    }
+
+    /**
+     * @param list<ExecutionArtifactInterface> $published
+     * @return list<ExecutionArtifactInterface>
+     */
+    private function snapshotsOf(array $published): array
+    {
+        return array_values(array_filter(
+            $published,
+            static fn (ExecutionArtifactInterface $artifact): bool =>
+                $artifact instanceof SnapshotInterface
+                || ($artifact instanceof TrustedArtifactProjectionInterface
+                    && $artifact->artifactType() === 'snapshot'),
+        ));
+    }
+
+    /**
+     * @param array<string, mixed> $execution
+     * @param array<string, mixed> $snapshot
+     */
+    private function assertSnapshotMatchesExecution(array $execution, array $snapshot): void
+    {
+        self::assertSame($execution['id'], $snapshot['execution_id']);
+        self::assertArrayHasKey(ArtifactField::PAYLOAD, $snapshot);
+        self::assertArrayHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }
 
     public function testCreateReturnsBuilderInterface(): void
@@ -105,79 +145,21 @@ final class RunItBuilderTest extends TestCase
 
     public function testBuildReturnsInterfaceBackedRuntime(): void
     {
-        $runtime = $this->builder()->build();
+        $runtime = RunItFactories::configuredBuilder()->build();
 
-        self::assertInstanceOf(RunItInterface::class, $runtime);
+        self::assertInstanceOf(DefaultRunIt::class, $runtime);
     }
 
-    public function testBuildValidatesRequiredPublisher(): void
+    #[DataProvider('requiredDependencies')]
+    public function testBuildValidatesRequiredDependency(string $dependency): void
     {
         $this->expectException(MissingBuilderDependencyException::class);
-
-        RunItBuilder::create()
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build()
-        ;
-    }
-
-    public function testBuildValidatesRequiredClock(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-
-        RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build()
-        ;
-    }
-
-    public function testBuildValidatesRequiredSequenceAllocator(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-
-        RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build()
-        ;
-    }
-
-    public function testBuildValidatesRequiredSerializer(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-
-        RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build()
-        ;
-    }
-
-    public function testBuildValidatesRequiredIdentifierGenerator(): void
-    {
-        $this->expectException(MissingBuilderDependencyException::class);
-
-        RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->build()
-        ;
+        $this->buildMissing($dependency);
     }
 
     public function testBuiltRuntimeExecutesOperationAndReturnsResult(): void
     {
-        $runtime = $this->builder()->build();
+        $runtime = RunItFactories::configuredBuilder()->build();
 
         $result = $runtime->run($this->definition(), static fn (): string => 'value');
 
@@ -195,44 +177,29 @@ final class RunItBuilderTest extends TestCase
                 return ++$this->sequence === 1 ? 'caller-business-execution-id' : 'caller-id-' . $this->sequence;
             }
         };
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
             ->withIdentifierGenerator($generator)
             ->build()
         ;
 
         $runtime->run($this->definition(), static fn (): int => 1);
 
-        $executions = array_values(array_filter(
-            $sink->published(),
-            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
-        ));
+        $executions = $this->executionsOf($sink->published());
         self::assertNotEmpty($executions);
         $execution = $executions[0]->normalize();
 
-        $snapshots = array_values(array_filter(
-            $sink->published(),
-            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface,
-        ));
+        $snapshots = $this->snapshotsOf($sink->published());
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();
-        self::assertSame($execution['id'], $snapshot['execution_id']);
-        self::assertArrayHasKey(ArtifactField::PAYLOAD, $snapshot);
-        self::assertArrayHasKey(ArtifactField::CONTENT_HASH, $snapshot);
+        $this->assertSnapshotMatchesExecution($execution, $snapshot);
     }
 
     public function testSamplingPolicyDropsArtifacts(): void
     {
         $spy = new RecordingArtifactPublisher();
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
             ->withSamplingPolicy(new NeverSamplePolicy())
             ->build()
         ;
@@ -246,12 +213,8 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new RecordingArtifactPublisher();
         $redactor = new TaggingRedactor();
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
             ->withRedactor($redactor)
             ->build()
         ;
@@ -263,30 +226,61 @@ final class RunItBuilderTest extends TestCase
         self::assertSame('runit.redacted', $spy->published[0]->normalize()['name']);
     }
 
-    public function testNewSeamWithersReturnNewBuilderInstances(): void
+    #[DataProvider('immutableSeams')]
+    public function testSeamReturnsNewBuilderInstance(string $seam): void
     {
-        $base = $this->builder();
-        $hashCalculator = new DeterministicHashCalculator();
-        $executionFactory = new ExecutionFactory();
-        $coordinator = new ExecutionLifecycleCoordinator();
-        $snapshotFactory = new ExecutionSnapshotFactory(
-            new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
-            new DeterministicHashCalculator(),
-        );
+        $base = RunItFactories::configuredBuilder();
+        $configured = match ($seam) {
+            'hashCalculator' => $base->withHashCalculator(new DeterministicHashCalculator()),
+            'executionFactory' => $base->withExecutionFactory(new ExecutionFactory()),
+            'lifecycleCoordinator' => $base->withLifecycleCoordinator(new ExecutionLifecycleCoordinator()),
+            'snapshotFactory' => $base->withSnapshotFactory(new ExecutionSnapshotFactory(
+                new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
+                new DeterministicHashCalculator(),
+            )),
+            'throwableMapper' => $base->withThrowableMapper(new DefaultThrowableMapper()),
+            'nestedExecutionPolicy' => $base->withNestedExecutionPolicy(new ChildExecutionPolicy()),
+            'completionPolicy' => $base->withCompletionPolicy(new AutoFailOpenActivitiesPolicy()),
+            'executionEngine' => $base->withExecutionEngine(new SynchronousExecutionEngine()),
+            'securityLimits' => $base->withSecurityLimits(new SecurityLimits()),
+            'publicationFailureHandler' => $base->withPublicationFailureHandler(
+                static function (Throwable $failure): void {
+                }
+            ),
+            'snapshotStoreFailureHandler' => $base->withSnapshotStoreFailureHandler(
+                static function (Throwable $failure): void {
+                }
+            ),
+            'publisherStackFactory' => $base->withPublisherStackFactory(new SpyPublisherStackFactory()),
+            'activityContextPolicy' => $base->withActivityContextPolicy('drop'),
+            'activityContextAttachFailureFallback' => $base->withActivityContextAttachFailureFallback(true),
+            default => throw new InvalidArgumentException("Unknown seam: $seam"),
+        };
+        self::assertNotSame($base, $configured);
+    }
 
-        self::assertNotSame($base, $base->withHashCalculator($hashCalculator));
-        self::assertNotSame($base, $base->withExecutionFactory($executionFactory));
-        self::assertNotSame($base, $base->withLifecycleCoordinator($coordinator));
-        self::assertNotSame($base, $base->withSnapshotFactory($snapshotFactory));
-        self::assertNotSame($base, $base->withThrowableMapper(new DefaultThrowableMapper()));
-        self::assertNotSame($base, $base->withNestedExecutionPolicy(new ChildExecutionPolicy()));
-        self::assertNotSame($base, $base->withCompletionPolicy(new AutoFailOpenActivitiesPolicy()));
-        self::assertNotSame($base, $base->withExecutionEngine(new SynchronousExecutionEngine()));
+    /** @return iterable<string, array{0: string}> */
+    public static function immutableSeams(): iterable
+    {
+        yield 'hashCalculator' => ['hashCalculator'];
+        yield 'executionFactory' => ['executionFactory'];
+        yield 'lifecycleCoordinator' => ['lifecycleCoordinator'];
+        yield 'snapshotFactory' => ['snapshotFactory'];
+        yield 'throwableMapper' => ['throwableMapper'];
+        yield 'nestedExecutionPolicy' => ['nestedExecutionPolicy'];
+        yield 'completionPolicy' => ['completionPolicy'];
+        yield 'executionEngine' => ['executionEngine'];
+        yield 'securityLimits' => ['securityLimits'];
+        yield 'publicationFailureHandler' => ['publicationFailureHandler'];
+        yield 'snapshotStoreFailureHandler' => ['snapshotStoreFailureHandler'];
+        yield 'publisherStackFactory' => ['publisherStackFactory'];
+        yield 'activityContextPolicy' => ['activityContextPolicy'];
+        yield 'activityContextAttachFailureFallback' => ['activityContextAttachFailureFallback'];
     }
 
     public function testWithExecutionEngineInstallsTheInjectedEngine(): void
     {
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withExecutionEngine(new class () implements ExecutionEngineInterface {
                 public function run(ExecutionScopeInterface $scope, callable $operation): mixed
                 {
@@ -312,7 +306,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testWithNestedExecutionPolicyDrivesNestedRunSemantics(): void
     {
-        $runtime = $this->builder()->withNestedExecutionPolicy(new ActivityOnlyPolicy())->build();
+        $runtime = RunItFactories::configuredBuilder()->withNestedExecutionPolicy(new ActivityOnlyPolicy())->build();
 
         $inner = null;
 
@@ -338,36 +332,13 @@ final class RunItBuilderTest extends TestCase
         self::assertSame('activity', $inner);
     }
 
-    public function testSecurityLimitsAndHandlerSeamsReturnNewBuilderInstances(): void
-    {
-        $base = $this->builder();
-
-        self::assertNotSame($base, $base->withSecurityLimits(new SecurityLimits()));
-        self::assertNotSame(
-            $base,
-            $base->withPublicationFailureHandler(static function (Throwable $failure): void {
-            }),
-        );
-        self::assertNotSame(
-            $base,
-            $base->withSnapshotStoreFailureHandler(static function (Throwable $failure): void {
-            }),
-        );
-        self::assertNotSame($base, $base->withPublisherStackFactory(new SpyPublisherStackFactory()));
-    }
-
     public function testPublisherStackFactorySeamIsConsumedByBuild(): void
     {
         $factory = new SpyPublisherStackFactory();
 
-        $runtime = RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withRedactor(new TaggingRedactor())
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisherStackFactory($factory)
+            ->withRedactor(new TaggingRedactor())
             ->build()
         ;
 
@@ -384,7 +355,7 @@ final class RunItBuilderTest extends TestCase
     {
         $factory = new SpyHealthAwarePublisherStackFactory();
 
-        $this->builder()->withPublisherStackFactory($factory)->build();
+        RunItFactories::configuredBuilder()->withPublisherStackFactory($factory)->build();
 
         self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
     }
@@ -401,7 +372,7 @@ final class RunItBuilderTest extends TestCase
                 return 'synthetic-secret-identity-' . ++$this->sequence;
             }
         };
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withIdentifierGenerator($generator)
             ->withRedactor(null)
             ->withPublisherStackFactory($factory)
@@ -418,8 +389,6 @@ final class RunItBuilderTest extends TestCase
         self::assertStringStartsWith('synthetic-secret-identity-', $businessId);
         foreach ($seen->published() as $artifact) {
             $normalized = $artifact->normalize();
-            // The execution id is the business id by design; secrets must not
-            // leak into payload/data sections.
             unset($normalized['id'], $normalized['payload']);
             self::assertStringNotContainsString(
                 'synthetic-secret-identity-',
@@ -427,10 +396,7 @@ final class RunItBuilderTest extends TestCase
             );
         }
 
-        $executions = array_values(array_filter(
-            $seen->published(),
-            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
-        ));
+        $executions = $this->executionsOf($seen->published());
         self::assertNotEmpty($executions);
         foreach ($executions as $execution) {
             self::assertInstanceOf(ExecutionInterface::class, $execution);
@@ -448,7 +414,7 @@ final class RunItBuilderTest extends TestCase
     {
         $factory = new SpyHealthAwarePublisherStackFactory();
         $failures = [];
-        $this->builder()
+        RunItFactories::configuredBuilder()
             ->withPublisherStackFactory($factory)
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
@@ -471,12 +437,7 @@ final class RunItBuilderTest extends TestCase
     {
         $failures = [];
 
-        $runtime = RunItBuilder::create()
-            ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+        $runtime = RunItFactories::configuredBuilder()
             ->withSecurityLimits(new SecurityLimits(maxArtifactsPerExecution: 1))
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
@@ -517,14 +478,7 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new RecordingArtifactPublisher();
 
-        $runtime = RunItBuilder::create()
-            ->withPublisher($spy)
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build()
-        ;
+        $runtime = RunItFactories::configuredBuilder()->withPublisher($spy)->build();
 
         $thrown = new RuntimeException('secret failure detail');
 
@@ -552,7 +506,7 @@ final class RunItBuilderTest extends TestCase
         foreach ($spy->published as $artifact) {
             $normalized = $artifact->normalize();
             $encoded = json_encode($normalized);
-            self::assertFalse($encoded === false);
+            self::assertNotFalse($encoded);
             self::assertStringNotContainsString(
                 'secret failure detail',
                 $encoded,
@@ -574,7 +528,11 @@ final class RunItBuilderTest extends TestCase
                 return true;
             }
         };
-        $runtime = $this->builder()->withPublisher($spy)->withSamplingPolicy($sampling)->build();
+        $runtime = RunItFactories::configuredBuilder()
+            ->withPublisher($spy)
+            ->withSamplingPolicy($sampling)
+            ->build()
+        ;
         try {
             $runtime->run($this->definition(), static function (): never {
                 throw new RuntimeException('synthetic-secret-failure');
@@ -605,13 +563,9 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new RecordingArtifactPublisher();
 
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($spy)
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withRedactor(redactor: null)
+            ->withRedactor(null)
             ->build()
         ;
 
@@ -638,7 +592,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testSecurityLimitsPropagateToActivityDepthGate(): void
     {
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withSecurityLimits(new SecurityLimits(maxActivityDepth: 1))
             ->build()
         ;
@@ -676,7 +630,7 @@ final class RunItBuilderTest extends TestCase
     {
         $sink = new InMemoryArtifactPublisher();
         $dropReports = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
             ->withRedactor(null)
             ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
@@ -712,12 +666,9 @@ final class RunItBuilderTest extends TestCase
     {
         $sink = new RecordingArtifactPublisher();
         $failures = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
-            ->withSnapshotFactory(new ExecutionSnapshotFactory(
-                new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
-                new DeterministicHashCalculator(),
-            ))
+            ->withSnapshotFactory($this->snapshotFactory())
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             })
@@ -728,25 +679,14 @@ final class RunItBuilderTest extends TestCase
         self::assertNotEmpty($sink->published);
         self::assertSame([], $failures);
         // Terminal snapshots are published as classified projections (payload omitted by default).
-        $executions = array_values(array_filter(
-            $sink->published,
-            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
-        ));
+        $executions = $this->executionsOf($sink->published);
         self::assertNotEmpty($executions);
         $execution = $executions[0]->normalize();
 
-        $snapshots = array_values(array_filter(
-            $sink->published,
-            static fn (ExecutionArtifactInterface $artifact): bool =>
-                $artifact instanceof SnapshotInterface
-                || ($artifact instanceof TrustedArtifactProjectionInterface
-                    && $artifact->artifactType() === 'snapshot'),
-        ));
+        $snapshots = $this->snapshotsOf($sink->published);
         self::assertCount(1, $snapshots);
         $snapshot = $snapshots[0]->normalize();
-        self::assertSame($execution['id'], $snapshot['execution_id']);
-        self::assertArrayHasKey(ArtifactField::PAYLOAD, $snapshot);
-        self::assertArrayHasKey(ArtifactField::CONTENT_HASH, $snapshot);
+        $this->assertSnapshotMatchesExecution($execution, $snapshot);
     }
 
     public function testCustomSnapshotFactoryCannotForgeExecutionOwnership(): void
@@ -770,7 +710,7 @@ final class RunItBuilderTest extends TestCase
 
             return $snapshot;
         });
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher($sink)
             ->withSnapshotFactory($factory)
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
@@ -798,11 +738,12 @@ final class RunItBuilderTest extends TestCase
         $failures = [];
         $attributes = $this->createMock(AttributeCollectionInterface::class);
         $attributes->method('toArray')->willThrowException(new RuntimeException('sensitive normalization error'));
-        $runtime = $this->builder()->withPublicationFailureHandler(
-            static function (Throwable $failure) use (&$failures): void {
+        $runtime = RunItFactories::configuredBuilder()
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
-            },
-        )->build();
+            })
+            ->build()
+        ;
 
         $result = $runtime->run($this->definition(), static function (
             ExecutionScopeInterface $scope,
@@ -841,12 +782,8 @@ final class RunItBuilderTest extends TestCase
     public function testPublicationFailureHandlerReceivesAdapterFailure(): void
     {
         $failures = [];
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher(new ThrowingArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
             ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             })
@@ -862,7 +799,7 @@ final class RunItBuilderTest extends TestCase
     public function testSnapshotStoreFailureHandlerReceivesStoreFailure(): void
     {
         $storeFailures = [];
-        $runtime = $this->builder()
+        $runtime = RunItFactories::configuredBuilder()
             ->withSnapshotStore(new ThrowingSnapshotStore())
             ->withSnapshotStoreFailureHandler(static function (Throwable $failure) use (&$storeFailures): void {
                 $storeFailures[] = $failure;
@@ -884,12 +821,8 @@ final class RunItBuilderTest extends TestCase
     {
         $spy = new SpyHashCalculator();
 
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
             ->withHashCalculator($spy)
             ->build()
         ;
@@ -903,23 +836,59 @@ final class RunItBuilderTest extends TestCase
         );
     }
 
+    #[DataProvider('activityContextPolicies')]
+    public function testWithActivityContextPolicyAcceptsValidValues(string $policy): void
+    {
+        $base = RunItFactories::configuredBuilder();
+        $builder = $base->withActivityContextPolicy($policy);
+        self::assertNotSame($base, $builder);
+        $runner = $builder->build()->executionRunner();
+        /** @var DefaultExecutionRunner $runner */
+        self::assertSame($policy, $runner->activityContextPolicy());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function activityContextPolicies(): iterable
+    {
+        yield 'fallback' => ['fallback'];
+        yield 'drop' => ['drop'];
+        yield 'throw' => ['throw'];
+    }
+
+    public function testWithActivityContextPolicyRejectsInvalidValues(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown activity context policy.');
+        $base = RunItFactories::configuredBuilder();
+        $base->withActivityContextPolicy('invalid-policy');
+    }
+
+    public function testWithActivityContextAttachFailureFallback(): void
+    {
+        $base = RunItFactories::configuredBuilder();
+        $enabled = $base->withActivityContextAttachFailureFallback(true);
+        self::assertNotSame($base, $enabled);
+
+        $runtime = $enabled->build();
+        self::assertInstanceOf(DefaultRunIt::class, $runtime);
+
+        $disabled = $enabled->withActivityContextAttachFailureFallback(false);
+        self::assertNotSame($enabled, $disabled);
+
+        $runtime = $disabled->build();
+        self::assertInstanceOf(DefaultRunIt::class, $runtime);
+    }
+
     public function testBuildAcceptsAllCustomSeams(): void
     {
         $spy = new SpyHashCalculator();
 
-        $runtime = RunItBuilder::create()
+        $runtime = RunItFactories::configuredBuilder()
             ->withPublisher(new InMemoryArtifactPublisher())
-            ->withClock(new SystemMonotonicClock())
-            ->withSequenceAllocator(new InMemorySequenceAllocator())
-            ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
             ->withHashCalculator($spy)
             ->withExecutionFactory(new ExecutionFactory())
             ->withLifecycleCoordinator(new ExecutionLifecycleCoordinator())
-            ->withSnapshotFactory(new ExecutionSnapshotFactory(
-                new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
-                $spy,
-            ))
+            ->withSnapshotFactory($this->snapshotFactory($spy))
             ->build()
         ;
 
@@ -931,90 +900,40 @@ final class RunItBuilderTest extends TestCase
             'configured hash calculator must be invoked through the custom snapshot factory'
         );
     }
-}
 
-final class SpyHashCalculator implements HashCalculatorInterface
-{
-    public bool $called = false;
-
-    public function calculate(string $content): string
+    /** @return iterable<string, array{string}> */
+    public static function requiredDependencies(): iterable
     {
-        $this->called = true;
-
-        return hash('sha256', $content);
+        yield 'publisher' => ['publisher'];
+        yield 'clock' => ['clock'];
+        yield 'sequenceAllocator' => ['sequenceAllocator'];
+        yield 'snapshotSerializer' => ['snapshotSerializer'];
+        yield 'identifierGenerator' => ['identifierGenerator'];
     }
-}
 
-final class SpyPublisherStackFactory implements PublisherStackFactoryInterface
-{
-    public bool $called = false;
-
-    public int $argumentCount = 0;
-
-    public function __construct(private readonly ?ArtifactPublisherInterface $override = null)
+    private function buildMissing(string $skip): void
     {
-    }
-
-    public function compose(
-        ArtifactPublisherInterface $base,
-        ?RedactorInterface $redactor,
-        ?SamplingPolicyInterface $samplingPolicy,
-    ): ArtifactPublisherInterface {
-        $this->called = true;
-        $this->argumentCount = func_num_args();
-
-        return $this->override ?? $base;
-    }
-}
-
-final class SpyHealthAwarePublisherStackFactory implements HealthAwarePublisherStackFactoryInterface
-{
-    public ?InternalHealthReporterInterface $health = null;
-
-    public function compose(
-        ArtifactPublisherInterface $base,
-        ?RedactorInterface $redactor,
-        ?SamplingPolicyInterface $samplingPolicy,
-    ): ArtifactPublisherInterface {
-        return $base;
-    }
-
-    public function composeWithHealth(
-        ArtifactPublisherInterface $base,
-        ?RedactorInterface $redactor,
-        ?SamplingPolicyInterface $samplingPolicy,
-        InternalHealthReporterInterface $health,
-    ): ArtifactPublisherInterface {
-        $this->health = $health;
-
-        return $base;
-    }
-}
-
-final class TaggingRedactor implements RedactorInterface
-{
-    public int $calls = 0;
-
-    public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
-    {
-        ++$this->calls;
-        return new RedactedTagArtifact($artifact);
-    }
-}
-
-final readonly class RedactedTagArtifact implements ExecutionArtifactInterface
-{
-    public function __construct(private ExecutionArtifactInterface $inner)
-    {
-    }
-
-    public function normalize(): array
-    {
-        $normalized = $this->inner->normalize();
-        if (isset($normalized['name'])) {
-            $normalized['name'] = 'redacted-name';
+        $builder = RunItBuilder::create();
+        if ($skip !== 'publisher') {
+            $builder = $builder->withPublisher(new InMemoryArtifactPublisher());
         }
 
-        return $normalized;
+        if ($skip !== 'clock') {
+            $builder = $builder->withClock(new SystemMonotonicClock());
+        }
+
+        if ($skip !== 'sequenceAllocator') {
+            $builder = $builder->withSequenceAllocator(new InMemorySequenceAllocator());
+        }
+
+        if ($skip !== 'snapshotSerializer') {
+            $builder = $builder->withSnapshotSerializer(new JsonSnapshotSerializer());
+        }
+
+        if ($skip !== 'identifierGenerator') {
+            $builder = $builder->withIdentifierGenerator(new RandomIdentifierGenerator());
+        }
+
+        $builder->build();
     }
 }
