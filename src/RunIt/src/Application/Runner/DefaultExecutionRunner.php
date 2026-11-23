@@ -150,7 +150,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         private SecurityLimits                         $limits = new SecurityLimits(),
         private ProvenanceAuthority                   $authority = new ProvenanceAuthority(),
         private ?ActivityContextStorageInterface      $activityContextStorage = null,
-        private string                                $activityContextPolicy = 'fallback',
+        public string                                  $activityContextPolicy = 'fallback',
         private bool                                  $runOnActivityContextAttachFailure = false,
     ) {
         $this->healthState = new ArrayObject(['reporting' => false]);

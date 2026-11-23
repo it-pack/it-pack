@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Builder;
 
+use Codeception\Attribute\DataProvider;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
@@ -19,6 +20,7 @@ use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
+use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -58,6 +60,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
+use ItPack\RunIt\SDK\DefaultRunIt;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
 use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -72,7 +75,7 @@ use Throwable;
 #[CoversClass(MissingBuilderDependencyException::class)]
 final class RunItBuilderTest extends TestCase
 {
-    private function builder(): RunItBuilderInterface
+    private function builder(): RunItBuilder
     {
         return RunItBuilder::create()
             ->withPublisher(new InMemoryArtifactPublisher())
@@ -904,16 +907,23 @@ final class RunItBuilderTest extends TestCase
         );
     }
 
-    public function testWithActivityContextPolicyAcceptsValidValues(): void
+    #[DataProvider('activityContextPolicies')]
+    public function testWithActivityContextPolicyAcceptsValidValues(string $policy): void
     {
-        foreach (['fallback', 'drop', 'throw'] as $policy) {
-            $base = $this->builder();
-            assert($base instanceof RunItBuilder);
-            $builder = $base->withActivityContextPolicy($policy);
-            self::assertNotSame($base, $builder);
-            $runtime = $builder->build();
-            self::assertInstanceOf(RunItInterface::class, $runtime);
-        }
+        $base = $this->builder();
+        $builder = $base->withActivityContextPolicy($policy);
+        self::assertNotSame($base, $builder);
+        $runner = $builder->build()->executionRunner();
+        self::assertInstanceOf(DefaultExecutionRunner::class, $runner);
+        self::assertSame($policy, $runner->activityContextPolicy);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function activityContextPolicies(): iterable
+    {
+        yield 'fallback' => ['fallback'];
+        yield 'drop' => ['drop'];
+        yield 'throw' => ['throw'];
     }
 
     public function testWithActivityContextPolicyRejectsInvalidValues(): void
@@ -921,37 +931,36 @@ final class RunItBuilderTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown activity context policy.');
         $base = $this->builder();
-        assert($base instanceof RunItBuilder);
         $base->withActivityContextPolicy('invalid-policy');
     }
 
     public function testWithActivityContextPolicyReturnsClone(): void
     {
         $base = $this->builder();
-        assert($base instanceof RunItBuilder);
         $configured = $base->withActivityContextPolicy('drop');
         self::assertNotSame($base, $configured);
     }
 
+    /** @noinspection PhpConditionAlreadyCheckedInspection */
     public function testWithActivityContextAttachFailureFallback(): void
     {
         $base = $this->builder();
-        assert($base instanceof RunItBuilder);
         $enabled = $base->withActivityContextAttachFailureFallback(true);
-        $runtime = $enabled->build();
-        self::assertInstanceOf(RunItInterface::class, $runtime);
+        self::assertNotSame($base, $enabled);
 
-        $disabled = $this->builder();
-        assert($disabled instanceof RunItBuilder);
-        $disabled = $disabled->withActivityContextAttachFailureFallback(false);
+        $runtime = $enabled->build();
+        self::assertInstanceOf(DefaultRunIt::class, $runtime);
+
+        $disabled = $enabled->withActivityContextAttachFailureFallback(false);
+        self::assertNotSame($enabled, $disabled);
+
         $runtime = $disabled->build();
-        self::assertInstanceOf(RunItInterface::class, $runtime);
+        self::assertInstanceOf(DefaultRunIt::class, $runtime);
     }
 
     public function testWithActivityContextAttachFailureFallbackReturnsClone(): void
     {
         $base = $this->builder();
-        assert($base instanceof RunItBuilder);
         $configured = $base->withActivityContextAttachFailureFallback(true);
         self::assertNotSame($base, $configured);
     }
