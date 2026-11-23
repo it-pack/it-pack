@@ -51,6 +51,13 @@ layer decision must precede changes to the rules:
 - `Adapter/OpenTelemetry/BridgeConfig.php` imports OpenTelemetry APIs, and
   `Adapter/CloudEvents/Sink/Psr18CloudEventSink.php` imports PSR HTTP APIs.
   These are examples, not a complete external-dependency inventory.
+- `Adapter\Common\RedactedFieldAccess` is a shared trait used by both
+  `Adapter\CloudEvents\CloudEventPublisher` and
+  `Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper` for type-checked
+  redacted-field extraction from normalized artifact projections. It centralizes
+  repeated `is_string`/`is_int` null-coalescing reads of `ArtifactField::*` keys
+  that were previously inlined per adapter. The `Adapter` component may depend
+  on `Common` under the current gate.
 
 Decisions remain open on whether ports should be an independently constrained
 component, whether Behavior namespaces are separate layers or parts of their
