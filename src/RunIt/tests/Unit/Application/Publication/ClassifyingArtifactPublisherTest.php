@@ -6,6 +6,8 @@ namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
+use ItPack\RunIt\Application\Publication\ClassifiedRedactedObservation;
+use ItPack\RunIt\Application\Publication\ClassifiedRedactedOccurrence;
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\VerifiedArtifactProjection;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
@@ -19,6 +21,8 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
+use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -1879,6 +1883,252 @@ final class ClassifyingArtifactPublisherTest extends Unit
             AttributeCollection::empty(),
             ArtifactSequence::initial()
         );
+    }
+
+    public function testFlushDelegatesToInnerWhenInnerIsFlushable(): void
+    {
+        $inner = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $published = [];
+
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                $this->published[] = $artifact;
+            }
+
+            public function flush(): void
+            {
+            }
+        };
+        $publisher = new ClassifyingArtifactPublisher($inner);
+
+        $publisher->flush();
+
+        self::assertInstanceOf(FlushablePublisherInterface::class, $inner);
+        self::assertCount(0, $inner->published);
+    }
+
+    public function testCloseDelegatesToInnerWhenInnerIsCloseable(): void
+    {
+        $inner = new class () implements ArtifactPublisherInterface, CloseablePublisherInterface {
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+            }
+
+            public function close(): void
+            {
+            }
+        };
+        $publisher = new ClassifyingArtifactPublisher($inner);
+
+        $publisher->close();
+
+        self::assertInstanceOf(CloseablePublisherInterface::class, $inner);
+    }
+
+    public function testSnapshotWithInvalidPayloadIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+
+        $payload = ['value' => 'leaf'];
+        for ($i = 0; $i < 20; $i++) {
+            $payload = ['child' => $payload];
+        }
+
+        $artifact = new readonly class ($payload) implements ExecutionArtifactInterface {
+            /** @param array<string, mixed> $payload */
+            public function __construct(private array $payload)
+            {
+            }
+
+            public function artifactType(): string
+            {
+                return 'snapshot';
+            }
+
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'snap-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'type' => 'state.v1',
+                    'classification' => 'checkpoint',
+                    'schema_version' => 1,
+                    'created_at' => 1000,
+                    'content_type' => 'application/json',
+                    'content_hash' => 'abc',
+                    'predecessor_id' => null,
+                    'sequence' => 0,
+                    'payload' => $this->payload,
+                    'attributes' => [],
+                ];
+            }
+        };
+
+        $publisher->publish($artifact);
+
+        self::assertCount(0, $inner->published());
+    }
+
+    public function testWrapRedactedClassifiedObservation(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $observation = Observation::info(
+            ObservationId::fromString('obs-1'),
+            ExecutionId::fromString('exec-1'),
+            'msg'
+        );
+        $redacted = new readonly class ($observation->normalize()) implements RedactedArtifactInterface {
+            /** @param array<string, mixed> $data */
+            public function __construct(private array $data)
+            {
+            }
+
+            public function artifactType(): string
+            {
+                return 'observation';
+            }
+
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return $this->data;
+            }
+        };
+
+        $publisher->publish($redacted);
+
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedRedactedObservation::class, $published);
+    }
+
+    public function testWrapRedactedClassifiedOccurrence(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $redacted = new readonly class () implements RedactedArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'occurrence';
+            }
+
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'occ-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'type' => 'itpack.custom.v1',
+                    'version' => '1',
+                    'source' => 'source',
+                    'subject' => null,
+                    'time' => 1000,
+                    'data' => [],
+                    'data_schema' => null,
+                    'content_type' => 'application/json',
+                    'extension_attributes' => [],
+                    'sequence' => 0,
+                ];
+            }
+        };
+
+        $publisher->publish($redacted);
+
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedRedactedOccurrence::class, $published);
+    }
+
+    public function testMeasurementUnknownKindIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'unknown-kind',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementNonIntegerValueIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 'five',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationFactoryReturnsNullForUnknownSeverityIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'bogus',
+            'level' => 0,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+    }
+
+    public function testObservationThrowableInvalidIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => ['class' => 'X', 'message' => 'm', 'code' => 'not-int', 'previous' => null, 'trace' => null],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
     }
 
 }

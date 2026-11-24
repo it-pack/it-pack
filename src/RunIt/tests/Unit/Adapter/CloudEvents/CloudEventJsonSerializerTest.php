@@ -11,11 +11,12 @@ use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Adapter\CloudEvents\Serialization\DefaultCloudEventJsonSerializer;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use ReflectionClass;
 
 /**
  * M10.4 — structured JSON serialization, size limits, and malformed handling.
  */
-#[CoversClass(CloudEvent::class)]
+#[CoversClass(DefaultCloudEventJsonSerializer::class)]
 final class CloudEventJsonSerializerTest extends Unit
 {
     private CloudEventSerializerInterface $serializer;
@@ -87,5 +88,24 @@ final class CloudEventJsonSerializerTest extends Unit
         $this->expectException(InvalidCloudEventException::class);
 
         $this->serializer->deserialize('{"specversion":"1.0","id":"x","source":"/s"}');
+    }
+
+    public function testRejectsNonArrayJsonPayload(): void
+    {
+        $this->expectException(InvalidCloudEventException::class);
+
+        $this->serializer->deserialize('"just a string"');
+    }
+
+    public function testOptionalStringReturnsNullForMissingKey(): void
+    {
+        $serializer = new DefaultCloudEventJsonSerializer();
+        $reflection = new ReflectionClass($serializer);
+        $method = $reflection->getMethod('optionalString');
+
+        self::assertNull($method->invoke($serializer, [], 'subject'));
+        self::assertNull($method->invoke($serializer, ['subject' => ''], 'subject'));
+        self::assertNull($method->invoke($serializer, ['subject' => 123], 'subject'));
+        self::assertSame('present', $method->invoke($serializer, ['subject' => 'present'], 'subject'));
     }
 }

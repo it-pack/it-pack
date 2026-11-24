@@ -5,18 +5,23 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Application\Recorder\DefaultOccurrenceRecorder;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Tests\Support\Fixture\DeterministicMonotonicClock;
+use Tests\Support\Fixture\RecordingArtifactPublisher;
 use Tests\Support\Fixture\RunItTestKit;
+use Tests\Support\Fixture\TestOccurrenceIdFactory;
 
 /**
  * @group application
@@ -113,5 +118,28 @@ final class DefaultOccurrenceRecorderTest extends Unit
         $occurrences = $this->occurrences();
         self::assertCount(1, $occurrences);
         self::assertNotNull($occurrences[0]->activityId(), 'Occurrences inside an activity must bind the activity.');
+    }
+
+    public function testShouldDropSkipsPublishing(): void
+    {
+        $publisher = new RecordingArtifactPublisher();
+        $recorder = new DefaultOccurrenceRecorder(
+            ExecutionId::fromString('exec-1'),
+            fn (): null => null,
+            new InMemorySequenceAllocator(),
+            new DeterministicMonotonicClock(1000, 0),
+            $publisher,
+            new TestOccurrenceIdFactory(),
+            shouldDrop: fn (): bool => true,
+        );
+
+        $occurrence = $recorder->record(
+            OccurrenceType::fromString('itpack.thing.done.v1'),
+            'app',
+            ['ok' => true],
+        );
+
+        self::assertCount(0, $publisher->published());
+        self::assertSame('itpack.thing.done.v1', $occurrence->type()->toString());
     }
 }
