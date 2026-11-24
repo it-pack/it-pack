@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Shared;
 
-use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
-use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Domain\AttributeKeyInterface;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;

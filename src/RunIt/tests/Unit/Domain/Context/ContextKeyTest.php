@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Context;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
-use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
+use ItPack\RunIt\Domain\Shared\BoundedKeyGuard;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 

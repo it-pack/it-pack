@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Behavior\Domain;
+namespace ItPack\RunIt\Domain\Shared;
 
 use ItPack\RunIt\Common\Contract\StringableInterface;
 

@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Behavior\Domain;
+namespace Tests\Unit\Domain\Shared;
 
 use Closure;
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
+use ItPack\RunIt\Domain\Shared\AttributeValidator;
+use ItPack\RunIt\Domain\Shared\BoundedPrimitiveValueWalker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
