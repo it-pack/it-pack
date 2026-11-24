@@ -81,7 +81,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testExecutionIsClassifiedAndPublished(): void
@@ -234,7 +234,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->flush();
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testCloseDelegatesToInnerWhenCloseable(): void
@@ -244,7 +244,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->close();
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMultipleArtifactsArePublishedInOrder(): void
@@ -255,11 +255,9 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $publisher->publish($this->observation('obs-1'));
         $publisher->publish($this->observation('obs-2'));
         $publisher->publish($this->observation('obs-3'));
-
         self::assertCount(3, $inner->published());
-        $first = $inner->published()[0];
-        $second = $inner->published()[1];
-        $third = $inner->published()[2];
+
+        [$first, $second, $third] = $inner->published();
         self::assertInstanceOf(ObservationInterface::class, $first);
         self::assertInstanceOf(ObservationInterface::class, $second);
         self::assertInstanceOf(ObservationInterface::class, $third);
@@ -286,7 +284,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMissingRequiredFieldDropsArtifact(): void
@@ -307,7 +305,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMissingRequiredFieldValidObservationIsPublished(): void
@@ -371,7 +369,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMeasurementWithInvalidKindIsDropped(): void
@@ -402,7 +400,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testActivityWithInvalidStatusIsDropped(): void
@@ -435,7 +433,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testSnapshotWithInvalidClassificationIsDropped(): void
@@ -470,7 +468,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testExecutionWithMissingRequiredKeysIsDropped(): void
@@ -503,7 +501,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testUnknownArtifactKindReturnsUnknownAndIsDropped(): void
@@ -524,7 +522,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testSnapshotPayloadOmittedPathIsTaken(): void
@@ -555,7 +553,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($redacted);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testStructuralFieldsNotIntactDropsArtifact(): void
@@ -588,7 +586,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testUnchangedStructureMismatchDropsArtifact(): void
@@ -627,7 +625,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testFlushWhenInnerNotFlushableIsNoop(): void
@@ -688,7 +686,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMeasurementWithMissingFieldsIsDropped(): void
@@ -709,7 +707,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMeasurementWithInvalidKindFactoryIsDropped(): void
@@ -740,7 +738,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMeasurementWithNonNumericValueIsDropped(): void
@@ -771,7 +769,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMeasurementWithNonArrayAttributesIsDropped(): void
@@ -802,7 +800,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testObservationWithInvalidSeverityIsDropped(): void
@@ -835,7 +833,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testOccurrenceWithMissingFieldsIsDropped(): void
@@ -856,7 +854,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testVerifiedArtifactProjectionUsesArtifactTypeMethod(): void
@@ -904,7 +902,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($redacted);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testDeeplyNestedStructureTriggersDepthLimit(): void
@@ -951,7 +949,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testLargeArrayTriggersNodeBudgetLimit(): void
@@ -1028,7 +1026,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($mock);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testMeasurementInvalidKindIsNotTyped(): void
@@ -1157,7 +1155,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($mock);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testObservationInvalidAttributeValueIsNotTyped(): void
@@ -1601,7 +1599,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($mock);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testSnapshotInvalidClassificationIsNotTyped(): void
@@ -1747,7 +1745,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($mock);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     /**
@@ -1905,7 +1903,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $publisher->flush();
 
         self::assertInstanceOf(FlushablePublisherInterface::class, $inner);
-        self::assertCount(0, $inner->published);
+        self::assertEmpty($inner->published);
     }
 
     public function testCloseDelegatesToInnerWhenInnerIsCloseable(): void
@@ -1970,7 +1968,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         $publisher->publish($artifact);
 
-        self::assertCount(0, $inner->published());
+        self::assertEmpty($inner->published());
     }
 
     public function testWrapRedactedClassifiedObservation(): void
@@ -2131,4 +2129,91 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $this->assertPublishedOnce($publisher, $mock, $inner);
     }
 
+    public function testStructuralFieldsNotIntactWithTypedObservationIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+
+        $throwable = ['trace' => 'leaf'];
+        for ($i = 0; $i < 20; $i++) {
+            $throwable = ['child' => $throwable];
+        }
+
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'warning',
+            'level' => 4,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => $throwable,
+        ]);
+
+        $publisher->publish($mock);
+
+        self::assertEmpty($inner->published());
+    }
+
+    public function testRedactedTraceObservationIsDowngraded(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $redacted = new readonly class () implements RedactedArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'observation';
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'id' => 'obs-1',
+                    'execution_id' => 'exec-1',
+                    'activity_id' => null,
+                    'severity' => 'trace',
+                    'level' => 50,
+                    'message' => 'trace msg',
+                    'diagnostic_code' => null,
+                    'sequence' => 0,
+                    'timestamp' => 1000,
+                    'attributes' => [],
+                    'throwable' => null,
+                ];
+            }
+        };
+
+        $publisher->publish($redacted);
+
+        self::assertCount(1, $inner->published());
+    }
+
+    public function testMissingRequiredFieldWithoutHealthReporterIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = new ClassifyingArtifactPublisher($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([]);
+
+        $publisher->publish($mock);
+
+        self::assertEmpty($inner->published());
+    }
+
+    public function testMissingRequiredFieldWithFailingFallbackIsContained(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = new ClassifyingArtifactPublisher($inner);
+
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([]);
+
+        $publisher->publish($mock);
+
+        self::assertEmpty($inner->published());
+    }
 }
