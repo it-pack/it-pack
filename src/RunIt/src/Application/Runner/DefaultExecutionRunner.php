@@ -30,6 +30,7 @@ use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Runner\DefaultExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
@@ -89,7 +90,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
+final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface, DefaultExecutionRunnerInterface
 {
     use InstantClockBehavior;
 

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Conformance\Verifier;
 
-use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Conformance\Result\ViolationSeverity;
+use ItPack\RunIt\Contract\Conformance\PortFixtureInterface;
+use ItPack\RunIt\Contract\Conformance\Verifier\ArtifactPublisherVerifierInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
@@ -26,7 +27,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ArtifactPublisherVerifier implements VerifierInterface
+final class ArtifactPublisherVerifier implements VerifierInterface, ArtifactPublisherVerifierInterface
 {
     public function port(): string
     {

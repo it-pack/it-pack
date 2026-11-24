@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
+use ItPack\RunIt\Contract\Application\Publication\RecordingBatchFlushObserverInterface;
 
 /**
  * Counters-only observer for buffered batch flushes.
@@ -16,7 +17,7 @@ use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class RecordingBatchFlushObserver implements BatchFlushObserverInterface
+final class RecordingBatchFlushObserver implements BatchFlushObserverInterface, RecordingBatchFlushObserverInterface
 {
     private int $flushCount = 0;
 

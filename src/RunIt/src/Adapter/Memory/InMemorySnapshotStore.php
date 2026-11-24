@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Memory;
 
+use ItPack\RunIt\Contract\Adapter\Memory\InMemorySnapshotStoreInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 
@@ -15,7 +16,7 @@ use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class InMemorySnapshotStore implements SnapshotStoreInterface
+final class InMemorySnapshotStore implements SnapshotStoreInterface, InMemorySnapshotStoreInterface
 {
     /**
      * @var list<SnapshotInterface>

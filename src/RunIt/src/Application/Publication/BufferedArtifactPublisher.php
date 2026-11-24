@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Application\Publication;
 use Closure;
 use InvalidArgumentException;
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
+use ItPack\RunIt\Contract\Application\Publication\BufferedArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
@@ -39,7 +40,8 @@ use Throwable;
 final class BufferedArtifactPublisher implements
     ArtifactPublisherInterface,
     FlushablePublisherInterface,
-    CloseablePublisherInterface
+    CloseablePublisherInterface,
+    BufferedArtifactPublisherInterface
 {
     private const string KEY_ATTRIBUTE = 'artifact';
 

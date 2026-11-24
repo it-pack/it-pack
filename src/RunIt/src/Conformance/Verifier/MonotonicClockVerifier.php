@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Conformance\Verifier;
 use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
+use ItPack\RunIt\Contract\Conformance\Verifier\MonotonicClockVerifierInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use Throwable;
 
@@ -21,7 +22,7 @@ use Throwable;
  * @see https://w3id.org/itpack/runit#instant
  * @see https://w3id.org/itpack/runit#duration
  */
-final class MonotonicClockVerifier implements VerifierInterface
+final class MonotonicClockVerifier implements VerifierInterface, MonotonicClockVerifierInterface
 {
     private const int SAMPLES = 16;
 

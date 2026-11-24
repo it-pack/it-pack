@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Behavior\Domain;
 
 use Closure;
+use ItPack\RunIt\Contract\Behavior\Domain\BoundedKeyGuardInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Contract\Shared\KeyPattern;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
@@ -20,7 +21,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @internal shared validator machinery; not a public contract.
  */
-final readonly class BoundedKeyGuard
+final readonly class BoundedKeyGuard implements BoundedKeyGuardInterface
 {
     /**
      * @param Closure(): RunItExceptionInterface                        $emptyKey

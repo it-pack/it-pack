@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Behavior\Domain;
 
 use Closure;
+use ItPack\RunIt\Contract\Behavior\Domain\BoundedPrimitiveValueWalkerInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
@@ -20,7 +21,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @internal shared validator machinery; not a public contract.
  */
-final readonly class BoundedPrimitiveValueWalker
+final readonly class BoundedPrimitiveValueWalker implements BoundedPrimitiveValueWalkerInterface
 {
     /**
      * @param Closure(int $length, int $maximum): RunItExceptionInterface $valueTooLong

@@ -6,6 +6,7 @@ namespace ItPack\RunIt\SDK\Builder;
 
 use Closure;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
+use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 
 /**
@@ -28,6 +29,21 @@ use ItPack\RunIt\Contract\Port\ContextStorageInterface;
  */
 interface ExtendedRunItBuilderInterface extends RunItBuilderInterface
 {
+    /**
+     * Configure activity context storage independently of execution storage.
+     */
+    public function withActivityContextStorage(ActivityContextStorageInterface $storage): static;
+
+    /**
+     * Select fallback, drop-and-report, or throwing for detached recording.
+     */
+    public function withActivityContextPolicy(string $policy): static;
+
+    /**
+     * Allow the callback to run with activity attribution suppressed after attachment fails.
+     */
+    public function withActivityContextAttachFailureFallback(bool $enabled): static;
+
     /**
      * Registers an optional assembly-boundary concurrency validator.
      *

@@ -9,6 +9,7 @@ use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Conformance\Verifier\ExecutionEngineVerifierInterface;
 use Throwable;
 
 /**
@@ -23,7 +24,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ExecutionEngineVerifier implements VerifierInterface
+final class ExecutionEngineVerifier implements VerifierInterface, ExecutionEngineVerifierInterface
 {
     public function port(): string
     {
