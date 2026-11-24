@@ -978,4 +978,283 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertArrayNotHasKey($from, $records);
         self::assertSame([], $records[$to]['relationships'] ?? []);
     }
+
+    public function testAttestReturnsFalseWhenBusinessIdMismatchForNonMeasurement(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('activity', 'activity', 'exec-1', 'business-1');
+
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [ArtifactField::EXECUTION_ID => 'exec-1', ArtifactField::ID => 'different-business-id'];
+            }
+        };
+
+        self::assertFalse($authority->attest($artifact, $exportId));
+    }
+
+    public function testExportIdForArtifactReturnsNullWhenNormalizeThrowsAfterAttest(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $artifact = new class () implements ExecutionArtifactInterface {
+            private bool $throw = false;
+            public function normalize(): array
+            {
+                if ($this->throw) {
+                    throw new RuntimeException('normalize failed');
+                }
+                return [ArtifactField::EXECUTION_ID => 'exec-1', ArtifactField::ID => 'exec-1'];
+            }
+            public function setThrow(bool $throw): void
+            {
+                $this->throw = $throw;
+            }
+        };
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        $authority->attest($artifact, $exportId);
+        $artifact->setThrow(true);
+
+        self::assertNull($authority->exportIdForArtifact($artifact));
+    }
+
+    public function testAttestSuccessorReturnsFalseWhenIdentityFieldsThrow(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $previous = new class () implements ExecutionArtifactInterface {
+            private bool $throw = false;
+            public function normalize(): array
+            {
+                if ($this->throw) {
+                    throw new RuntimeException('normalize failed');
+                }
+                return [ArtifactField::EXECUTION_ID => 'exec-1', ArtifactField::ID => 'exec-1'];
+            }
+            public function setThrow(bool $throw): void
+            {
+                $this->throw = $throw;
+            }
+        };
+        $successor = new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [ArtifactField::EXECUTION_ID => 'exec-1', ArtifactField::ID => 'exec-1'];
+            }
+        };
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        $authority->attest($previous, $exportId);
+        $previous->setThrow(true);
+
+        self::assertFalse($authority->attestSuccessor($previous, $successor));
+    }
+
+    public function testRegisterRelationshipRejectsExecutionIdMismatchForExecutionType(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $from = $authority->issueExportId('execution', 'execution', 'exec-1', 'parent');
+        $to = $authority->issueExportId('activity', 'activity', 'exec-2', 'child');
+
+        self::assertFalse($authority->registerRelationship($from, $to, 'execution-activity'));
+    }
+
+    public function testActivityIdentityFieldsWithMatch(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
+        $parentId = $authority->issueExportId('activity', 'activity', 'exec-1', 'parent-activity');
+        $childId = $authority->issueExportId('activity', 'activity', 'exec-1', 'child-activity');
+
+        $authority->registerRelationship($parentId, $childId, 'activity-parent');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('activityIdentityFields');
+
+        $result = $method->invoke($authority, $childId, [ArtifactField::PARENT_ACTIVITY_ID => 'parent-activity']);
+
+        self::assertSame([ArtifactField::PARENT_ACTIVITY_ID => $parentId], $result);
+    }
+
+    public function testLinkedExecutionIdsReturnsLinks(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
+        $targetId = $authority->issueExportId('execution', 'execution', 'exec-1', 'linked-exec');
+
+        $authority->registerRelationship(
+            $targetId,
+            $authority->issueExportId('execution', 'execution', 'exec-1', 'source-exec'),
+            'link',
+        );
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('linkedExecutionIds');
+
+        $result = $method->invoke($authority, $targetId, ['parent_execution_id' => 'parent-exec']);
+
+        self::assertIsArray($result);
+    }
+
+    public function testCollectParentExecutionIdsReturnsParents(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
+        $targetId = $authority->issueExportId('execution', 'execution', 'exec-1', 'child-exec');
+
+        $authority->registerRelationship(
+            $targetId,
+            $authority->issueExportId('execution', 'execution', 'exec-1', 'source-exec'),
+            'parent',
+        );
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('collectParentExecutionIds');
+
+        $result = $method->invoke($authority, $targetId, [ArtifactField::PARENT_EXECUTION_ID => 'parent-exec']);
+
+        self::assertIsArray($result);
+    }
+
+    public function testExportExecutionIdentityFieldsWithLinkedClaims(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'child-exec');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('exportExecutionIdentityFields');
+
+        $result = $method->invoke(
+            $authority,
+            [ArtifactField::LINKED_EXECUTION_IDS => ['parent-exec']],
+            $exportId,
+            []
+        );
+
+        self::assertIsArray($result);
+    }
+
+    public function testExportIdentityFieldsReturnsNullWhenRecordMissing(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('exportIdentityFields');
+
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [];
+            }
+        };
+
+        $result = $method->invoke($authority, $artifact);
+
+        self::assertNull($result);
+    }
+
+    public function testExportExecutionIdentityFieldsReturnsOutputWhenNoLinks(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('exportExecutionIdentityFields');
+
+        $result = $method->invoke(
+            $authority,
+            [],
+            $exportId,
+            []
+        );
+
+        self::assertSame([], $result);
+    }
+
+    public function testBindActivityRelationshipReleasedRecords(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $activityId = $authority->issueExportId('activity', 'activity', 'exec-1', 'activity');
+        $targetId = $authority->issueExportId('observation', 'observation', 'exec-1', 'obs-1');
+
+        $reflection = new ReflectionClass($authority);
+        $releasing = $reflection->getProperty('releasing');
+        $releasing->setAccessible(true);
+        $releasing->setValue($authority, true);
+
+        $authority->bindActivityRelationship($targetId, $activityId, false);
+
+        self::assertSame($activityId, $activityId);
+    }
+
+    public function testActivityIdentityFieldsNoIncoming(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $activityId = $authority->issueExportId('activity', 'activity', 'exec-1', 'activity');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('activityIdentityFields');
+
+        $result = $method->invoke($authority, $activityId, [ArtifactField::PARENT_ACTIVITY_ID => 'x']);
+
+        self::assertSame([], $result);
+    }
+
+    public function testLinkedExecutionIdsNoLinks(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('linkedExecutionIds');
+
+        $result = $method->invoke($authority, $exportId, []);
+
+        self::assertSame([], $result);
+    }
+
+    public function testExportNonExecutionIdentityFieldsRoleSnapshot(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $executionId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        $exportId = $authority->issueExportId('snapshot', 'snapshot', 'exec-1', 'snap-1');
+        $authority->registerRelationship($executionId, $exportId, 'execution-snapshot');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('exportNonExecutionIdentityFields');
+
+        $result = $method->invoke(
+            $authority,
+            ['executionId' => 'exec-1', 'role' => 'snapshot'],
+            [],
+            $exportId,
+            []
+        );
+
+        self::assertIsArray($result);
+    }
+
+    public function testCollectParentExecutionIdsNoParents(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('collectParentExecutionIds');
+
+        $result = $method->invoke($authority, $exportId, []);
+
+        self::assertSame([], $result);
+    }
+
+    public function testReleaseCandidateNoIncoming(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $reflection = new ReflectionClass($authority);
+        $method = $reflection->getMethod('releaseCandidate');
+
+        $method->invoke($authority, $exportId);
+
+        self::assertSame($exportId, $exportId);
+    }
 }
