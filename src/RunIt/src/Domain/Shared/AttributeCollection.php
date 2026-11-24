@@ -6,7 +6,6 @@ namespace ItPack\RunIt\Domain\Shared;
 
 use ArrayIterator;
 use IteratorAggregate;
-use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use Traversable;

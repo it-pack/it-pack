@@ -7,7 +7,6 @@ namespace Tests\Unit\Domain;
 use Closure;
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Domain\ActivityKindInterface;
 use ItPack\RunIt\Contract\Domain\ActivityNameInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
@@ -21,6 +20,7 @@ use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
+use ItPack\RunIt\Domain\Shared\StringValueValidator;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
 

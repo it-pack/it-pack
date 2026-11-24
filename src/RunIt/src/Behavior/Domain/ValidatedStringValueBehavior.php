@@ -8,6 +8,8 @@ use ItPack\RunIt\Contract\Domain\StringValueInterface;
 use ItPack\RunIt\Contract\Domain\StringValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
+use ItPack\RunIt\Domain\Shared\StringValueValidator;
 
 /**
  * Construction behavior shared by every RunIt string value (name or kind).

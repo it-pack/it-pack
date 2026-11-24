@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Context;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\StringValueEquality;
-use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Domain\Context\ContextSource;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
+use ItPack\RunIt\Domain\Shared\StringValueValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 
