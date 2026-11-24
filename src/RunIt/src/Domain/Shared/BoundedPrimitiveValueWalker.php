@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Behavior\Domain;
+namespace ItPack\RunIt\Domain\Shared;
 
 use Closure;
 use ItPack\RunIt\Contract\Behavior\Domain\BoundedPrimitiveValueWalkerInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
-use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * The single bounded recursively-primitive value walk shared by the context and

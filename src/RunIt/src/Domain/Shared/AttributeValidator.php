@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Behavior\Domain;
+namespace ItPack\RunIt\Domain\Shared;
 
 use ItPack\RunIt\Contract\Domain\AttributeValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
-use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 
 /**
  * The default RunIt attribute rules.
@@ -35,11 +35,17 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
     ) {
     }
 
+    /**
+     * @throws RunItExceptionInterface
+     */
     public function assertValidKey(string $key): void
     {
         $this->keyGuard()->assertValidKey($key);
     }
 
+    /**
+     * @throws RunItExceptionInterface
+     */
     public function assertValidAttributes(array $attributes): void
     {
         $maxCount = $this->limits->maxAttributeCount;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Behavior\Domain;
 
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
 
 /**
  * Shared projection and equality behavior for string-backed identifiers.

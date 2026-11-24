@@ -6,11 +6,11 @@ namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Shared\StringValueValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Throwable;
 
