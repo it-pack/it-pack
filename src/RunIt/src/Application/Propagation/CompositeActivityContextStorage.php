@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Propagation;
 
-use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
 use ItPack\RunIt\Contract\Support\ActivityContextStorage;

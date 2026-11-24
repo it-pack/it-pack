@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Event;
 
+use ItPack\RunIt\Contract\Adapter\Psr\Event\OccurrenceEventInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
-use ItPack\RunIt\Contract\Psr\Event\OccurrenceEventInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 
 /**

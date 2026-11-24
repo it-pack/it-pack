@@ -8,7 +8,7 @@ use InvalidArgumentException;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
-use ItPack\RunIt\Contract\CloudEvents\CloudEventsBridgeConfigBuilderInterface;
+use ItPack\RunIt\Contract\Adapter\CloudEvents\CloudEventsBridgeConfigBuilderInterface;
 
 final class CloudEventsBridgeConfigBuilder implements CloudEventsBridgeConfigBuilderInterface
 {
