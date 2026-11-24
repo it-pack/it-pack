@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry;
 
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
+use ItPack\RunIt\Contract\OpenTelemetry\BridgeConfigBuilderInterface;
 use OpenTelemetry\API\Baggage\Propagation\BaggagePropagator;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;
@@ -21,7 +23,7 @@ use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
  * that the constructed configuration is internally consistent; it never touches
  * OpenTelemetry global state.
  */
-final class BridgeConfigBuilder
+final class BridgeConfigBuilder implements BridgeConfigBuilderInterface
 {
     private ?TracerProviderInterface $tracerProvider = null;
 
@@ -31,7 +33,7 @@ final class BridgeConfigBuilder
 
     private ?TextMapPropagatorInterface $propagator = null;
 
-    private SnapshotPayloadPolicy $snapshotPayloadPolicy = SnapshotPayloadPolicy::HashOnly;
+    private ?object $snapshotPayloadPolicy = null;
 
     private bool $mapObservationsToLogs = true;
 
@@ -83,7 +85,7 @@ final class BridgeConfigBuilder
         return $clone;
     }
 
-    public function withSnapshotPayloadPolicy(SnapshotPayloadPolicy $policy): self
+    public function withSnapshotPayloadPolicy(object $policy): self
     {
         $clone = clone $this;
         $clone->snapshotPayloadPolicy = $policy;
@@ -159,6 +161,11 @@ final class BridgeConfigBuilder
 
     public function build(): BridgeConfig
     {
+        $snapshotPayloadPolicy = $this->snapshotPayloadPolicy ?? SnapshotPayloadPolicy::HashOnly;
+        if (!$snapshotPayloadPolicy instanceof SnapshotPayloadPolicy) {
+            throw new InvalidArgumentException('Invalid snapshot payload policy.');
+        }
+
         return new BridgeConfig(
             $this->tracerProvider,
             $this->meterProvider,
@@ -167,7 +174,7 @@ final class BridgeConfigBuilder
                 TraceContextPropagator::getInstance(),
                 BaggagePropagator::getInstance(),
             ]),
-            $this->snapshotPayloadPolicy,
+            $snapshotPayloadPolicy,
             $this->mapObservationsToLogs,
             $this->mapObservationsToSpanEvents,
             $this->mapOccurrencesToLogs,

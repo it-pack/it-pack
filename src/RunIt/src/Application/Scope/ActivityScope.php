@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface;
 use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -75,5 +76,38 @@ final readonly class ActivityScope implements ActivityScopeInterface
     public function snapshots(): SnapshotRecorderInterface
     {
         return $this->parentScope->snapshots();
+    }
+
+    public function currentActivityId(): ?ActivityIdInterface
+    {
+        return $this->parentScope->currentActivityId();
+    }
+
+    public function setCurrentActivityId(?ActivityIdInterface $currentActivityId): void
+    {
+        $this->parentScope->setCurrentActivityId($currentActivityId);
+    }
+
+    public function trackOpenActivity(ActivityInterface $activity): void
+    {
+        $this->parentScope->trackOpenActivity($activity);
+    }
+
+    public function clearOpenActivity(ActivityIdInterface $activityId): void
+    {
+        $this->parentScope->clearOpenActivity($activityId);
+    }
+
+    /**
+     * @return list<ActivityInterface>
+     */
+    public function openActivities(): array
+    {
+        return $this->parentScope->openActivities();
+    }
+
+    public function runWithoutActivityContext(callable $operation): mixed
+    {
+        return $this->parentScope->runWithoutActivityContext($operation);
     }
 }

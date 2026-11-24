@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry;
 
+use ItPack\RunIt\Contract\OpenTelemetry\BridgeCapabilityInterface;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -18,7 +19,7 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
  *
  * @see https://opentelemetry.io/
  */
-final readonly class BridgeCapability
+final readonly class BridgeCapability implements BridgeCapabilityInterface
 {
     public function __construct(
         public bool $trace,

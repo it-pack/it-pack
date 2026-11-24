@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Conformance\Result;
 
+use ItPack\RunIt\Contract\Conformance\Result\ConformanceViolationInterface;
 use Stringable;
 
 /**
@@ -16,7 +17,7 @@ use Stringable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class ConformanceViolation implements Stringable
+final readonly class ConformanceViolation implements Stringable, ConformanceViolationInterface
 {
     public function __construct(
         public string $id,
@@ -25,9 +26,32 @@ final readonly class ConformanceViolation implements Stringable
     ) {
     }
 
+    public function id(): string
+    {
+        return $this->id;
+    }
+
     public function isError(): bool
     {
         return $this->severity === ViolationSeverity::Error;
+    }
+
+    public function severity(): string
+    {
+        return $this->severity->value;
+    }
+
+    public function message(): string
+    {
+        return $this->message;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function attributes(): array
+    {
+        return [];
     }
 
     public function __toString(): string

@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
 use Stringable;
 use Throwable;
 
