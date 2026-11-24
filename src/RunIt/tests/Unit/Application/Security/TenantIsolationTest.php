@@ -36,6 +36,7 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group isolation
  */
 #[CoversClass(StackContextStorage::class)]
+#[CoversClass(StackContextStorage::class)]
 final class TenantIsolationTest extends Unit
 {
     public function testSequentialExecutionsLeaveNoAmbientContext(): void
