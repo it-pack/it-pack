@@ -36,6 +36,11 @@ interface ActivityInterface extends
     public function throwableDescription(): ?ThrowableDescriptionInterface;
 
     /**
+     * Returns the activity duration, or null when not yet completed.
+     */
+    public function duration(): ?DurationInterface;
+
+    /**
      * Returns a copy of this record carrying the terminal status, optional throwable
      * description, and end time.
      *
