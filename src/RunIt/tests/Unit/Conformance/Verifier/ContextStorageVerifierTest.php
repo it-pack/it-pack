@@ -6,9 +6,9 @@ namespace Tests\Unit\Conformance\Verifier;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
-use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Conformance\Verifier\ContextStorageVerifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Conformance\Result\ConformanceViolationInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
@@ -46,7 +46,11 @@ final class ContextStorageVerifierTest extends Unit
 
     private function hasViolation(ConformanceResult $result, string $id): bool
     {
-        return array_any($result->errors(), fn (ConformanceViolation $violation): bool => $violation->id === $id);
+        return array_any(
+            $result->errors(),
+            fn (ConformanceViolationInterface $violation): bool =>
+            $violation->id() === $id
+        );
     }
 
     private function conformantStorage(): ContextStorageInterface

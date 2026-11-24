@@ -41,7 +41,7 @@ final class ArtifactPublisherVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('publish.throws', $result->errors()[0]->id);
+        self::assertSame('publish.throws', $result->errors()[0]->id());
     }
 
     public function testFlushThrowIsRecordedAsWarning(): void
@@ -61,7 +61,7 @@ final class ArtifactPublisherVerifierTest extends Unit
 
         self::assertTrue($result->isConformant());
         self::assertCount(1, $result->warnings());
-        self::assertSame('flush.throws', $result->warnings()[0]->id);
+        self::assertSame('flush.throws', $result->warnings()[0]->id());
     }
 
     public function testCloseThrowIsRecordedAsWarning(): void
@@ -81,6 +81,6 @@ final class ArtifactPublisherVerifierTest extends Unit
 
         self::assertTrue($result->isConformant());
         self::assertCount(1, $result->warnings());
-        self::assertSame('close.throws', $result->warnings()[0]->id);
+        self::assertSame('close.throws', $result->warnings()[0]->id());
     }
 }

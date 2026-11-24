@@ -61,7 +61,7 @@ final class SerializerVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('contentType.throws', $result->errors()[0]->id);
+        self::assertSame('contentType.throws', $result->errors()[0]->id());
     }
 
     public function testEmptyContentTypeIsRecorded(): void
@@ -81,7 +81,7 @@ final class SerializerVerifierTest extends Unit
         $result = new SerializerVerifier()->verify($serializer, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('contentType.empty', $result->errors()[0]->id);
+        self::assertSame('contentType.empty', $result->errors()[0]->id());
     }
 
     public function testNormalizeThrowIsRecorded(): void
@@ -102,9 +102,9 @@ final class SerializerVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(3, $result->errors());
-        self::assertSame('normalize.scalar.throws', $result->errors()[0]->id);
-        self::assertSame('normalize.nested.throws', $result->errors()[1]->id);
-        self::assertSame('normalize.payload.throws', $result->errors()[2]->id);
+        self::assertSame('normalize.scalar.throws', $result->errors()[0]->id());
+        self::assertSame('normalize.nested.throws', $result->errors()[1]->id());
+        self::assertSame('normalize.payload.throws', $result->errors()[2]->id());
     }
 
     public function testNonPrimitiveNormalizeIsRecorded(): void
@@ -124,6 +124,6 @@ final class SerializerVerifierTest extends Unit
         $result = new SerializerVerifier()->verify($serializer, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('normalize.scalar.not-primitive', $result->errors()[0]->id);
+        self::assertSame('normalize.scalar.not-primitive', $result->errors()[0]->id());
     }
 }

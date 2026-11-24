@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Tests\Support\Fixture\Conformance;
 
 use Closure;
-use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\PortFixtureInterface as ConformancePortFixtureInterface;
+use ItPack\RunIt\Contract\Conformance\PortFixtureInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
@@ -20,7 +21,7 @@ use ItPack\RunIt\Contract\Domain\StringIdentifierValidatorInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class OverridingPortFixture implements PortFixtureInterface
+final readonly class OverridingPortFixture implements ConformancePortFixtureInterface, PortFixtureInterface
 {
     /**
      * @param list<ExecutionArtifactInterface>|null $samplingArtifacts

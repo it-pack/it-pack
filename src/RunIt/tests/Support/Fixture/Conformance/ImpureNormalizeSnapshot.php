@@ -94,4 +94,9 @@ final class ImpureNormalizeSnapshot implements SnapshotInterface
     {
         return $this->inner->count();
     }
+
+    public function sequence(): int
+    {
+        return $this->inner->sequence();
+    }
 }
