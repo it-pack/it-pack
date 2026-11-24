@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Contract\OpenTelemetry;
+namespace ItPack\RunIt\Contract\Adapter\OpenTelemetry;
 
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;

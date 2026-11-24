@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry;
 
-use ItPack\RunIt\Contract\OpenTelemetry\BridgeCapabilityInterface;
+use ItPack\RunIt\Contract\Adapter\OpenTelemetry\BridgeCapabilityInterface;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;

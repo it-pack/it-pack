@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Contract\Psr\Event;
+namespace ItPack\RunIt\Contract\Adapter\Psr\Event;
 
 /**
  * Contract for a PSR-14 event that carries a RunIt occurrence.
