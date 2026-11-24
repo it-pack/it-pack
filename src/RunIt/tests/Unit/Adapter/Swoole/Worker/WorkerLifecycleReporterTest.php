@@ -88,9 +88,9 @@ final class WorkerLifecycleReporterTest extends Unit
                 ?ObservationSeverityInterface $severity = null,
                 ?AttributeCollectionInterface $attributes = null,
                 ?Throwable                    $throwable = null,
-                ?string                       $code = null,
+                ?string                       $diagnosticCode = null,
             ): ObservationInterface {
-                $this->arguments = [$message, $severity, $attributes, $throwable, $code];
+                $this->arguments = [$message, $severity, $attributes, $throwable, $diagnosticCode];
 
                 return $this->observation;
             }

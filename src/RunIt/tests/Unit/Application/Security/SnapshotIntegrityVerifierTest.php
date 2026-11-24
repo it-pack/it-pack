@@ -130,6 +130,6 @@ final class SnapshotIntegrityVerifierTest extends Unit
 
         new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($snapshot, predecessor: null);
 
-        self::expectNotToPerformAssertions();
+        $this->expectNotToPerformAssertions();
     }
 }

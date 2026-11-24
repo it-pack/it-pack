@@ -112,4 +112,57 @@ final class ObservationTest extends Unit
 
         self::assertSame($expected, $observation->normalize());
     }
+
+    public function testDebugConstructorSetsDebugSeverity(): void
+    {
+        $observation = Observation::debug(
+            ObservationId::fromString('obs-d'),
+            ExecutionId::fromString('exec-1'),
+            'debug message',
+        );
+
+        self::assertSame(ObservationSeverity::Debug, $observation->severity());
+        self::assertSame('debug message', $observation->message());
+        self::assertFalse($observation->severity()->isError());
+    }
+
+    public function testAlertConstructorSetsAlertSeverity(): void
+    {
+        $observation = Observation::alert(
+            ObservationId::fromString('obs-a'),
+            ExecutionId::fromString('exec-1'),
+            'alert message',
+        );
+
+        self::assertSame(ObservationSeverity::Alert, $observation->severity());
+        self::assertSame('alert message', $observation->message());
+        self::assertTrue($observation->severity()->isError());
+    }
+
+    public function testEmergencyConstructorSetsEmergencySeverity(): void
+    {
+        $observation = Observation::emergency(
+            ObservationId::fromString('obs-e'),
+            ExecutionId::fromString('exec-1'),
+            'emergency message',
+        );
+
+        self::assertSame(ObservationSeverity::Emergency, $observation->severity());
+        self::assertSame('emergency message', $observation->message());
+        self::assertTrue($observation->severity()->isError());
+    }
+
+    public function testAtSeverityCreatesObservationWithGivenSeverity(): void
+    {
+        $observation = Observation::atSeverity(
+            ObservationSeverity::Warning,
+            ObservationId::fromString('obs-s'),
+            ExecutionId::fromString('exec-1'),
+            'custom severity message',
+        );
+
+        self::assertSame(ObservationSeverity::Warning, $observation->severity());
+        self::assertSame('custom severity message', $observation->message());
+        self::assertFalse($observation->severity()->isError());
+    }
 }
