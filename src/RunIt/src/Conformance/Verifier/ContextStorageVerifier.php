@@ -8,6 +8,7 @@ use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Conformance\Verifier\ContextStorageVerifierInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use Throwable;
@@ -24,7 +25,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ContextStorageVerifier implements VerifierInterface
+final class ContextStorageVerifier implements VerifierInterface, ContextStorageVerifierInterface
 {
     public function port(): string
     {

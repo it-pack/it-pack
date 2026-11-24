@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Conformance\Verifier;
 
-use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
+use ItPack\RunIt\Contract\Conformance\PortFixtureInterface;
+use ItPack\RunIt\Contract\Conformance\Verifier\SnapshotStoreVerifierInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use Throwable;
 
@@ -20,7 +21,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class SnapshotStoreVerifier implements VerifierInterface
+final class SnapshotStoreVerifier implements VerifierInterface, SnapshotStoreVerifierInterface
 {
     public function port(): string
     {

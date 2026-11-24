@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Contract\Application\Publication\ClassifiedOccurrenceFactoryInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -17,7 +18,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use Throwable;
 
 /** @internal Reconstructs occurrences exclusively from classified values. */
-final class ClassifiedOccurrenceFactory
+final class ClassifiedOccurrenceFactory implements ClassifiedOccurrenceFactoryInterface
 {
     /** @param array<string, mixed> $fields */
     public function create(array $fields): ?OccurrenceInterface

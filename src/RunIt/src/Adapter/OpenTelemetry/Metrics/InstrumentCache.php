@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Metrics;
 
+use ItPack\RunIt\Contract\OpenTelemetry\Metrics\InstrumentCacheInterface;
+
 /**
  * Bounded cache of OpenTelemetry instruments keyed by a stable identity.
  *
@@ -16,7 +18,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Metrics;
  *
  * @see https://w3id.org/itpack/runit#Measurement
  */
-final class InstrumentCache
+final class InstrumentCache implements InstrumentCacheInterface
 {
     /** @var array<string, object> */
     private array $cache = [];

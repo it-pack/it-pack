@@ -13,6 +13,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Contract\OpenTelemetry\Logs\DefaultOccurrenceLogMapperInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use JsonException;
@@ -30,7 +31,9 @@ use OpenTelemetry\API\Trace\Span;
  * @see https://w3id.org/itpack/runit#Occurrence
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
+final readonly class DefaultOccurrenceLogMapper implements
+    OccurrenceLogMapperInterface,
+    DefaultOccurrenceLogMapperInterface
 {
     use LogEmitterBehavior;
     use RedactedFieldAccess;
@@ -145,6 +148,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
     }
 
+    /**
+     * @param array<string, mixed> $normalized
+     */
     public function mapRedactedOccurrence(array $normalized): void
     {
         $attributes = $this->buildRedactedOccurrenceAttributes($normalized);
@@ -166,6 +172,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         );
     }
 
+    /**
+     * @param array<string, mixed> $normalized
+     */
     public function mapRedactedSnapshot(array $normalized): void
     {
         $attributes = $this->getAttributes($normalized);

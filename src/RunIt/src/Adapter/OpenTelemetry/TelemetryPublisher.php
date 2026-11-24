@@ -33,6 +33,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\TypedExecutionArtifactInterface;
+use ItPack\RunIt\Contract\OpenTelemetry\TelemetryPublisherInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
@@ -55,7 +56,7 @@ use Throwable;
  *
  * @see https://opentelemetry.io/
  */
-final class TelemetryPublisher implements ArtifactPublisherInterface
+final class TelemetryPublisher implements ArtifactPublisherInterface, TelemetryPublisherInterface
 {
     private bool $writingHealthFallback = false;
 

@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Application\Publication;
 use InvalidArgumentException;
 use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Publication\ProvenanceAuthorityInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;

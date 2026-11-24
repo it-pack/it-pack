@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Shared;
 
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Domain\Exception\InvalidSecurityLimitException;
 
 /**
@@ -21,7 +22,7 @@ use ItPack\RunIt\Domain\Exception\InvalidSecurityLimitException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class SecurityLimits
+final readonly class SecurityLimits implements SecurityLimitsInterface
 {
     /**
      * The default attribute-count bound, shared with
