@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Support\Fixture\Conformance;
 
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
-use ItPack\RunIt\Conformance\Result\ConformanceViolation;
+use ItPack\RunIt\Contract\Conformance\Result\ConformanceViolationInterface;
 
 /**
  * Query helpers for asserting on {@see ConformanceResult} in negative tests.
@@ -21,7 +21,7 @@ final class ConformanceViolations
     {
         return array_values(
             array_map(
-                static fn (ConformanceViolation $violation): string => $violation->id,
+                static fn (ConformanceViolationInterface $violation): string => $violation->id(),
                 $result->violations
             )
         );

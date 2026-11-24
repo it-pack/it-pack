@@ -50,7 +50,7 @@ final class SnapshotStoreVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('store.throws', $result->errors()[0]->id);
+        self::assertSame('store.throws', $result->errors()[0]->id());
     }
 
     public function testPatchedStoreThrowIsRecorded(): void
@@ -73,6 +73,6 @@ final class SnapshotStoreVerifierTest extends Unit
         $result = new SnapshotStoreVerifier()->verify($store, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('store.patched.throws', $result->errors()[0]->id);
+        self::assertSame('store.patched.throws', $result->errors()[0]->id());
     }
 }

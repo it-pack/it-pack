@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Conformance;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Conformance\Result\ViolationSeverity;
 use ItPack\RunIt\Conformance\Verifier\ContextStorageVerifier;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -218,7 +217,7 @@ final class ContextStorageVerifierNegativeTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertSame(['detach.throws', 'detach.throws'], ConformanceViolations::ids($result));
-        self::assertSame(ViolationSeverity::Error, $result->violations[0]->severity);
+        self::assertSame('error', $result->violations[0]->severity());
     }
 
     private function scope(): ExecutionScopeInterface

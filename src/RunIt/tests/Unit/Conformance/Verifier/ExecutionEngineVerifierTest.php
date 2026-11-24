@@ -85,7 +85,7 @@ final class ExecutionEngineVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('run.throws', $result->errors()[0]->id);
+        self::assertSame('run.throws', $result->errors()[0]->id());
     }
 
     public function testWrongValueIsRecorded(): void
@@ -106,7 +106,7 @@ final class ExecutionEngineVerifierTest extends Unit
         $result = new ExecutionEngineVerifier()->verify($engine, $this->scope());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('run.wrong-value', $result->errors()[0]->id);
+        self::assertSame('run.wrong-value', $result->errors()[0]->id());
     }
 
     public function testNotDeterministicIsRecorded(): void
@@ -131,7 +131,7 @@ final class ExecutionEngineVerifierTest extends Unit
         $result = new ExecutionEngineVerifier()->verify($engine, $this->scope());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('run.not-deterministic', $result->errors()[0]->id);
+        self::assertSame('run.not-deterministic', $result->errors()[0]->id());
     }
 
     public function testNullRunThrowIsRecorded(): void
@@ -160,7 +160,7 @@ final class ExecutionEngineVerifierTest extends Unit
         $result = new ExecutionEngineVerifier()->verify($engine, $this->scope());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('run.null.throws', $result->errors()[0]->id);
+        self::assertSame('run.null.throws', $result->errors()[0]->id());
     }
 
     public function testCapabilityThrowIsRecorded(): void
@@ -180,6 +180,6 @@ final class ExecutionEngineVerifierTest extends Unit
         $result = new ExecutionEngineVerifier()->verify($engine, $this->scope());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('capability.throws', $result->errors()[0]->id);
+        self::assertSame('capability.throws', $result->errors()[0]->id());
     }
 }
