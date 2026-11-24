@@ -6,7 +6,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry;
 
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
-use ItPack\RunIt\Contract\OpenTelemetry\BridgeConfigBuilderInterface;
+use ItPack\RunIt\Contract\Adapter\OpenTelemetry\BridgeConfigBuilderInterface;
 use OpenTelemetry\API\Baggage\Propagation\BaggagePropagator;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;

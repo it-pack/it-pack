@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Metrics;
 
-use ItPack\RunIt\Contract\OpenTelemetry\Metrics\InstrumentCacheInterface;
+use ItPack\RunIt\Contract\Adapter\OpenTelemetry\Metrics\InstrumentCacheInterface;
 
 /**
  * Bounded cache of OpenTelemetry instruments keyed by a stable identity.

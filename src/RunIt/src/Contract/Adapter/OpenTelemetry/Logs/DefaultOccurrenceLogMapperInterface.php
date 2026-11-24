@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Contract\OpenTelemetry\Logs;
+namespace ItPack\RunIt\Contract\Adapter\OpenTelemetry\Logs;
 
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;

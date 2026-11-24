@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Contract\OpenTelemetry;
+namespace ItPack\RunIt\Contract\Adapter\OpenTelemetry;
 
 /**
  * Contract for detecting OpenTelemetry signal capabilities.

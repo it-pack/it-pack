@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Contract\OpenTelemetry\Metrics;
+namespace ItPack\RunIt\Contract\Adapter\OpenTelemetry\Metrics;
 
 /**
  * Contract for a bounded cache of OpenTelemetry instruments.

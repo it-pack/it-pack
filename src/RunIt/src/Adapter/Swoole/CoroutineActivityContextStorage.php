@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Swoole;
 
 use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
-use ItPack\RunIt\Contract\Port\ActivityContextStorageInterface;
 use ItPack\RunIt\Contract\Support\ActivityContextStorage;
 
 /** Coroutine-local activity context storage. */
