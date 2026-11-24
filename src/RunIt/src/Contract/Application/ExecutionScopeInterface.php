@@ -4,21 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Application;
 
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
+use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 
-/**
- * The ambient, immutable view of a running execution handed to a consumer operation.
- *
- * A scope exposes the running execution record, its immutable context, and the
- * recorders and runners an operation uses to produce artifacts. The scope itself
- * is a runtime collaborator: its recorders bind newly created artifacts to the
- * execution (and any active activity) automatically.
- *
- * @api
- *
- * @see https://w3id.org/itpack/runit#Execution
- */
 interface ExecutionScopeInterface
 {
     public function execution(): ExecutionInterface;
@@ -34,4 +24,19 @@ interface ExecutionScopeInterface
     public function occurrences(): OccurrenceRecorderInterface;
 
     public function snapshots(): SnapshotRecorderInterface;
+
+    public function currentActivityId(): ?ActivityIdInterface;
+
+    public function setCurrentActivityId(?ActivityIdInterface $currentActivityId): void;
+
+    public function trackOpenActivity(ActivityInterface $activity): void;
+
+    public function clearOpenActivity(ActivityIdInterface $activityId): void;
+
+    /**
+     * @return list<ActivityInterface>
+     */
+    public function openActivities(): array;
+
+    public function runWithoutActivityContext(callable $operation): mixed;
 }
