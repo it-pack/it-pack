@@ -4,7 +4,7 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventInterface": "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface"
         },
         "constants": {
             "SPEC_VERSION_1_0": "public",
@@ -253,13 +253,13 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface": "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface"
         },
         "constants": [],
         "methods": {
             "withSink": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilder",
                 "params": [
                     {
                         "name": "sink",
@@ -270,7 +270,7 @@
             },
             "withPolicy": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilder",
                 "params": [
                     {
                         "name": "policy",
@@ -281,7 +281,7 @@
             },
             "withMapper": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilder",
                 "params": [
                     {
                         "name": "mapper",
@@ -1286,7 +1286,7 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeCapabilityInterface": "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeCapabilityInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface"
         },
         "constants": [],
         "methods": {
@@ -1423,13 +1423,13 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeConfigBuilderInterface": "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeConfigBuilderInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface"
         },
         "constants": [],
         "methods": {
             "withTracerProvider": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "tracerProvider",
@@ -1440,7 +1440,7 @@
             },
             "withMeterProvider": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "meterProvider",
@@ -1451,7 +1451,7 @@
             },
             "withLoggerProvider": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "loggerProvider",
@@ -1462,7 +1462,7 @@
             },
             "withPropagator": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "propagator",
@@ -1473,7 +1473,7 @@
             },
             "withSnapshotPayloadPolicy": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "policy",
@@ -1484,7 +1484,7 @@
             },
             "withObservationLogging": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "enabled",
@@ -1495,7 +1495,7 @@
             },
             "withObservationSpanEvents": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "enabled",
@@ -1506,7 +1506,7 @@
             },
             "withOccurrenceLogging": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "enabled",
@@ -1517,7 +1517,7 @@
             },
             "withOccurrenceSpanEvents": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "enabled",
@@ -1528,7 +1528,7 @@
             },
             "withMetricAttributeAllowList": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "allowedAttributeKeys",
@@ -1539,7 +1539,7 @@
             },
             "withOccurrenceLogAttributeAllowList": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "allowedAttributeKeys",
@@ -1550,7 +1550,7 @@
             },
             "withMaxInstrumentCacheSize": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
                     {
                         "name": "maxInstrumentCacheSize",
@@ -2139,7 +2139,7 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface",
-            "ItPack\\RunIt\\Contract\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface": "ItPack\\RunIt\\Contract\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -2298,7 +2298,7 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\OpenTelemetry\\Metrics\\InstrumentCacheInterface": "ItPack\\RunIt\\Contract\\OpenTelemetry\\Metrics\\InstrumentCacheInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Metrics\\InstrumentCacheInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Metrics\\InstrumentCacheInterface"
         },
         "constants": [],
         "methods": {
@@ -2448,7 +2448,7 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
-            "ItPack\\RunIt\\Contract\\OpenTelemetry\\TelemetryPublisherInterface": "ItPack\\RunIt\\Contract\\OpenTelemetry\\TelemetryPublisherInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\TelemetryPublisherInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\TelemetryPublisherInterface"
         },
         "constants": [],
         "methods": {
@@ -3113,7 +3113,7 @@
         "extends": null,
         "implements": {
             "Psr\\EventDispatcher\\StoppableEventInterface": "Psr\\EventDispatcher\\StoppableEventInterface",
-            "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventInterface": "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface": "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface"
         },
         "constants": [],
         "methods": {
@@ -3146,7 +3146,7 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventWrapperInterface": "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventWrapperInterface"
+            "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventWrapperInterface": "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventWrapperInterface"
         },
         "constants": [],
         "methods": {
@@ -10144,6 +10144,145 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "toArray": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "withExtensions": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface",
+                "params": [
+                    {
+                        "name": "extensions",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventMappingPolicyInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventSinkInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "send": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "event",
+                        "type": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "withSink": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "sink",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMapper": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "mapper",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "build": {
+                "static": false,
+                "return": "object",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\OccurrenceToCloudEventMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "map": {
+                "static": false,
+                "return": "object",
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "policy",
+                        "type": "null|object",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemoryArtifactPublisherInterface": {
         "kind": "interface",
         "final": false,
@@ -10170,6 +10309,348 @@
                 "static": false,
                 "return": "array",
                 "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "any": {
+                "static": false,
+                "return": "bool",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "withTracerProvider": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "tracerProvider",
+                        "type": "null|OpenTelemetry\\API\\Trace\\TracerProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMeterProvider": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "meterProvider",
+                        "type": "null|OpenTelemetry\\API\\Metrics\\MeterProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withLoggerProvider": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "loggerProvider",
+                        "type": "null|OpenTelemetry\\API\\Logs\\LoggerProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPropagator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "propagator",
+                        "type": "OpenTelemetry\\Context\\Propagation\\TextMapPropagatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotPayloadPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "withObservationLogging": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withObservationSpanEvents": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceLogging": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceSpanEvents": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMetricAttributeAllowList": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "allowedAttributeKeys",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceLogAttributeAllowList": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "allowedAttributeKeys",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxInstrumentCacheSize": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "maxInstrumentCacheSize",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "build": {
+                "static": false,
+                "return": "object",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "mapOccurrence": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapSnapshot": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "snapshot",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedOccurrence": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedSnapshot": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "getAttributes": {
+                "static": false,
+                "return": "array",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Metrics\\InstrumentCacheInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "has": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "get": {
+                "static": false,
+                "return": "null|object",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "put": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "instrument",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "size": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\TelemetryPublisherInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "capability": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface",
+                "params": []
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "stopPropagation": {
+                "static": false,
+                "return": "void",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventWrapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "wrap": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface",
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -11913,145 +12394,6 @@
                         "name": "value",
                         "type": "mixed",
                         "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "toArray": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "withExtensions": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "extensions",
-                        "type": "array",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventMappingPolicyInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": [],
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventSinkInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "send": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "event",
-                        "type": "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventInterface",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "withSink": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "sink",
-                        "type": "object",
-                        "optional": false
-                    }
-                ]
-            },
-            "withPolicy": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "policy",
-                        "type": "object",
-                        "optional": false
-                    }
-                ]
-            },
-            "withMapper": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "mapper",
-                        "type": "object",
-                        "optional": false
-                    }
-                ]
-            },
-            "build": {
-                "static": false,
-                "return": "object",
-                "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\CloudEvents\\CloudEventsBridgeConfigInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": [],
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\CloudEvents\\OccurrenceToCloudEventMapperInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "map": {
-                "static": false,
-                "return": "object",
-                "params": [
-                    {
-                        "name": "occurrence",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "policy",
-                        "type": "null|object",
-                        "optional": true
                     }
                 ]
             }
@@ -14661,7 +15003,7 @@
         "methods": {
             "withMaxAttributeCount": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxAttributeCount",
@@ -14672,7 +15014,7 @@
             },
             "withMaxAttributeKeyBytes": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxAttributeKeyBytes",
@@ -14683,7 +15025,7 @@
             },
             "withMaxAttributeValueBytes": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxAttributeValueBytes",
@@ -14694,7 +15036,7 @@
             },
             "withMaxAttributeDepth": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxAttributeDepth",
@@ -14705,7 +15047,7 @@
             },
             "withMaxOccurrencePayloadBytes": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxOccurrencePayloadBytes",
@@ -14716,7 +15058,7 @@
             },
             "withMaxSnapshotPayloadBytes": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxSnapshotPayloadBytes",
@@ -14727,7 +15069,7 @@
             },
             "withMaxActivityDepth": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxActivityDepth",
@@ -14738,7 +15080,7 @@
             },
             "withMaxArtifactsPerExecution": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxArtifactsPerExecution",
@@ -14749,7 +15091,7 @@
             },
             "withMaxSerializationDepth": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxSerializationDepth",
@@ -14760,7 +15102,7 @@
             },
             "withMaxSerializationBytes": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxSerializationBytes",
@@ -14771,7 +15113,7 @@
             },
             "withMaxTrackedExecutions": {
                 "static": false,
-                "return": "static",
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                 "params": [
                     {
                         "name": "maxTrackedExecutions",
@@ -15942,312 +16284,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeCapabilityInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "any": {
-                "static": false,
-                "return": "bool",
-                "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeConfigBuilderInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "withTracerProvider": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "tracerProvider",
-                        "type": "null|OpenTelemetry\\API\\Trace\\TracerProviderInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "withMeterProvider": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "meterProvider",
-                        "type": "null|OpenTelemetry\\API\\Metrics\\MeterProviderInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "withLoggerProvider": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "loggerProvider",
-                        "type": "null|OpenTelemetry\\API\\Logs\\LoggerProviderInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "withPropagator": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "propagator",
-                        "type": "OpenTelemetry\\Context\\Propagation\\TextMapPropagatorInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "withSnapshotPayloadPolicy": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "policy",
-                        "type": "object",
-                        "optional": false
-                    }
-                ]
-            },
-            "withObservationLogging": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "enabled",
-                        "type": "bool",
-                        "optional": false
-                    }
-                ]
-            },
-            "withObservationSpanEvents": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "enabled",
-                        "type": "bool",
-                        "optional": false
-                    }
-                ]
-            },
-            "withOccurrenceLogging": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "enabled",
-                        "type": "bool",
-                        "optional": false
-                    }
-                ]
-            },
-            "withOccurrenceSpanEvents": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "enabled",
-                        "type": "bool",
-                        "optional": false
-                    }
-                ]
-            },
-            "withMetricAttributeAllowList": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "allowedAttributeKeys",
-                        "type": "array",
-                        "optional": false
-                    }
-                ]
-            },
-            "withOccurrenceLogAttributeAllowList": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "allowedAttributeKeys",
-                        "type": "array",
-                        "optional": false
-                    }
-                ]
-            },
-            "withMaxInstrumentCacheSize": {
-                "static": false,
-                "return": "static",
-                "params": [
-                    {
-                        "name": "maxInstrumentCacheSize",
-                        "type": "int",
-                        "optional": false
-                    }
-                ]
-            },
-            "build": {
-                "static": false,
-                "return": "object",
-                "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "mapOccurrence": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "occurrence",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "mapSnapshot": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "snapshot",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "mapRedactedOccurrence": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "normalized",
-                        "type": "array",
-                        "optional": false
-                    }
-                ]
-            },
-            "mapRedactedSnapshot": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "normalized",
-                        "type": "array",
-                        "optional": false
-                    }
-                ]
-            },
-            "getAttributes": {
-                "static": false,
-                "return": "array",
-                "params": [
-                    {
-                        "name": "normalized",
-                        "type": "array",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\OpenTelemetry\\Metrics\\InstrumentCacheInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "has": {
-                "static": false,
-                "return": "bool",
-                "params": [
-                    {
-                        "name": "key",
-                        "type": "string",
-                        "optional": false
-                    }
-                ]
-            },
-            "get": {
-                "static": false,
-                "return": "null|object",
-                "params": [
-                    {
-                        "name": "key",
-                        "type": "string",
-                        "optional": false
-                    }
-                ]
-            },
-            "put": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "key",
-                        "type": "string",
-                        "optional": false
-                    },
-                    {
-                        "name": "instrument",
-                        "type": "object",
-                        "optional": false
-                    }
-                ]
-            },
-            "size": {
-                "static": false,
-                "return": "int",
-                "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\OpenTelemetry\\TelemetryPublisherInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "capability": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\OpenTelemetry\\BridgeCapabilityInterface",
-                "params": []
-            },
-            "publish": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "artifact",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface": {
         "kind": "interface",
         "final": false,
@@ -16647,42 +16683,6 @@
                     {
                         "name": "snapshot",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "stopPropagation": {
-                "static": false,
-                "return": "void",
-                "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventWrapperInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "wrap": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Psr\\Event\\OccurrenceEventInterface",
-                "params": [
-                    {
-                        "name": "occurrence",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
                         "optional": false
                     }
                 ]

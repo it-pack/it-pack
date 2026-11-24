@@ -1,6 +1,9 @@
-<?php /** @noinspection PhpUndefinedNamespaceInspection */
+<?php
 
 declare(strict_types=1);
+
+
+/** @noinspection PhpUndefinedNamespaceInspection */
 
 require_once __DIR__ . '/../../tools/qa/phparkitect/base.php';
 
@@ -22,6 +25,9 @@ use Arkitect\Rules\Rule;
 use Arkitect\Rules\Violation;
 use Arkitect\Rules\ViolationMessage;
 use Arkitect\Rules\Violations;
+use ItPack\RunIt\Contract\Support\ActivityContextStorage;
+use Symfony\Component\DependencyInjection\Extension\Extension;
+use Psr\Log\LoggerInterface;
 use function ItPack\Qa\PhpArkitect\layeredArchitecture;
 
 /**
@@ -88,7 +94,11 @@ return static function (Config $config): void {
                 false,
                 false,
                 false,
-                []
+                [
+                    ActivityContextStorage::class,
+                    Extension::class,
+                    LoggerInterface::class,
+                ]
             ) implements Expression {
 
                 public function __construct(
