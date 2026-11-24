@@ -660,6 +660,11 @@ final class RedactingPublisherTest extends Unit
                 return null;
             }
 
+            public function sequence(): int
+            {
+                return 1;
+            }
+
             public function normalize(): array
             {
                 return ['payload' => $this->normalized];

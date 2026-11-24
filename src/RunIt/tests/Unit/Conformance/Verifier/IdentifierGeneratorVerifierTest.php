@@ -44,7 +44,7 @@ final class IdentifierGeneratorVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('generate.throws', $result->errors()[0]->id);
+        self::assertSame('generate.throws', $result->errors()[0]->id());
     }
 
     public function testEmptyValueIsRecorded(): void
@@ -59,7 +59,7 @@ final class IdentifierGeneratorVerifierTest extends Unit
         $result = new IdentifierGeneratorVerifier()->verify($generator, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('generate.empty', $result->errors()[0]->id);
+        self::assertSame('generate.empty', $result->errors()[0]->id());
     }
 
     public function testInvalidFormatIsRecorded(): void
@@ -74,7 +74,7 @@ final class IdentifierGeneratorVerifierTest extends Unit
         $result = new IdentifierGeneratorVerifier()->verify($generator, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('generate.invalid-format', $result->errors()[0]->id);
+        self::assertSame('generate.invalid-format', $result->errors()[0]->id());
     }
 
     public function testDuplicateValueIsRecorded(): void
@@ -90,6 +90,6 @@ final class IdentifierGeneratorVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(199, $result->errors());
-        self::assertSame('generate.not-unique', $result->errors()[0]->id);
+        self::assertSame('generate.not-unique', $result->errors()[0]->id());
     }
 }

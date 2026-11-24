@@ -51,7 +51,7 @@ final class SamplingPolicyVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('sample.throws', $result->errors()[0]->id);
+        self::assertSame('sample.throws', $result->errors()[0]->id());
     }
 
     public function testNotDeterministicIsRecorded(): void
@@ -71,6 +71,6 @@ final class SamplingPolicyVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(4, $result->errors());
-        self::assertSame('sample.not-deterministic', $result->errors()[0]->id);
+        self::assertSame('sample.not-deterministic', $result->errors()[0]->id());
     }
 }

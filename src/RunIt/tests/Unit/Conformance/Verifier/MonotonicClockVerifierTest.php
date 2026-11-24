@@ -57,7 +57,7 @@ final class MonotonicClockVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(1, $result->errors());
-        self::assertSame('nowSeconds.throws', $result->errors()[0]->id);
+        self::assertSame('nowSeconds.throws', $result->errors()[0]->id());
     }
 
     public function testNotMonotonicIsRecorded(): void
@@ -84,7 +84,7 @@ final class MonotonicClockVerifierTest extends Unit
         $result = new MonotonicClockVerifier()->verify($clock);
 
         self::assertFalse($result->isConformant());
-        self::assertSame('monotonicNanoseconds.not-monotonic', $result->errors()[0]->id);
+        self::assertSame('monotonicNanoseconds.not-monotonic', $result->errors()[0]->id());
     }
 
     public function testMeasureThrowIsRecorded(): void
@@ -109,7 +109,7 @@ final class MonotonicClockVerifierTest extends Unit
         $result = new MonotonicClockVerifier()->verify($clock);
 
         self::assertFalse($result->isConformant());
-        self::assertSame('measure.throws', $result->errors()[0]->id);
+        self::assertSame('measure.throws', $result->errors()[0]->id());
     }
 
     public function testMeasureZeroIsRecorded(): void
@@ -134,7 +134,7 @@ final class MonotonicClockVerifierTest extends Unit
         $result = new MonotonicClockVerifier()->verify($clock);
 
         self::assertFalse($result->isConformant());
-        self::assertSame('measure.zero', $result->errors()[0]->id);
+        self::assertSame('measure.zero', $result->errors()[0]->id());
     }
 
     public function testMeasureNegativeIsRecorded(): void
@@ -158,9 +158,29 @@ final class MonotonicClockVerifierTest extends Unit
                         return -3;
                     }
 
+                    public function microseconds(): int
+                    {
+                        return 0;
+                    }
+
+                    public function milliseconds(): int
+                    {
+                        return 0;
+                    }
+
                     public function seconds(): int
                     {
                         return 0;
+                    }
+
+                    public function plus(DurationInterface $other): self
+                    {
+                        return $this;
+                    }
+
+                    public function equals(DurationInterface $other): bool
+                    {
+                        return $other->nanoseconds() === -3 && $other->seconds() === 0;
                     }
 
                     public function toString(): string
@@ -175,7 +195,7 @@ final class MonotonicClockVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertCount(2, $result->errors());
-        self::assertSame('measure.zero', $result->errors()[0]->id);
-        self::assertSame('measure.negative', $result->errors()[1]->id);
+        self::assertSame('measure.zero', $result->errors()[0]->id());
+        self::assertSame('measure.negative', $result->errors()[1]->id());
     }
 }

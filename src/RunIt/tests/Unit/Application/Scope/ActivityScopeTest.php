@@ -64,6 +64,75 @@ final class ActivityScopeTest extends Unit
         self::assertTrue($seen['sameMeasurements']);
     }
 
+    public function testActivityScopeDelegatesActivitiesObservationsOccurrencesSnapshots(): void
+    {
+        $this->kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            fn ($scope): null => $scope->activities()->run(
+                ActivityDefinition::create(
+                    ActivityName::fromString('load'),
+                    ActivityKind::fromString('io')
+                ),
+                function ($activityScope) use ($scope): null {
+                    self::assertSame($scope->activities(), $activityScope->activities());
+                    self::assertSame($scope->observations(), $activityScope->observations());
+                    self::assertSame($scope->occurrences(), $activityScope->occurrences());
+                    self::assertSame($scope->snapshots(), $activityScope->snapshots());
+
+                    return null;
+                },
+            ),
+        );
+    }
+
+    public function testActivityScopeDelegatesOpenActivityTracking(): void
+    {
+        $this->kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            fn ($scope): null => $scope->activities()->run(
+                ActivityDefinition::create(
+                    ActivityName::fromString('load'),
+                    ActivityKind::fromString('io')
+                ),
+                function ($activityScope): null {
+                    $activityId = $activityScope->activity()->id();
+
+                    self::assertNull($activityScope->currentActivityId());
+                    $activityScope->setCurrentActivityId($activityId);
+                    self::assertSame($activityId, $activityScope->currentActivityId());
+
+                    $activityScope->trackOpenActivity($activityScope->activity());
+                    self::assertCount(2, $activityScope->openActivities());
+
+                    $activityScope->clearOpenActivity($activityId);
+                    self::assertCount(0, $activityScope->openActivities());
+
+                    return null;
+                },
+            ),
+        );
+    }
+
+    public function testActivityScopeDelegatesRunWithoutActivityContext(): void
+    {
+        $this->kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            fn ($scope): null => $scope->activities()->run(
+                ActivityDefinition::create(
+                    ActivityName::fromString('load'),
+                    ActivityKind::fromString('io')
+                ),
+                function ($activityScope): null {
+                    $activityScope->runWithoutActivityContext(
+                        fn (): mixed => null
+                    );
+
+                    return null;
+                },
+            ),
+        );
+    }
+
     public function testRecordingsInsideActivityBindToActivity(): void
     {
         $this->kit->runner->run(
