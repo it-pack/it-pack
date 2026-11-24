@@ -28,7 +28,12 @@ final class ProvenanceAuthorityTest extends Unit
     {
         $authority = new ProvenanceAuthority();
 
-        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+        $exportId = $authority->issueExportId(
+            'execution',
+            'execution',
+            'exec-1',
+            'business-1'
+        );
 
         self::assertStringStartsWith('runit-export-', $exportId);
     }
@@ -36,7 +41,13 @@ final class ProvenanceAuthorityTest extends Unit
     public function testIssueExportIdRejectsInvalidLimits(): void
     {
         try {
-            new ProvenanceAuthority(null, 0, 1, 1, 1);
+            new ProvenanceAuthority(
+                null,
+                0,
+                1,
+                1,
+                1
+            );
             self::fail('Expected InvalidArgumentException');
         } catch (InvalidArgumentException $invalidArgumentException) {
             self::assertSame('Provenance retention limits must be positive.', $invalidArgumentException->getMessage());
@@ -135,7 +146,6 @@ final class ProvenanceAuthorityTest extends Unit
             public int $calls = 0;
 
             public ?ProvenanceAuthority $authority = null;
-
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->calls++;
