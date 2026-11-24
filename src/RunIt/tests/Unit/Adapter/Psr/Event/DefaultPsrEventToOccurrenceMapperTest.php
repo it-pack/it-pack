@@ -11,6 +11,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\Instant;
 use PHPUnit\Framework\Attributes\CoversClass;
+use stdClass;
 
 #[CoversClass(DefaultPsrEventToOccurrenceMapper::class)]
 final class DefaultPsrEventToOccurrenceMapperTest extends Unit
@@ -30,6 +31,7 @@ final class DefaultPsrEventToOccurrenceMapperTest extends Unit
 
         $event = new class () {
             public string $name = 'test';
+
             public int $count = 5;
         };
 
@@ -129,11 +131,12 @@ final class DefaultPsrEventToOccurrenceMapperTest extends Unit
 
         $event = new class () {
             public string $name = 'test';
+
             public mixed $skip;
 
             public function __construct()
             {
-                $this->skip = new \stdClass();
+                $this->skip = new stdClass();
             }
         };
 

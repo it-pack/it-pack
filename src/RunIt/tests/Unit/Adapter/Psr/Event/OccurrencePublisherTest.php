@@ -42,6 +42,7 @@ final class OccurrencePublisherTest extends Unit
     {
         $reporter = new class () implements EventDispatcherInterface {
             public bool $dispatched = false;
+
             public function dispatch(object $event): object
             {
                 $this->dispatched = true;
@@ -73,12 +74,12 @@ final class OccurrencePublisherTest extends Unit
 
     public function testPublishDispatchFailureWithPolicyCallsPolicy(): void
     {
-        $policyHandled = false;
         $policy = new class () implements PublicationFailurePolicyInterface {
             public function handle(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->handled = true;
             }
+
             public bool $handled = false;
         };
 
