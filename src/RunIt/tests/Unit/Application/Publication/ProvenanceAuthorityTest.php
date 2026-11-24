@@ -18,6 +18,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Instant;
 use PHPUnit\Framework\Attributes\CoversClass;
+use ReflectionClass;
 use RuntimeException;
 use Throwable;
 

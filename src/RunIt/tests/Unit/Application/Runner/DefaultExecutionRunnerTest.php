@@ -42,6 +42,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Random\RandomException;
+use ReflectionClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
@@ -708,5 +709,24 @@ final class DefaultExecutionRunnerTest extends Unit
     public function stages(): iterable
     {
         return [['factory'], ['coordinator'], ['duplicate']];
+    }
+
+    public function testActivityContextPolicyReturnsConfiguredValue(): void
+    {
+        $kit = new RunItTestKit();
+
+        self::assertSame('fallback', $kit->runner->activityContextPolicy());
+    }
+
+    public function testPlaceholderArtifactNormalizeReturnsEmptyArray(): void
+    {
+        $kit = new RunItTestKit();
+        $runner = $kit->runner;
+        $reflection = new ReflectionClass($runner);
+        $method = $reflection->getMethod('placeholderArtifact');
+
+        $artifact = $method->invoke($runner);
+        self::assertInstanceOf(ExecutionArtifactInterface::class, $artifact);
+        self::assertSame([], $artifact->normalize());
     }
 }
