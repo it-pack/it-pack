@@ -11,7 +11,7 @@ use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 
-#[CoversClass(InvalidValueExceptionInterface::class)]
+#[CoversClass(RunItExceptionInterface::class)]
 final class ExceptionMarkerContractTest extends Unit
 {
     /**

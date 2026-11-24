@@ -11,8 +11,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 #[CoversClass(RandomIdentifierGenerator::class)]
 final class RandomIdentifierGeneratorTest extends Unit
 {
-    private const string FORMAT ='%s-%s-%s-%s-%s';
-    private const string REGEX ='/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
+    private const string FORMAT = '%s-%s-%s-%s-%s';
+
+    private const string REGEX = '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
 
     public function testGenerateReturnsUuidV4String(): void
     {

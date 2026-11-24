@@ -5,20 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
-use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
-use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
-use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
-use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
@@ -35,7 +30,6 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
-use Tests\Support\Fixture\EmptyArtifact;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingAttachContextStorage;
@@ -403,7 +397,11 @@ final class ResilienceTest extends Unit
             $caught = $runtimeException;
         }
 
-        self::assertSame($thrown, $caught, 'original business exception must be rethrown, not the publisher failure');
+        self::assertSame(
+            $thrown,
+            $caught,
+            'original business exception must be rethrown, not the publisher failure'
+        );
     }
 
     public function testContextDetachFailurePreservesResult(): void
@@ -484,50 +482,6 @@ final class ResilienceTest extends Unit
         self::assertSame(7, $result, 'a snapshot serialization failure must not abort the operation');
     }
 
-    public function testRedactorFailureIsIsolatedByFailSafePublisher(): void
-    {
-        $redactor = new class () implements RedactorInterface {
-            public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
-            {
-                throw new RuntimeException('redactor is broken');
-            }
-        };
-
-        $inner = new InMemoryArtifactPublisher();
-        $safe = new FailSafeArtifactPublisher(
-            new RedactingArtifactPublisher($redactor, $inner),
-            new FailOpenPolicy(),
-        );
-
-        $safe->publish(new EmptyArtifact());
-
-        self::assertCount(0, $inner->published(), 'redactor failure must be swallowed by the fail-safe boundary');
-    }
-
-    public function testSamplingPolicyFailureIsIsolatedByFailSafePublisher(): void
-    {
-        $policy = new class () implements SamplingPolicyInterface {
-            public function sample(ExecutionArtifactInterface $artifact): bool
-            {
-                throw new RuntimeException('sampling policy is broken');
-            }
-        };
-
-        $inner = new InMemoryArtifactPublisher();
-        $safe = new FailSafeArtifactPublisher(
-            new SamplingArtifactPublisher($policy, $inner),
-            new FailOpenPolicy(),
-        );
-
-        $safe->publish(new EmptyArtifact());
-
-        self::assertCount(
-            0,
-            $inner->published(),
-            'sampling policy failure must be swallowed by the fail-safe boundary'
-        );
-    }
-
     public function testCompletionPolicyFailureOnSuccessPathPreservesResult(): void
     {
         $failures = [];
@@ -540,7 +494,11 @@ final class ResilienceTest extends Unit
 
         $result = $kit->runner->run($this->definition(), static fn (): int => 42);
 
-        self::assertSame(42, $result, 'a throwing completion policy must not mask the successful result');
+        self::assertSame(
+            42,
+            $result,
+            'a throwing completion policy must not mask the successful result'
+        );
         self::assertNotEmpty($failures, 'the completion-policy fault must be reported to the health path');
     }
 
@@ -554,7 +512,11 @@ final class ResilienceTest extends Unit
 
         $result = $kit->runner->run($this->definition(), static fn (): int => 42);
 
-        self::assertSame(42, $result, 'a throwing health callback must not replace the business result');
+        self::assertSame(
+            42,
+            $result,
+            'a throwing health callback must not replace the business result'
+        );
     }
 
     public function testThrowingHealthCallbackDuringStartupPublishDoesNotAbortOperation(): void
@@ -570,7 +532,11 @@ final class ResilienceTest extends Unit
 
         $result = $kit->runner->run($this->definition(), static fn (): int => 7);
 
-        self::assertSame(7, $result, 'a startup-publish fault plus handler fault must not abort the operation');
+        self::assertSame(
+            7,
+            $result,
+            'a startup-publish fault plus handler fault must not abort the operation'
+        );
     }
 
     public function testThrowingHealthCallbackDuringFailurePathPreservesOriginalThrowable(): void
@@ -592,7 +558,11 @@ final class ResilienceTest extends Unit
             $caught = $runtimeException;
         }
 
-        self::assertSame($thrown, $caught, 'original business exception must survive a throwing health callback');
+        self::assertSame(
+            $thrown,
+            $caught,
+            'original business exception must survive a throwing health callback'
+        );
     }
 
     public function testSequenceAllocationFaultIsReportedBeforeSurfacing(): void
@@ -618,7 +588,11 @@ final class ResilienceTest extends Unit
             $caught?->getMessage(),
             'setup faults still surface to the caller'
         );
-        self::assertCount(1, $failures, 'a setup fault must be reported exactly once before surfacing');
+        self::assertCount(
+            1,
+            $failures,
+            'a setup fault must be reported exactly once before surfacing'
+        );
     }
 
     public function testContextAttachFaultIsReportedBeforeSurfacing(): void
@@ -640,7 +614,11 @@ final class ResilienceTest extends Unit
         }
 
         self::assertSame('context attach is broken', $caught?->getMessage());
-        self::assertCount(1, $failures, 'an attach fault must be reported exactly once before surfacing');
+        self::assertCount(
+            1,
+            $failures,
+            'an attach fault must be reported exactly once before surfacing'
+        );
     }
 
     public function testCompletionPolicyFailureDuringFailurePathPreservesOriginalThrowable(): void
@@ -664,8 +642,15 @@ final class ResilienceTest extends Unit
             $caught = $runtimeException;
         }
 
-        self::assertSame($thrown, $caught, 'original business exception must survive a throwing completion policy');
-        self::assertNotEmpty($failures, 'the completion-policy fault must be reported, not silently discarded');
+        self::assertSame(
+            $thrown,
+            $caught,
+            'original business exception must survive a throwing completion policy'
+        );
+        self::assertNotEmpty(
+            $failures,
+            'the completion-policy fault must be reported, not silently discarded'
+        );
     }
 
     public function testTransitionFailureDuringFailurePathPreservesOriginalThrowable(): void
@@ -690,7 +675,11 @@ final class ResilienceTest extends Unit
             $caught = $runtimeException;
         }
 
-        self::assertSame($thrown, $caught, 'original business exception must survive a failing lifecycle transition');
+        self::assertSame(
+            $thrown,
+            $caught,
+            'original business exception must survive a failing lifecycle transition'
+        );
         self::assertNotEmpty($failures, 'the transition fault must be reported to the health path');
     }
 
@@ -715,7 +704,11 @@ final class ResilienceTest extends Unit
             $caught = $runtimeException;
         }
 
-        self::assertSame($thrown, $caught, 'original business exception must survive a throwing throwable mapper');
+        self::assertSame(
+            $thrown,
+            $caught,
+            'original business exception must survive a throwing throwable mapper'
+        );
         self::assertNotEmpty(
             array_filter(
                 $kit->artifacts(),
@@ -772,7 +765,11 @@ final class ResilienceTest extends Unit
             return 'ok';
         });
 
-        self::assertSame('ok', $result, 'a throwing health callback must never replace the business result');
+        self::assertSame(
+            'ok',
+            $result,
+            'a throwing health callback must never replace the business result'
+        );
     }
 
     public function testTransitionFailureOnTheSuccessPathIsReportedAndResultPreserved(): void

@@ -27,7 +27,12 @@ final class ProvenanceAuthorityTest extends Unit
     {
         $authority = new ProvenanceAuthority();
 
-        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+        $exportId = $authority->issueExportId(
+            'execution',
+            'execution',
+            'exec-1',
+            'business-1'
+        );
 
         self::assertStringStartsWith('runit-export-', $exportId);
     }
@@ -35,10 +40,16 @@ final class ProvenanceAuthorityTest extends Unit
     public function testIssueExportIdRejectsInvalidLimits(): void
     {
         try {
-            new ProvenanceAuthority(null, 0, 1, 1, 1);
+            new ProvenanceAuthority(
+                null,
+                0,
+                1,
+                1,
+                1
+            );
             self::fail('Expected InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            self::assertSame('Provenance retention limits must be positive.', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame('Provenance retention limits must be positive.', $invalidArgumentException->getMessage());
         }
     }
 
@@ -132,6 +143,7 @@ final class ProvenanceAuthorityTest extends Unit
     {
         $reporter = new class () implements InternalHealthReporterInterface {
             public bool $reported = false;
+
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->reported = true;
@@ -153,6 +165,10 @@ final class ProvenanceAuthorityTest extends Unit
         $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
 
         $authority->reportUnverified(new RuntimeException('unverified drop'));
+        self::assertStringStartsWith(
+            'runit-export-',
+            $authority->issueExportId('execution', 'execution', 'exec-1', 'business-2')
+        );
     }
 
     public function testBindArtifactReturnsNullWhenRelationshipRejected(): void
@@ -266,9 +282,11 @@ final class ProvenanceAuthorityTest extends Unit
     {
         $authority = new ProvenanceAuthority();
 
-        $authority->bindActivityRelationship(null, null);
-        $authority->bindActivityRelationship('runit-export-abc', null);
+        $authority->bindActivityRelationship();
+        $authority->bindActivityRelationship('runit-export-abc');
         $authority->bindActivityRelationship(null, 'runit-export-def');
+
+        self::assertSame([], $authority->allRecords());
     }
 
     public function testAllRecordsReturnsEmptyInitially(): void
@@ -295,8 +313,8 @@ final class ProvenanceAuthorityTest extends Unit
         try {
             $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1', ['parent:other']);
             self::fail('Expected RuntimeException');
-        } catch (RuntimeException $e) {
-            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertStringContainsString('Provenance capacity exceeded', $runtimeException->getMessage());
         }
     }
 
