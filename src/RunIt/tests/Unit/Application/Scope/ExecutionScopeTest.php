@@ -604,4 +604,39 @@ final class ExecutionScopeTest extends Unit
 
         self::assertSame([false, null, null], $result);
     }
+
+    public function testContextReturnsExecutionContext(): void
+    {
+        $kit = new RunItTestKit();
+        $context = null;
+        $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static function ($scope) use (&$context): null {
+                $context = $scope->context();
+
+                return null;
+            },
+        );
+
+        self::assertNotNull($context);
+    }
+
+    public function testRunWithoutActivityContextExecutesOperation(): void
+    {
+        $kit = new RunItTestKit();
+        $ran = false;
+        $kit->runner->run(
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            static function ($scope) use (&$ran): null {
+                $scope->runWithoutActivityContext(static function () use (&$ran): null {
+                    $ran = true;
+                    return null;
+                });
+
+                return null;
+            },
+        );
+
+        self::assertTrue($ran);
+    }
 }

@@ -2222,4 +2222,881 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
         self::assertEmpty($inner->published());
     }
+
+    public function testMeasurementWithNonStringKindIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 123,
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithNonClosureFactoryIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'bogus-kind',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithInvalidUnitIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'invalid-unit',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithNonStringNameIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 123,
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithNonStringExecutionIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 123,
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithInvalidActivityIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => 123,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithNonIntTimestampIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 'not-int',
+            'sequence' => 0,
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testMeasurementWithNonIntSequenceIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 'not-int',
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationWithNullAttributesIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => null,
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationWithInvalidIdentifiersIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 123,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationWithNonStringSeverityIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 123,
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationWithNonStringIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 123,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationWithNonIntTimestampIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 'not-int',
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testObservationWithNonIntSequenceIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 'not-int',
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testThrowableNonArrayIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ObservationInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'severity' => 'info',
+            'level' => 2,
+            'message' => 'msg',
+            'diagnostic_code' => null,
+            'sequence' => 0,
+            'timestamp' => 1000,
+            'attributes' => [],
+            'throwable' => 'not-array',
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testExecutionWithNonStringStatusIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'exec-1',
+            'name' => 'op',
+            'kind' => 'task',
+            'status' => 123,
+            'started_at' => 1000,
+            'ended_at' => null,
+            'parent_execution_id' => null,
+            'linked_execution_ids' => [],
+            'sequence' => 0,
+            'context' => [],
+            'result' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testExecutionWithNonStringIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 123,
+            'name' => 'op',
+            'kind' => 'task',
+            'status' => 'created',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'parent_execution_id' => null,
+            'linked_execution_ids' => [],
+            'sequence' => 0,
+            'context' => [],
+            'result' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testExecutionWithNonIntStartedAtIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'exec-1',
+            'name' => 'op',
+            'kind' => 'task',
+            'status' => 'created',
+            'started_at' => 'not-int',
+            'ended_at' => null,
+            'parent_execution_id' => null,
+            'linked_execution_ids' => [],
+            'sequence' => 0,
+            'context' => [],
+            'result' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testExecutionWithNonIntSequenceIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'exec-1',
+            'name' => 'op',
+            'kind' => 'task',
+            'status' => 'created',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'parent_execution_id' => null,
+            'linked_execution_ids' => [],
+            'sequence' => 'not-int',
+            'context' => [],
+            'result' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testExecutionWithNonArrayContextIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'exec-1',
+            'name' => 'op',
+            'kind' => 'task',
+            'status' => 'created',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'parent_execution_id' => null,
+            'linked_execution_ids' => [],
+            'sequence' => 0,
+            'context' => 'not-array',
+            'result' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testExecutionWithNonArrayLinkedIdsIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ExecutionInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'exec-1',
+            'name' => 'op',
+            'kind' => 'task',
+            'status' => 'created',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'parent_execution_id' => null,
+            'linked_execution_ids' => 'not-array',
+            'sequence' => 0,
+            'context' => [],
+            'result' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testActivityWithNonStringIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ActivityInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 123,
+            'execution_id' => 'exec-1',
+            'name' => 'load',
+            'kind' => 'io',
+            'status' => 'running',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'sequence' => 0,
+            'parent_activity_id' => null,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testActivityWithNonStringNameIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ActivityInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'act-1',
+            'execution_id' => 'exec-1',
+            'name' => 123,
+            'kind' => 'io',
+            'status' => 'running',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'sequence' => 0,
+            'parent_activity_id' => null,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testActivityWithNonIntStartedAtIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(ActivityInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'act-1',
+            'execution_id' => 'exec-1',
+            'name' => 'load',
+            'kind' => 'io',
+            'status' => 'running',
+            'started_at' => 'not-int',
+            'ended_at' => null,
+            'sequence' => 0,
+            'parent_activity_id' => null,
+            'attributes' => [],
+            'throwable' => null,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testSnapshotWithNonStringIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(SnapshotInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 123,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'state.v1',
+            'classification' => 'checkpoint',
+            'schema_version' => 1,
+            'created_at' => 1000,
+            'content_type' => 'application/json',
+            'content_hash' => '',
+            'predecessor_id' => null,
+            'sequence' => 0,
+            'payload' => [],
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testSnapshotWithNonIntSchemaVersionIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(SnapshotInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'snap-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'state.v1',
+            'classification' => 'checkpoint',
+            'schema_version' => 'not-int',
+            'created_at' => 1000,
+            'content_type' => 'application/json',
+            'content_hash' => '',
+            'predecessor_id' => null,
+            'sequence' => 0,
+            'payload' => [],
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testSnapshotWithNonIntCreatedAtIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(SnapshotInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'snap-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'state.v1',
+            'classification' => 'checkpoint',
+            'schema_version' => 1,
+            'created_at' => 'not-int',
+            'content_type' => 'application/json',
+            'content_hash' => '',
+            'predecessor_id' => null,
+            'sequence' => 0,
+            'payload' => [],
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testSnapshotWithNonStringContentTypeIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(SnapshotInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'snap-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'state.v1',
+            'classification' => 'checkpoint',
+            'schema_version' => 1,
+            'created_at' => 1000,
+            'content_type' => 123,
+            'content_hash' => '',
+            'predecessor_id' => null,
+            'sequence' => 0,
+            'payload' => [],
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testSnapshotWithNonIntSequenceIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(SnapshotInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'snap-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'state.v1',
+            'classification' => 'checkpoint',
+            'schema_version' => 1,
+            'created_at' => 1000,
+            'content_type' => 'application/json',
+            'content_hash' => '',
+            'predecessor_id' => null,
+            'sequence' => 'not-int',
+            'payload' => [],
+            'attributes' => [],
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testOccurrenceWithNonStringIdIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(OccurrenceInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 123,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'itpack.custom.v1',
+            'version' => '1',
+            'source' => 'source',
+            'subject' => null,
+            'time' => 1000,
+            'data' => [],
+            'data_schema' => null,
+            'content_type' => 'application/json',
+            'extension_attributes' => [],
+            'sequence' => 0,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testOccurrenceWithNonStringTypeIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(OccurrenceInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'occ-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 123,
+            'version' => '1',
+            'source' => 'source',
+            'subject' => null,
+            'time' => 1000,
+            'data' => [],
+            'data_schema' => null,
+            'content_type' => 'application/json',
+            'extension_attributes' => [],
+            'sequence' => 0,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testOccurrenceWithNonIntTimeIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(OccurrenceInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'occ-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'itpack.custom.v1',
+            'version' => '1',
+            'source' => 'source',
+            'subject' => null,
+            'time' => 'not-int',
+            'data' => [],
+            'data_schema' => null,
+            'content_type' => 'application/json',
+            'extension_attributes' => [],
+            'sequence' => 0,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testOccurrenceWithNonStringContentTypeIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(OccurrenceInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'occ-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'itpack.custom.v1',
+            'version' => '1',
+            'source' => 'source',
+            'subject' => null,
+            'time' => 1000,
+            'data' => [],
+            'data_schema' => null,
+            'content_type' => 123,
+            'extension_attributes' => [],
+            'sequence' => 0,
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testOccurrenceWithNonIntSequenceIsNotTyped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(OccurrenceInterface::class);
+        $mock->method('normalize')->willReturn([
+            'id' => 'occ-1',
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'type' => 'itpack.custom.v1',
+            'version' => '1',
+            'source' => 'source',
+            'subject' => null,
+            'time' => 1000,
+            'data' => [],
+            'data_schema' => null,
+            'content_type' => 'application/json',
+            'extension_attributes' => [],
+            'sequence' => 'not-int',
+        ]);
+
+        $this->assertPublishedOnce($publisher, $mock, $inner);
+        $published = $inner->published()[0];
+        self::assertInstanceOf(ClassifiedArtifact::class, $published);
+    }
+
+    public function testArtifactKindWithVerifiedArtifactProjectionIsDroppedForUnknownType(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $projection = new VerifiedArtifactProjection(
+            ['id' => 'x', 'execution_id' => 'exec'],
+            'custom-type'
+        );
+
+        $publisher->publish($projection);
+
+        self::assertEmpty($inner->published());
+    }
+
+    public function testArtifactKindWithUnknownRedactedTypeIsDropped(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $redacted = new readonly class () implements RedactedArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'unknown-kind';
+            }
+
+            public function normalize(): array
+            {
+                return ['id' => 'x'];
+            }
+        };
+
+        $publisher->publish($redacted);
+
+        self::assertEmpty($inner->published());
+    }
+
+    public function testProjectValueTruncatesLongString(): void
+    {
+        $inner = $this->innerPublisher();
+        $publisher = $this->classifier($inner);
+        $mock = $this->createMock(MeasurementInterface::class);
+        $mock->method('normalize')->willReturn([
+            'name' => 'req',
+            'kind' => 'counter',
+            'unit' => 'count',
+            'value' => 5,
+            'execution_id' => 'exec-1',
+            'activity_id' => null,
+            'timestamp' => 1000,
+            'sequence' => 0,
+            'attributes' => ['long' => str_repeat('a', 5000)],
+        ]);
+
+        $publisher->publish($mock);
+
+        self::assertCount(1, $inner->published());
+    }
 }
