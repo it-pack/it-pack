@@ -23,9 +23,29 @@ interface DurationInterface
     public function nanoseconds(): int;
 
     /**
+     * Returns the duration in whole microseconds, rounding down.
+     */
+    public function microseconds(): int;
+
+    /**
+     * Returns the duration in whole milliseconds, rounding down.
+     */
+    public function milliseconds(): int;
+
+    /**
      * Returns the duration in whole seconds, rounding down.
      */
     public function seconds(): int;
+
+    /**
+     * Returns a duration that is this one plus another, without mutating either.
+     */
+    public function plus(DurationInterface $other): self;
+
+    /**
+     * Indicates whether this duration is equal to another.
+     */
+    public function equals(DurationInterface $other): bool;
 
     /**
      * Returns a human-readable, implementation-defined string representation.

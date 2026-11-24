@@ -41,4 +41,9 @@ interface SnapshotInterface extends
     public function contentHash(): string;
 
     public function predecessorId(): ?SnapshotIdInterface;
+
+    /**
+     * Returns the sequence number of this snapshot.
+     */
+    public function sequence(): int;
 }
