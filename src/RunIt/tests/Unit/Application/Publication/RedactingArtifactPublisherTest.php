@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
@@ -13,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
+use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -99,8 +101,11 @@ final class RedactingArtifactPublisherTest extends Unit
                 true,
             );
             self::fail('Expected InvalidArgumentException');
-        } catch (\InvalidArgumentException $e) {
-            self::assertSame('dropRedactedObservations requires a health reporter.', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame(
+                'dropRedactedObservations requires a health reporter.',
+                $invalidArgumentException->getMessage()
+            );
         }
     }
 
@@ -108,6 +113,7 @@ final class RedactingArtifactPublisherTest extends Unit
     {
         $reporter = new class () implements InternalHealthReporterInterface {
             public bool $reported = false;
+
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->reported = true;
@@ -120,19 +126,19 @@ final class RedactingArtifactPublisherTest extends Unit
             public function __construct(private array $data)
             {
             }
+
             public function artifactType(): string
             {
                 return 'observation';
             }
+
             /** @return array<string, mixed> */
             public function normalize(): array
             {
                 return $this->data;
             }
         };
-        $redactor->method('redact')->willReturnCallback(function () use ($redactedArtifact): ExecutionArtifactInterface {
-            return $redactedArtifact;
-        });
+        $redactor->method('redact')->willReturnCallback(fn (): ExecutionArtifactInterface => $redactedArtifact);
 
         $inner = $this->innerPublisher();
         $publisher = new RedactingArtifactPublisher(
@@ -161,6 +167,7 @@ final class RedactingArtifactPublisherTest extends Unit
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
+
             public function flush(): void
             {
                 $this->flushed = true;
@@ -179,6 +186,7 @@ final class RedactingArtifactPublisherTest extends Unit
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
+
             public function close(): void
             {
                 $this->closed = true;
@@ -195,14 +203,17 @@ final class RedactingArtifactPublisherTest extends Unit
         return new RecordingArtifactPublisher();
     }
 
-    /**
-     * @param string $status
-     * @return \ItPack\RunIt\Contract\Domain\ExecutionInterface
-     */
     private function execution(string $status): ExecutionInterface
     {
-        $definition = ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task'));
-        $execution = Execution::create(ExecutionId::fromString('exec-1'), $definition, Instant::of(1000))->beginRunning();
+        $definition = ExecutionDefinition::create(
+            ExecutionName::fromString('op'),
+            ExecutionKind::fromString('task')
+        );
+        $execution = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            $definition,
+            Instant::of(1000)
+        )->beginRunning();
 
         if ($status === 'succeeded') {
             return $execution->complete(ExecutionSuccess::create(), Instant::of(2000));

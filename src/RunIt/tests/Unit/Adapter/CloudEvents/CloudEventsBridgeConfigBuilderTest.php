@@ -24,8 +24,11 @@ final class CloudEventsBridgeConfigBuilderTest extends Unit
         try {
             $builder->build();
             self::fail('Expected InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            self::assertSame('A CloudEvent sink is required to build the bridge config.', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame(
+                'A CloudEvent sink is required to build the bridge config.',
+                $invalidArgumentException->getMessage()
+            );
         }
     }
 
