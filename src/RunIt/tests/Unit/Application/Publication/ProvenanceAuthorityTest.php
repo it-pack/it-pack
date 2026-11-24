@@ -147,7 +147,6 @@ final class ProvenanceAuthorityTest extends Unit
             public int $calls = 0;
 
             public ?ProvenanceAuthority $authority = null;
-
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->calls++;
