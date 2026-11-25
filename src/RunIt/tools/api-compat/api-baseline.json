@@ -705,7 +705,7 @@
                 "params": [
                     {
                         "name": "event",
-                        "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEvent",
+                        "type": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface",
                         "optional": false
                     }
                 ]
@@ -4251,6 +4251,11 @@
         },
         "constants": [],
         "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
             "currentCoroutineId": {
                 "static": false,
                 "return": "int",
@@ -20536,6 +20541,159 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Domain\\Shared\\AttributeValidator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\AttributeValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\AttributeValidatorInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    }
+                ]
+            },
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertValidAttributes": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "attributes",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\BoundedKeyGuard": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedKeyGuardInterface": "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedKeyGuardInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "emptyKey",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "keyTooLong",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "unsupportedCharacters",
+                        "type": "Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\BoundedPrimitiveValueWalker": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedPrimitiveValueWalkerInterface": "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedPrimitiveValueWalkerInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "valueTooLong",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "valueTooDeep",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "unsupportedValue",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "oversizedArray",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "rejectOversizedArrays",
+                        "type": "bool",
+                        "optional": true
+                    }
+                ]
+            },
+            "assertSupported": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Shared\\CorrelationId": {
         "kind": "class",
         "final": true,
@@ -21020,6 +21178,68 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\StringIdentifierValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\StringIdentifierValidatorInterface"
+        },
+        "constants": {
+            "MAX_LENGTH": "public"
+        },
+        "methods": {
+            "assertValid": {
+                "static": true,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "validate": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\StringValueEquality": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "equals": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "subject",
+                        "type": "ItPack\\RunIt\\Common\\Contract\\StringableInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "other",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\StringValueValidator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\StringValueValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\StringValueValidatorInterface"
         },
         "constants": {
             "MAX_LENGTH": "public"
