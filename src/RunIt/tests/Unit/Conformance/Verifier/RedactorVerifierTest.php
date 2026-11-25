@@ -16,11 +16,13 @@ use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
 /**
  * @group conformance
  */
+#[CoversClass(RedactorVerifier::class)]
 final class RedactorVerifierTest extends Unit
 {
     public function testPortReportsRedactorInterface(): void

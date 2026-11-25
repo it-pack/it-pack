@@ -18,11 +18,13 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\Psr\FakeCurrentExecution;
 use Tests\Support\Fixture\Psr\FakeExecutionScope;
 use Tests\Support\Fixture\Psr\InMemoryLogger;
 use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 
+#[CoversClass(ExecutionAwareLogger::class)]
 final class ExecutionAwareLoggerTest extends Unit
 {
     private function scopeWithExecution(string $id = 'exec-1'): FakeExecutionScope

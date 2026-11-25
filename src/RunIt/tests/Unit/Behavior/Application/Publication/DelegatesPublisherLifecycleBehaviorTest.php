@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\FilteringArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\LifecycleSpy;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 
@@ -19,6 +20,7 @@ use Tests\Support\Fixture\RecordingArtifactPublisher;
  * @group behavior
  * @group publication
  */
+#[CoversClass(FilteringArtifactPublisher::class)]
 final class DelegatesPublisherLifecycleBehaviorTest extends Unit
 {
     public function testFlushAndCloseDelegateToASupportingInner(): void

@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
 use Tests\Support\Fixture\RunItTestKit;
@@ -18,6 +19,7 @@ use Tests\Support\Fixture\RunItTestKit;
 /**
  * M11.6 — server request middleware wraps each request in one execution.
  */
+#[CoversClass(ServerExecutionMiddleware::class)]
 final class ServerExecutionMiddlewareTest extends Unit
 {
     private function middleware(RunItTestKit $kit): ServerExecutionMiddleware

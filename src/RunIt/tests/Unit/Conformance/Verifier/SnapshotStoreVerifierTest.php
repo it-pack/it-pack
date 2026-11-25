@@ -9,11 +9,13 @@ use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\SnapshotStoreVerifier;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
 /**
  * @group conformance
  */
+#[CoversClass(SnapshotStoreVerifier::class)]
 final class SnapshotStoreVerifierTest extends Unit
 {
     public function testPortReportsSnapshotStoreInterface(): void

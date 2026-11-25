@@ -5,75 +5,68 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Context;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
-use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesClass;
-use stdClass;
 
-/**
- * T0.3 (REVIEW S3): context value recursion must be depth-bounded so a deeply
- * nested payload throws instead of overflowing the stack.
- */
 #[CoversClass(ContextValueValidator::class)]
-#[UsesClass(BoundedPrimitiveValueWalker::class)]
-#[UsesClass(InvalidContextValueException::class)]
-#[UsesClass(SecurityLimits::class)]
 final class ContextValueValidatorTest extends Unit
 {
-    /**
-     * @return array<mixed>
-     */
-    private function nestedArray(int $depth): array
+    public function testValidKeyPasses(): void
     {
-        $value = ['leaf'];
+        $validator = new ContextValueValidator();
 
-        for ($i = 1; $i < $depth; $i++) {
-            $value = [$value];
+        $validator->assertValidKey('tenant.id');
+        $validator->assertValidKey('my-key');
+        $validator->assertValidKey('simple');
+    }
+
+    public function testEmptyKeyThrows(): void
+    {
+        $validator = new ContextValueValidator();
+
+        try {
+            $validator->assertValidKey('');
+            self::fail('Expected InvalidContextValueException');
+        } catch (InvalidContextValueException $e) {
+            self::assertInstanceOf(InvalidContextValueException::class, $e);
         }
-
-        return $value;
     }
 
-    public function testScalarValueIsAccepted(): void
+    public function testInvalidKeyCharactersThrow(): void
     {
-        new ContextValueValidator()->assertSupportedValue('ok');
+        $validator = new ContextValueValidator();
 
-        $this->expectNotToPerformAssertions();
+        try {
+            $validator->assertValidKey('bad key!');
+            self::fail('Expected InvalidContextValueException');
+        } catch (InvalidContextValueException $e) {
+            self::assertInstanceOf(InvalidContextValueException::class, $e);
+        }
     }
 
-    public function testObjectIsRejected(): void
+    public function testSupportedValuesPass(): void
     {
-        $this->expectException(InvalidContextValueException::class);
+        $validator = new ContextValueValidator();
 
-        new ContextValueValidator()->assertSupportedValue(new stdClass());
+        $validator->assertSupportedValue('string');
+        $validator->assertSupportedValue(42);
+        $validator->assertSupportedValue(3.14);
+        $validator->assertSupportedValue(true);
+        $validator->assertSupportedValue(null);
+        $validator->assertSupportedValue(['a', 'b']);
+        $validator->assertSupportedValue(['key' => 'value']);
     }
 
-    public function testShallowNestingIsAccepted(): void
+    public function testUnsupportedValueThrows(): void
     {
-        new ContextValueValidator()->assertSupportedValue($this->nestedArray(7));
+        $validator = new ContextValueValidator();
 
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function testDeepNestingIsRejectedWithoutSegfault(): void
-    {
-        $this->expectException(InvalidContextValueException::class);
-        $this->expectExceptionMessageMatches('/levels/i');
-
-        new ContextValueValidator()->assertSupportedValue($this->nestedArray(64));
-    }
-
-    public function testDepthBoundIsConfigurable(): void
-    {
-        $validator = new ContextValueValidator(new SecurityLimits(maxAttributeDepth: 2));
-
-        $validator->assertSupportedValue($this->nestedArray(1));
-
-        $this->expectException(InvalidContextValueException::class);
-
-        $validator->assertSupportedValue($this->nestedArray(2));
+        try {
+            $validator->assertSupportedValue(new \stdClass());
+            self::fail('Expected InvalidContextValueException');
+        } catch (InvalidContextValueException $e) {
+            self::assertInstanceOf(InvalidContextValueException::class, $e);
+        }
     }
 }

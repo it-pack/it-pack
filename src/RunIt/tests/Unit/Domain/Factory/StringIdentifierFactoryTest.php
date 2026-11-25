@@ -13,8 +13,10 @@ use ItPack\RunIt\Domain\Exception\InvalidIdentifierException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
+#[CoversClass(StringIdentifierFactory::class)]
 final class StringIdentifierFactoryTest extends Unit
 {
     public function testFactoryMintsIdentifiersOfTheBoundType(): void

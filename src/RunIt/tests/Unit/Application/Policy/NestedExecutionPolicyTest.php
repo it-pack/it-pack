@@ -18,8 +18,10 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
+#[CoversClass(ActivityOnlyPolicy::class)]
 final class NestedExecutionPolicyTest extends Unit
 {
     private function definition(): ExecutionDefinitionInterface

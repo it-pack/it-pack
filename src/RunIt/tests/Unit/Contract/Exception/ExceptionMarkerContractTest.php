@@ -9,7 +9,9 @@ use InvalidArgumentException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+use PHPUnit\Framework\Attributes\CoversNothing;
 
+#[CoversNothing]
 final class ExceptionMarkerContractTest extends Unit
 {
     /**

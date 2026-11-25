@@ -15,8 +15,10 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
+#[CoversClass(StackContextStorage::class)]
 final class StackContextStorageTest extends Unit
 {
     private function scope(RunItTestKit $kit, string $id): ExecutionScopeInterface

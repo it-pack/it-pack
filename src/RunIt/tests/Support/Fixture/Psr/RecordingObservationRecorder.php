@@ -31,11 +31,11 @@ final class RecordingObservationRecorder implements ObservationRecorderInterface
     private array $recorded = [];
 
     public function record(
-        string $message,
+        string                        $message,
         ?ObservationSeverityInterface $severity = null,
         ?AttributeCollectionInterface $attributes = null,
-        ?Throwable $throwable = null,
-        ?string $diagnosticCode = null,
+        ?Throwable                    $throwable = null,
+        ?string                       $diagnosticCode = null,
     ): ObservationInterface {
         $this->recorded[] = [
             'message' => $message,

@@ -14,11 +14,13 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group application
  * @group security
  */
+#[CoversClass(SnapshotIntegrityVerifier::class)]
 final class SnapshotIntegrityVerifierTest extends Unit
 {
     private function snapshot(
@@ -128,6 +130,6 @@ final class SnapshotIntegrityVerifierTest extends Unit
 
         new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($snapshot, predecessor: null);
 
-        self::expectNotToPerformAssertions();
+        $this->expectNotToPerformAssertions();
     }
 }

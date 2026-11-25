@@ -13,8 +13,10 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
+#[CoversClass(Occurrence::class)]
 final class OccurrenceTest extends Unit
 {
     public function testStableVersionedTypeIsAcceptedAndParsed(): void

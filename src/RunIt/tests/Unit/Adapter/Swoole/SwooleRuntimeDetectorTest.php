@@ -6,12 +6,14 @@ namespace Tests\Unit\Adapter\Swoole;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Swoole\SwooleRuntimeDetector;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 use function Swoole\Coroutine\run;
 
 /**
  * M11.4 / M11.2 — Swoole/OpenSwoole runtime detection.
  */
+#[CoversClass(SwooleRuntimeDetector::class)]
 final class SwooleRuntimeDetectorTest extends Unit
 {
     public function testNotInCoroutineOnMainStack(): void

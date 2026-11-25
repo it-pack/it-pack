@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\Common;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Common\HmacSnapshotSigner;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group adapter
@@ -15,6 +16,7 @@ use ItPack\RunIt\Adapter\Common\HmacSnapshotSigner;
  * @group adapter
  * @group security
  */
+#[CoversClass(HmacSnapshotSigner::class)]
 final class HmacSnapshotSignerTest extends Unit
 {
     public function testSignatureVerifiesForSameContent(): void

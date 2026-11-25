@@ -12,11 +12,13 @@ use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M10.3 — CloudEvent to occurrence mapping, validation, and round trip.
  */
+#[CoversClass(CloudEvent::class)]
 final class CloudEventToOccurrenceMapperTest extends Unit
 {
     private DefaultCloudEventToOccurrenceMapper $mapper;

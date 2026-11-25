@@ -18,7 +18,9 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(Activity::class)]
 final class ActivityTest extends Unit
 {
     public function testTerminalStatusesAreReported(): void

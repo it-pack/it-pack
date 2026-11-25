@@ -21,12 +21,14 @@ use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M9.7 — Occurrences and snapshots to logs and span events.
  */
+#[CoversClass(DefaultOccurrenceLogMapper::class)]
 final class OccurrenceLogMapperTest extends Unit
 {
     private OtelTestKit $kit;

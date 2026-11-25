@@ -7,10 +7,12 @@ namespace Tests\Unit\Contract\Exception;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group contract
  */
+#[CoversClass(InvalidCloudEventException::class)]
 final class InvalidCloudEventExceptionTest extends Unit
 {
     public function testImplementsMarkerInterface(): void

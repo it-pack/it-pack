@@ -40,9 +40,29 @@ use WeakMap;
  */
 final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 {
-    private const string ATTR_FROM = 'from';
+    public const string KEY_FROM = 'from';
 
-    private const string ATTR_TO = 'to';
+    public const string KEY_TO = 'to';
+
+    public const string KEY_PARENT = 'parent';
+
+    public const string KEY_LINK = 'link';
+
+    public const string KEY_EXECUTION_ACTIVITY = 'execution-activity';
+
+    public const string KEY_EXECUTION_OBSERVATION = 'execution-observation';
+
+    public const string KEY_EXECUTION_OCCURRENCE = 'execution-occurrence';
+
+    public const string KEY_EXECUTION_MEASUREMENT = 'execution-measurement';
+
+    public const string KEY_EXECUTION_SNAPSHOT = 'execution-snapshot';
+
+    public const string KEY_EXECUTION_TERMINAL_SNAPSHOT = 'execution-terminal-snapshot';
+
+    public const string KEY_ACTIVITY_ARTIFACT = 'activity-artifact';
+
+    public const string KEY_ACTIVITY_PARENT = 'activity-parent';
 
     /**
      * Valid endpoint role pairs per relationship type. Only these combinations
@@ -50,78 +70,78 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      *
      * @var array<string, array{from: list<string>, to: list<string>}>
      */
-    private const array RELATIONSHIP_ROLES = [
-        'parent' => [
-            self::ATTR_FROM => [
+    public const array RELATIONSHIP_ROLES = [
+        self::KEY_PARENT => [
+            self::KEY_FROM => [
                 'execution',
                 'activity',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'execution',
             ],
         ],
-        'link' => [
-            self::ATTR_FROM => [
+        self::KEY_LINK => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'execution',
             ],
         ],
-        'execution-activity' => [
-            self::ATTR_FROM => [
+        self::KEY_EXECUTION_ACTIVITY  => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'activity',
             ],
         ],
-        'execution-observation' => [
-            self::ATTR_FROM => [
+        self::KEY_EXECUTION_OBSERVATION  => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'observation',
             ],
         ],
-        'execution-occurrence' => [
-            self::ATTR_FROM => [
+        self::KEY_EXECUTION_OCCURRENCE  => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'occurrence',
             ],
         ],
-        'execution-measurement' => [
-            self::ATTR_FROM => [
+        self::KEY_EXECUTION_MEASUREMENT => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'measurement',
             ],
         ],
-        'execution-snapshot' => [
-            self::ATTR_FROM => [
+        self::KEY_EXECUTION_SNAPSHOT => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'snapshot',
             ],
         ],
-        'execution-terminal-snapshot' => [
-            self::ATTR_FROM => [
+        self::KEY_EXECUTION_TERMINAL_SNAPSHOT => [
+            self::KEY_FROM => [
                 'execution',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'snapshot',
                 'terminal-snapshot',
             ],
         ],
-        'activity-artifact' => [
-            self::ATTR_FROM => [
+        self::KEY_ACTIVITY_ARTIFACT => [
+            self::KEY_FROM => [
                 'activity',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'observation',
                 'occurrence',
                 'measurement',
@@ -129,11 +149,11 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
                 'terminal-snapshot',
             ],
         ],
-        'activity-parent' => [
-            self::ATTR_FROM => [
+        self::KEY_ACTIVITY_PARENT => [
+            self::KEY_FROM => [
                 'activity',
             ],
-            self::ATTR_TO => [
+            self::KEY_TO => [
                 'activity',
             ],
         ],
@@ -446,7 +466,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return;
         }
 
-        $relationshipType = $parent ? 'activity-parent' : 'activity-artifact';
+        $relationshipType = $parent ? self::KEY_ACTIVITY_PARENT : self::KEY_ACTIVITY_ARTIFACT;
 
         $this->registerRelationship($activityId, $targetId, $relationshipType);
     }
@@ -693,8 +713,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      */
     private function areRolesValid(array $from, array $to, array $roles): bool
     {
-        $fromRoles = $roles[self::ATTR_FROM];
-        $toRoles = $roles[self::ATTR_TO];
+        $fromRoles = $roles[self::KEY_FROM];
+        $toRoles = $roles[self::KEY_TO];
         assert(is_array($fromRoles));
         assert(is_array($toRoles));
 
@@ -727,8 +747,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $roles = self::RELATIONSHIP_ROLES[$relationshipType] ?? null;
         if ($execution === null || $execution['released'] || $roles === null
             || $this->edgeCount >= $this->maxEdges
-            || !in_array($execution['role'], $roles[self::ATTR_FROM], true)
-            || !in_array($role, $roles[self::ATTR_TO], true)
+            || !in_array($execution['role'], $roles[self::KEY_FROM], true)
+            || !in_array($role, $roles[self::KEY_TO], true)
         ) {
             $this->reportUnverified(new RuntimeException('Provenance relationship rejected.'));
 
@@ -802,7 +822,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     {
         $record = $this->records[$exportId];
         $field = $record['role'] === 'activity' ? ArtifactField::PARENT_ACTIVITY_ID : ArtifactField::ACTIVITY_ID;
-        $relation = $record['role'] === 'activity' ? 'activity-parent' : 'activity-artifact';
+        $relation = $record['role'] === 'activity' ? self::KEY_ACTIVITY_PARENT : self::KEY_ACTIVITY_ARTIFACT;
         $claim = $fields[$field] ?? null;
         $matches = [];
         foreach ($this->incoming[$exportId][$relation] ?? [] as $sourceId => $_) {
@@ -868,7 +888,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $rootId = $this->exportIdForBusinessId($executionId, $executionId, 'execution');
         $root = $rootId !== null ? ($this->records[$rootId] ?? null) : null;
         $relation = $role === 'terminal-snapshot'
-            ? 'execution-terminal-snapshot' : 'execution-' . $role;
+            ? self::KEY_EXECUTION_TERMINAL_SNAPSHOT : 'execution-' . $role;
         if ($root === null || $root['role'] !== 'execution'
             || !isset($this->outgoing[$rootId][$relation][$exportId])) {
             return null;

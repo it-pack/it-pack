@@ -10,7 +10,9 @@ use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(ExecutionContext::class)]
 final class ExecutionContextTest extends Unit
 {
     public function testEmptyContextIsEmpty(): void

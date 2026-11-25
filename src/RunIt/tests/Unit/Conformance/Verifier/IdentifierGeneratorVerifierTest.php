@@ -8,12 +8,14 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\IdentifierGeneratorVerifier;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\SequenceIdentifierGenerator;
 
 /**
  * @group conformance
  */
+#[CoversClass(IdentifierGeneratorVerifier::class)]
 final class IdentifierGeneratorVerifierTest extends Unit
 {
     public function testPortReportsIdentifierGeneratorInterface(): void

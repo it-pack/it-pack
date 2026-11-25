@@ -7,11 +7,13 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Telemetry;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use OpenTelemetry\API\Trace\SpanKind;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group adapter
  * @group open-telemetry
  */
+#[CoversClass(SpanKindMap::class)]
 final class SpanKindMapTest extends Unit
 {
     public function testKindLabelsMapToTheirOpenTelemetrySpanKinds(): void

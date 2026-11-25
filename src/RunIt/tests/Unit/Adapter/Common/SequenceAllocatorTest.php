@@ -9,7 +9,9 @@ use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(InMemorySequenceAllocator::class)]
 final class SequenceAllocatorTest extends Unit
 {
     public function testFirstAllocationForAnExecutionReturnsTheInitialSequence(): void

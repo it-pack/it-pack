@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use OpenSwoole\Coroutine as OpenSwooleCoroutine;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Swoole\Coroutine;
 
 use function Swoole\Coroutine\run;
@@ -33,6 +34,7 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group security
  * @group isolation
  */
+#[CoversClass(FiberContextStorage::class)]
 final class TenantIsolationTest extends Unit
 {
     private function definition(string $name): ExecutionDefinition

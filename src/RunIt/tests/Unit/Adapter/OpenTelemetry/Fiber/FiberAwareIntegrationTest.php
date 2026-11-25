@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use OpenTelemetry\Context\Context;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
@@ -22,6 +23,7 @@ use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
  * from within Fibers and assert the bridge degrades gracefully when no
  * Fiber-aware context storage is present.
  */
+#[CoversClass(BridgeConfigBuilder::class)]
 final class FiberAwareIntegrationTest extends Unit
 {
     public function testMappingFromMultipleFibersDoesNotCrossContaminate(): void

@@ -17,6 +17,7 @@ use ItPack\RunIt\SDK\Builder\ExtendedRunItBuilderInterface;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\RunItInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionClass;
 use RuntimeException;
 use Tests\Support\Fixture\RunItFactories;
@@ -29,6 +30,7 @@ use Tests\Support\Fixture\RunItFactories;
  * `FiberContextStorage`) is accepted. An opt-in validator hook may further
  * constrain or accept pairings.
  */
+#[CoversClass(RunItBuilder::class)]
 final class ConcurrencyValidationTest extends Unit
 {
     private function engine(

@@ -15,11 +15,14 @@ use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M9.4 — Context and propagation.
  */
+#[CoversClass(DefaultContextToOtelMapper::class)]
+#[CoversClass(DefaultOtelToContextExtractor::class)]
 final class ContextPropagationTest extends Unit
 {
     private TextMapPropagatorInterface $propagator;

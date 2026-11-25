@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Common;
 
 use Codeception\Test\Unit;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use Tests\Support\Fixture\RedactedFieldAccessFixture;
 
 /**
@@ -12,6 +13,7 @@ use Tests\Support\Fixture\RedactedFieldAccessFixture;
  * type-checked redacted field extraction used by CloudEventPublisher and
  * DefaultOccurrenceLogMapper.
  */
+#[CoversNothing]
 final class RedactedFieldAccessTest extends Unit
 {
     private RedactedFieldAccessFixture $fixture;

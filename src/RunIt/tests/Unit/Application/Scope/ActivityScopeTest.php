@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Scope;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Scope\ActivityScope;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
@@ -14,12 +15,14 @@ use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * @group application
  * @group scope
  */
+#[CoversClass(ActivityScope::class)]
 final class ActivityScopeTest extends Unit
 {
     private RunItTestKit $kit;

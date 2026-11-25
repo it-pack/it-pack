@@ -11,6 +11,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Sink\CallbackCloudEventSink;
 use ItPack\RunIt\Adapter\CloudEvents\Sink\Psr18CloudEventSink;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -20,6 +21,7 @@ use Tests\Support\Fixture\Psr\RecordingHttpClient;
 /**
  * M10.5 — delivery sinks (callback and PSR-18 HTTP) and failure behavior.
  */
+#[CoversClass(CloudEvent::class)]
 final class CloudEventSinkTest extends Unit
 {
     public function testCallbackSinkReceivesEvent(): void

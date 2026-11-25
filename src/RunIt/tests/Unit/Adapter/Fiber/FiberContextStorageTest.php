@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 use Tests\Support\Fixture\RunItTestKit;
 use WeakReference;
@@ -22,6 +23,7 @@ use WeakReference;
 /**
  * M11.1 — per-Fiber execution context storage.
  */
+#[CoversClass(FiberContextStorage::class)]
 final class FiberContextStorageTest extends Unit
 {
     private function kit(): RunItTestKit

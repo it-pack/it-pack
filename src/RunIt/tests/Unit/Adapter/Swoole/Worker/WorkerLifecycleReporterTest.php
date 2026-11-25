@@ -17,6 +17,7 @@ use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
 use Tests\Support\Fixture\RunItTestKit;
@@ -25,6 +26,7 @@ use Throwable;
 /**
  * M11.7 — worker lifecycle reporting.
  */
+#[CoversClass(WorkerLifecycleReporter::class)]
 final class WorkerLifecycleReporterTest extends Unit
 {
     public function testStartStopAndFailureEmitWorkerOccurrences(): void
@@ -82,13 +84,13 @@ final class WorkerLifecycleReporterTest extends Unit
             }
 
             public function record(
-                string $text,
-                ?ObservationSeverityInterface $level = null,
-                ?AttributeCollectionInterface $data = null,
-                ?Throwable $error = null,
-                ?string $code = null,
+                string                        $message,
+                ?ObservationSeverityInterface $severity = null,
+                ?AttributeCollectionInterface $attributes = null,
+                ?Throwable                    $throwable = null,
+                ?string                       $diagnosticCode = null,
             ): ObservationInterface {
-                $this->arguments = [$text, $level, $data, $error, $code];
+                $this->arguments = [$message, $severity, $attributes, $throwable, $diagnosticCode];
 
                 return $this->observation;
             }

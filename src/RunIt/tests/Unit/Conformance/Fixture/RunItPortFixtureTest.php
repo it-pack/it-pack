@@ -7,10 +7,12 @@ namespace Tests\Unit\Conformance\Fixture;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group conformance
  */
+#[CoversClass(RunItPortFixture::class)]
 final class RunItPortFixtureTest extends Unit
 {
     public function testSafeObservation(): void

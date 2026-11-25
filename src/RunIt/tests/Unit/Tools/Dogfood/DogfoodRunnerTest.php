@@ -22,6 +22,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\Dogfood\FakeProcessRunner;
 use Tools\Dogfood\Process\ProcessRunnerInterface;
 use Tools\Dogfood\Run\DogfoodRunner;
@@ -32,6 +33,7 @@ use Tools\Dogfood\Tool\PredefinedTools;
  * @group tools
  * @group dogfood
  */
+#[CoversClass(DefaultArtifactByteEstimator::class)]
 final class DogfoodRunnerTest extends Unit
 {
     private InMemoryArtifactPublisher $recorder;

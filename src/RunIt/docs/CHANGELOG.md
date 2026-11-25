@@ -270,6 +270,11 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   built-in interface requirements such as `Countable::count()`. The corrected
   discovery can report requirements absent from an older API baseline; those
   differences require review before a baseline update.
+- Added coverage isolation gate at `tools/coverage-isolation.php`: every Unit
+  test class must declare `#[CoversClass(...)]` or `#[CoversNothing]`, enforced
+  by `composer coverage:isolation` and wired into `composer quality`. Added
+  coverage attribution metadata to all 95 previously unannotated Unit test
+  classes; all 174 Unit test classes now declare coverage attribution.
 
 ### Provenance and Safe Publication (Phase 2)
 

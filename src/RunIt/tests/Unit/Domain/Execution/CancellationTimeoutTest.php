@@ -10,7 +10,9 @@ use ItPack\RunIt\Domain\Execution\Timeout;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Duration;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(Cancellation::class)]
 final class CancellationTimeoutTest extends Unit
 {
     public function testCancellationPreservesCauseAndLabels(): void

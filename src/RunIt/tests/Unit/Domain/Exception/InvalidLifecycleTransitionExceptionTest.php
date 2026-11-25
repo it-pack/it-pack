@@ -8,10 +8,12 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group domain
  */
+#[CoversClass(InvalidLifecycleTransitionException::class)]
 final class InvalidLifecycleTransitionExceptionTest extends Unit
 {
     public function testImplementsMarkerInterfaces(): void

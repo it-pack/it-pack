@@ -11,7 +11,9 @@ use ItPack\RunIt\Domain\Execution\Cancellation;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\Timeout;
 use ItPack\RunIt\Domain\Shared\Duration;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(DefaultCancellationMapper::class)]
 final class CancellationTimeoutMapperTest extends Unit
 {
     public function testCancellationMapsToCancelledFailure(): void

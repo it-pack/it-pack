@@ -9,11 +9,13 @@ use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\SamplingPolicyVerifier;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
 /**
  * @group conformance
  */
+#[CoversClass(SamplingPolicyVerifier::class)]
 final class SamplingPolicyVerifierTest extends Unit
 {
     public function testPortReportsSamplingPolicyInterface(): void

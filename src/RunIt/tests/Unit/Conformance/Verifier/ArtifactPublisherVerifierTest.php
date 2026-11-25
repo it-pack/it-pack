@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
@@ -18,6 +19,7 @@ use Tests\Support\Fixture\ThrowingArtifactPublisher;
 /**
  * @group conformance
  */
+#[CoversClass(ArtifactPublisherVerifier::class)]
 final class ArtifactPublisherVerifierTest extends Unit
 {
     public function testPortReportsArtifactPublisherInterface(): void

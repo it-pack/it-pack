@@ -7,10 +7,12 @@ namespace Tests\Unit\Domain\Exception;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidIdentifierException;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group domain
  */
+#[CoversClass(InvalidIdentifierException::class)]
 final class InvalidIdentifierExceptionTest extends Unit
 {
     public function testImplementsMarkerInterface(): void

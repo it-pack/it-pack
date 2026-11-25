@@ -23,6 +23,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use Nyholm\Psr7\Request;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -33,6 +34,7 @@ use Tests\Support\Fixture\Psr\FakeExecutionScope;
 use Tests\Support\Fixture\Psr\RecordingHttpClient;
 use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 
+#[CoversClass(ExecutionMiddleware::class)]
 final class HttpAdaptersTest extends Unit
 {
     public function testExtractorDerivesCardinalitySafeNameAndCorrelation(): void

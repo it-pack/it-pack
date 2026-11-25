@@ -18,6 +18,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
@@ -27,6 +28,7 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group application
  * @group resilience
  */
+#[CoversClass(RejectNestedPolicy::class)]
 final class NestedBoundariesTest extends Unit
 {
     public function testNestingBeyondTheDepthLimitRaisesTheDepthException(): void

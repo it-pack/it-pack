@@ -19,11 +19,13 @@ use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M10.5 / M10 acceptance — CloudEvent publisher dispatches occurrences only.
  */
+#[CoversClass(CloudEventPublisher::class)]
 final class CloudEventPublisherTest extends Unit
 {
     public function testPublishesOccurrenceAsCloudEvent(): void

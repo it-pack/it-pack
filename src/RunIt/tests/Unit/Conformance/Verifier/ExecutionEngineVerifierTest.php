@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use Tests\Support\Fixture\Psr\FakeExecutionScope;
 use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
@@ -23,6 +24,7 @@ use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 /**
  * @group conformance
  */
+#[CoversClass(ExecutionEngineVerifier::class)]
 final class ExecutionEngineVerifierTest extends Unit
 {
     private function scope(): ExecutionScopeInterface

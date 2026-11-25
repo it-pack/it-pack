@@ -16,12 +16,14 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\FakeContextToken;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * M11.2 — runtime-aware composite context storage.
  */
+#[CoversClass(CompositeContextStorage::class)]
 final class CompositeContextStorageTest extends Unit
 {
     private function definition(): ExecutionDefinitionInterface
