@@ -40,6 +40,7 @@
         "nyholm/psr7": "^1.8",
         "open-telemetry/api": "^1.9",
         "open-telemetry/sdk": "^1.0",
+        "openswoole/ide-helper": "^4.11",
         "phparkitect/phparkitect": "^1.2",
         "psr/clock": "^1.0",
         "psr/event-dispatcher": "^1.0",
@@ -47,6 +48,7 @@
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
+        "swoole/ide-helper": "^6.2",
         "symfony/http-client": "^8.1"
     },
     "suggest": {
