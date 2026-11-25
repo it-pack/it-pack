@@ -21,6 +21,9 @@ final class CloudEventExtensionKeyTest extends Unit
 
     public function testKnownKeysReturnsAllCases(): void
     {
-        self::assertSame(['executionid', 'activityid', 'correlationid', 'sequence'], CloudEventExtensionKey::knownKeys());
+        self::assertSame(
+            ['executionid', 'activityid', 'correlationid', 'sequence'],
+            CloudEventExtensionKey::knownKeys(),
+        );
     }
 }

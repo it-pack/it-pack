@@ -19,7 +19,8 @@ final class BoundedKeyGuardTest extends Unit
         $guard = new BoundedKeyGuard(
             new SecurityLimits(),
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
-            fn (int $length, int $maximum): object => new class () extends RuntimeException implements RunItExceptionInterface {},
+            fn (int $length, int $maximum): object =>
+                new class () extends RuntimeException implements RunItExceptionInterface {},
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
         );
 
@@ -32,7 +33,8 @@ final class BoundedKeyGuardTest extends Unit
         $guard = new BoundedKeyGuard(
             new SecurityLimits(),
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
-            fn (int $length, int $maximum): RunItExceptionInterface => new class () extends RuntimeException implements RunItExceptionInterface {},
+            fn (int $length, int $maximum): object =>
+                new class () extends RuntimeException implements RunItExceptionInterface {},
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
         );
 
@@ -45,7 +47,8 @@ final class BoundedKeyGuardTest extends Unit
         $guard = new BoundedKeyGuard(
             new SecurityLimits(),
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
-            fn (int $length, int $maximum): object => new class () extends RuntimeException implements RunItExceptionInterface {},
+            fn (int $length, int $maximum): object =>
+                new class () extends RuntimeException implements RunItExceptionInterface {},
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
         );
 
@@ -58,7 +61,8 @@ final class BoundedKeyGuardTest extends Unit
         $guard = new BoundedKeyGuard(
             new SecurityLimits(),
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
-            fn (int $length, int $maximum): object => new class () extends RuntimeException implements RunItExceptionInterface {},
+            fn (int $length, int $maximum): object =>
+                new class () extends RuntimeException implements RunItExceptionInterface {},
             fn (): object => new class () extends RuntimeException implements RunItExceptionInterface {},
         );
 

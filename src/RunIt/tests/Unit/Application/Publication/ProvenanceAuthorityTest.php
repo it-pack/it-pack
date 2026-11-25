@@ -951,7 +951,16 @@ final class ProvenanceAuthorityTest extends Unit
         $childId = $authority->issueExportId('execution', 'execution', 'exec-1', 'child');
         $authority->issueExportId('activity', 'activity', 'exec-1', 'source');
 
-        $authority->registerRelationship($childId, $authority->issueExportId('activity', 'activity', 'exec-1', 'source'), 'parent');
+        $authority->registerRelationship(
+            $childId,
+            $authority->issueExportId(
+                'activity',
+                'activity',
+                'exec-1',
+                'source'
+            ),
+            'parent'
+        );
 
         $reflection = new ReflectionClass($authority);
         $method = $reflection->getMethod('collectParentExecutionIds');
