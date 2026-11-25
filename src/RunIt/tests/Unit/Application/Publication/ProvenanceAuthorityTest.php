@@ -38,8 +38,8 @@ final class ProvenanceAuthorityTest extends Unit
         try {
             new ProvenanceAuthority(null, 0, 1, 1, 1);
             self::fail('Expected InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            self::assertSame('Provenance retention limits must be positive.', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame('Provenance retention limits must be positive.', $invalidArgumentException->getMessage());
         }
     }
 
@@ -133,7 +133,9 @@ final class ProvenanceAuthorityTest extends Unit
     {
         $reporter = new class () implements InternalHealthReporterInterface {
             public int $calls = 0;
+
             public ?ProvenanceAuthority $authority = null;
+
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $this->calls++;
@@ -270,8 +272,8 @@ final class ProvenanceAuthorityTest extends Unit
         $authority = new ProvenanceAuthority();
         $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
 
-        $authority->bindActivityRelationship(null, null);
-        $authority->bindActivityRelationship('runit-export-abc', null);
+        $authority->bindActivityRelationship();
+        $authority->bindActivityRelationship('runit-export-abc');
         $authority->bindActivityRelationship(null, 'runit-export-def');
 
         self::assertTrue($authority->verifyExportId($exportId, 'execution', 'exec-1'));
@@ -301,8 +303,8 @@ final class ProvenanceAuthorityTest extends Unit
         try {
             $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1', ['parent:other']);
             self::fail('Expected RuntimeException');
-        } catch (RuntimeException $e) {
-            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertStringContainsString('Provenance capacity exceeded', $runtimeException->getMessage());
         }
     }
 
@@ -347,8 +349,8 @@ final class ProvenanceAuthorityTest extends Unit
         try {
             $authority->issueExportId('execution', 'execution', 'exec-1', 'business-2');
             self::fail('Expected RuntimeException');
-        } catch (RuntimeException $e) {
-            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertStringContainsString('Provenance capacity exceeded', $runtimeException->getMessage());
         }
     }
 
@@ -360,8 +362,8 @@ final class ProvenanceAuthorityTest extends Unit
         try {
             $authority->issueExportId('execution', 'execution', 'exec-2', 'business-2');
             self::fail('Expected RuntimeException');
-        } catch (RuntimeException $e) {
-            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertStringContainsString('Provenance capacity exceeded', $runtimeException->getMessage());
         }
     }
 
@@ -372,8 +374,8 @@ final class ProvenanceAuthorityTest extends Unit
         try {
             $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
             self::fail('Expected RuntimeException');
-        } catch (RuntimeException $e) {
-            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertStringContainsString('Provenance capacity exceeded', $runtimeException->getMessage());
         }
     }
 
@@ -405,6 +407,7 @@ final class ProvenanceAuthorityTest extends Unit
                 ArtifactField::ID => 'exec-1',
                 ArtifactField::EXECUTION_ID => 'exec-1',
             ];
+
             /** @return array<string, mixed> */
             public function normalize(): array
             {
@@ -417,6 +420,7 @@ final class ProvenanceAuthorityTest extends Unit
                 ArtifactField::ID => 'exec-1',
                 ArtifactField::EXECUTION_ID => 'exec-1',
             ];
+
             /** @return array<string, mixed> */
             public function normalize(): array
             {
@@ -439,6 +443,7 @@ final class ProvenanceAuthorityTest extends Unit
                 ArtifactField::ID => 'exec-1',
                 ArtifactField::EXECUTION_ID => 'exec-1',
             ];
+
             /** @return array<string, mixed> */
             public function normalize(): array
             {
@@ -464,6 +469,7 @@ final class ProvenanceAuthorityTest extends Unit
                 ArtifactField::ID => 'exec-1',
                 ArtifactField::EXECUTION_ID => 'exec-1',
             ];
+
             /** @return array<string, mixed> */
             public function normalize(): array
             {

@@ -36,6 +36,7 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group isolation
  */
 #[CoversClass(StackContextStorage::class)]
+#[CoversClass(FiberContextStorage::class)]
 final class TenantIsolationTest extends Unit
 {
     public function testSequentialExecutionsLeaveNoAmbientContext(): void

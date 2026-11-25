@@ -48,15 +48,17 @@ final class RedactingArtifactPublisherTest extends Unit
 
     public function testPublishWithRedactorRedacts(): void
     {
-        $redacted = new readonly class (['id' => 'redacted']) implements RedactedArtifactInterface {
+        new readonly class (['id' => 'redacted']) implements RedactedArtifactInterface {
             /** @param array<string, mixed> $data */
             public function __construct(private array $data)
             {
             }
+
             public function artifactType(): string
             {
                 return 'execution';
             }
+
             /** @return array<string, mixed> */
             public function normalize(): array
             {
@@ -72,6 +74,7 @@ final class RedactingArtifactPublisherTest extends Unit
                     {
                         return 'execution';
                     }
+
                     /** @return array<string, mixed> */
                     public function normalize(): array
                     {
@@ -162,8 +165,9 @@ final class RedactingArtifactPublisherTest extends Unit
 
     public function testFlushDelegatesToInner(): void
     {
-        $inner = new class () implements ArtifactPublisherInterface, \ItPack\RunIt\Contract\Port\FlushablePublisherInterface {
+        $inner = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface {
             public bool $flushed = false;
+
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
@@ -183,6 +187,7 @@ final class RedactingArtifactPublisherTest extends Unit
     {
         $inner = new class () implements ArtifactPublisherInterface, CloseablePublisherInterface {
             public bool $closed = false;
+
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
