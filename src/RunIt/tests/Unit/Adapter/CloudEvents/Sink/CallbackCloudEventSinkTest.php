@@ -16,7 +16,7 @@ final class CallbackCloudEventSinkTest extends Unit
     /**
      * @throws Throwable
      */
-    public function testSendForwardsToCallback(): void
+    public function testSendForwardsToClosure(): void
     {
         $received = null;
         $sink = new CallbackCloudEventSink(function (CloudEventInterface $event) use (&$received): void {
@@ -28,5 +28,47 @@ final class CallbackCloudEventSinkTest extends Unit
 
         self::assertInstanceOf(CloudEventInterface::class, $received);
         self::assertSame($event, $received);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function testSendForwardsToArrayCallable(): void
+    {
+        $receiver = new class () {
+            public ?CloudEventInterface $event = null;
+
+            public function receive(CloudEventInterface $event): void
+            {
+                $this->event = $event;
+            }
+        };
+        $sink = new CallbackCloudEventSink($receiver->receive(...));
+        $event = $this->createMock(CloudEventInterface::class);
+
+        $sink->send($event);
+
+        self::assertSame($event, $receiver->event);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function testSendForwardsToInvokableObject(): void
+    {
+        $invokable = new class () {
+            public ?CloudEventInterface $event = null;
+
+            public function __invoke(CloudEventInterface $event): void
+            {
+                $this->event = $event;
+            }
+        };
+        $sink = new CallbackCloudEventSink($invokable);
+        $event = $this->createMock(CloudEventInterface::class);
+
+        $sink->send($event);
+
+        self::assertSame($event, $invokable->event);
     }
 }

@@ -64,7 +64,8 @@ final class StringValueEqualityTest extends Unit
         ) implements StringableInterface {
             public function __construct(
                 public string $value
-            ){}
+            ) {
+            }
 
             public function toString(): string
             {
