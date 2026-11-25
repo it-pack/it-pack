@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Swoole;
 
+use Closure;
 use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
 use OpenSwoole\Coroutine as OpenSwooleCoroutine;
 use Swoole\Coroutine as SwooleCoroutine;
@@ -19,16 +20,43 @@ use Swoole\Coroutine as SwooleCoroutine;
  */
 final class SwooleCoroutineIdProvider implements CoroutineIdProviderInterface
 {
+    private const int NON_ID = -1;
+
+    /** @phpstan-ignore-next-line */
+    private static Closure $getCid;
+
+    public function __construct()
+    {
+        $this->setup();
+    }
+
+
     public function currentCoroutineId(): int
     {
-        if (class_exists(SwooleCoroutine::class) && method_exists(SwooleCoroutine::class, 'getCid')) {
-            return SwooleCoroutine::getCid();
+        /** @phpstan-ignore return.type */
+        return (self::$getCid)();
+    }
+
+    /** @noinspection PhpUndefinedClassInspection */
+    private function setup(): void
+    {
+        if (isset(self::$getCid)) {
+            return;
         }
 
-        if (class_exists(OpenSwooleCoroutine::class) && method_exists(OpenSwooleCoroutine::class, 'getCid')) {
-            return OpenSwooleCoroutine::getCid();
+        /** @phpstan-ignore class.notFound */
+        foreach ([SwooleCoroutine::class, OpenSwooleCoroutine::class] as $candidate) {
+            if (class_exists($candidate)
+                && method_exists($candidate, 'getCid')
+            ) {
+                /** @phpstan-ignore-next-line */
+                self::$getCid = $candidate::getCid(...);
+
+                return;
+            }
         }
 
-        return -1;
+        /** @phpstan-ignore-next-line */
+        self::$getCid = static fn (): int => self::NON_ID;
     }
 }

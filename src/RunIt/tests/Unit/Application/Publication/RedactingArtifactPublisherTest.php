@@ -57,24 +57,6 @@ final class RedactingArtifactPublisherTest extends Unit
 
     public function testPublishWithRedactorRedacts(): void
     {
-        new readonly class (['id' => 'redacted']) implements RedactedArtifactInterface {
-            /** @param array<string, mixed> $data */
-            public function __construct(private array $data)
-            {
-            }
-
-            public function artifactType(): string
-            {
-                return 'execution';
-            }
-
-            /** @return array<string, mixed> */
-            public function normalize(): array
-            {
-                return $this->data;
-            }
-        };
-
         $redactor = new class () implements RedactorInterface {
             public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
             {

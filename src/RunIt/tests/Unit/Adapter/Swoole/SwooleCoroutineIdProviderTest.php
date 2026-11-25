@@ -8,7 +8,9 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 use OpenSwoole\Coroutine as OpenSwooleCoroutine;
 
+/** @phpstan-ignore function.notFound */
 use function OpenSwoole\Coroutine\go as open_swoole_go;
+/** @phpstan-ignore function.notFound */
 use function OpenSwoole\Coroutine\run as open_swoole_run;
 
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -31,14 +33,18 @@ final class SwooleCoroutineIdProviderTest extends Unit
     public function testCurrentCoroutineIdReturnsNonNegativeInt(): void
     {
         if (!$this->swooleInstalled() && !$this->openSwooleInstalled()) {
-            $this->markTestSkipped();
+            self::markTestSkipped();
         }
 
         $run = $this->swooleInstalled()
+            /** @phpstan-ignore function.notFound */
             ? swoole_run(...)
+            /** @phpstan-ignore function.notFound */
             : open_swoole_run(...);
         $go = $this->swooleInstalled()
+            /** @phpstan-ignore function.notFound */
             ? swoole_go(...)
+            /** @phpstan-ignore function.notFound */
             : open_swoole_go(...);
 
         $provider = new SwooleCoroutineIdProvider();
@@ -60,6 +66,7 @@ final class SwooleCoroutineIdProviderTest extends Unit
         return
             function_exists('\Swoole\Coroutine\go')
             && function_exists('\Swoole\Coroutine\run')
+            /** @phpstan-ignore-next-line */
             && method_exists(SwooleCoroutine::class, 'getCid');
     }
 
@@ -69,6 +76,7 @@ final class SwooleCoroutineIdProviderTest extends Unit
         return
             function_exists('\OpenSwoole\Coroutine\go')
             && function_exists('\OpenSwoole\Coroutine\run')
+            /** @phpstan-ignore-next-line */
             && method_exists(OpenSwooleCoroutine::class, 'getCid');
     }
 }
