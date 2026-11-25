@@ -30,7 +30,5 @@ final class Psr7ResponseCorrelationEnricherTest extends Unit
         $response->method('withHeader')->willReturn($response);
 
         $enricher->enrich($response, 'exec-1');
-
-        self::assertTrue(true);
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Swoole;
 
-use Closure;
 use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
 use OpenSwoole\Coroutine as OpenSwooleCoroutine;
 use Swoole\Coroutine as SwooleCoroutine;
@@ -20,36 +19,16 @@ use Swoole\Coroutine as SwooleCoroutine;
  */
 final class SwooleCoroutineIdProvider implements CoroutineIdProviderInterface
 {
-    private static Closure $getCid;
-
-    public function __construct()
-    {
-        $this->setup();
-    }
-
-
     public function currentCoroutineId(): int
     {
-        return (self::$getCid)();
-    }
-
-    /** @noinspection PhpUndefinedClassInspection */
-    private function setup(): void
-    {
-        if (isset(self::$getCid)) {
-            return;
+        if (class_exists(SwooleCoroutine::class) && method_exists(SwooleCoroutine::class, 'getCid')) {
+            return SwooleCoroutine::getCid();
         }
 
-        foreach ([SwooleCoroutine::class, OpenSwooleCoroutine::class] as $candidate) {
-            if (class_exists($candidate)
-                && method_exists($candidate, 'getCid')
-            ) {
-                self::$getCid = $candidate::getCid(...);
-
-                return;
-            }
+        if (class_exists(OpenSwooleCoroutine::class) && method_exists(OpenSwooleCoroutine::class, 'getCid')) {
+            return OpenSwooleCoroutine::getCid();
         }
 
-        self::$getCid = static fn (): int => -1;
+        return -1;
     }
 }

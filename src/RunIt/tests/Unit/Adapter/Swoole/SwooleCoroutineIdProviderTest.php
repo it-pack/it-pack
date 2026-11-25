@@ -24,7 +24,7 @@ final class SwooleCoroutineIdProviderTest extends Unit
     {
         $provider = new SwooleCoroutineIdProvider();
 
-        self::assertIsInt($provider->currentCoroutineId());
+        self::assertTrue($provider->currentCoroutineId() >= -1);
     }
 
     /** @noinspection PhpUndefinedFunctionInspection */

@@ -21,6 +21,5 @@ final class FiberContextTokenTest extends Unit
 
         self::assertSame($anchor, $token->anchor);
         self::assertSame($scope, $token->scope);
-        self::assertIsInt($token->id());
     }
 }

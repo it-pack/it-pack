@@ -13,12 +13,12 @@ final class SystemMonotonicClockTest extends Unit
 {
     public function testNowSeconds(): void
     {
-        self::assertIsInt(new SystemMonotonicClock()->nowSeconds());
+        self::assertGreaterThan(0, new SystemMonotonicClock()->nowSeconds());
     }
 
     public function testMonotonicNanoseconds(): void
     {
-        self::assertIsInt(new SystemMonotonicClock()->monotonicNanoseconds());
+        self::assertGreaterThan(0, new SystemMonotonicClock()->monotonicNanoseconds());
     }
 
     public function testMeasureReturnsDuration(): void

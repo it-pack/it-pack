@@ -18,7 +18,5 @@ final class NullSnapshotStoreTest extends Unit
         $snapshot = $this->createMock(SnapshotInterface::class);
 
         $store->store($snapshot);
-
-        self::assertTrue(true);
     }
 }

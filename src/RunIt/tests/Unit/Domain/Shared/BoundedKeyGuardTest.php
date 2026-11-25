@@ -63,7 +63,5 @@ final class BoundedKeyGuardTest extends Unit
         );
 
         $guard->assertValidKey('valid-key.name_1');
-
-        self::assertTrue(true);
     }
 }
