@@ -44,7 +44,11 @@ foreach ($iterator as $file) {
         exit(2);
     }
     ++$checked;
-    if (!preg_match('/#\[CoversClass\(/', $content) && !preg_match('/#\[CoversNothing/', $content)) {
+    if (
+        !preg_match('/#\[CoversClass\(/', $content)
+        && !preg_match('/#\[CoversTrait\(/', $content)
+        && !preg_match('/#\[CoversNothing/', $content)
+    ) {
         $missing[] = $path;
     }
 }
