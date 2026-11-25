@@ -617,41 +617,34 @@ final class ProvenanceAuthorityTest extends Unit
         $authority = new ProvenanceAuthority();
         $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
 
+        $sourceId = $authority->issueExportId('execution', 'execution', 'exec-1', 'source-exec');
         $targetId = $authority->issueExportId('execution', 'execution', 'exec-1', 'linked-exec');
 
-        $authority->registerRelationship(
-            $targetId,
-            $authority->issueExportId('execution', 'execution', 'exec-1', 'source-exec'),
-            'link',
-        );
+        $authority->registerRelationship($sourceId, $targetId, 'link');
 
         $reflection = new ReflectionClass($authority);
         $method = $reflection->getMethod('linkedExecutionIds');
 
-        $result = $method->invoke($authority, $targetId, ['parent_execution_id' => 'parent-exec']);
+        $result = $method->invoke($authority, $targetId, ['parent_execution_id' => 'source-exec']);
 
-        self::assertIsArray($result);
+        self::assertSame([$sourceId], $result);
     }
 
     public function testCollectParentExecutionIdsReturnsParents(): void
     {
         $authority = new ProvenanceAuthority();
-        $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
+        $parentId = $authority->issueExportId('execution', 'execution', 'exec-1', 'parent-exec');
 
         $targetId = $authority->issueExportId('execution', 'execution', 'exec-1', 'child-exec');
 
-        $authority->registerRelationship(
-            $targetId,
-            $authority->issueExportId('execution', 'execution', 'exec-1', 'source-exec'),
-            'parent',
-        );
+        $authority->registerRelationship($parentId, $targetId, 'parent');
 
         $reflection = new ReflectionClass($authority);
         $method = $reflection->getMethod('collectParentExecutionIds');
 
         $result = $method->invoke($authority, $targetId, [ArtifactField::PARENT_EXECUTION_ID => 'parent-exec']);
 
-        self::assertIsArray($result);
+        self::assertSame([$parentId], $result);
     }
 
     public function testExportExecutionIdentityFieldsWithLinkedClaims(): void
@@ -722,7 +715,7 @@ final class ProvenanceAuthorityTest extends Unit
 
         $authority->bindActivityRelationship($targetId, $activityId, false);
 
-        self::assertSame($activityId, $activityId);
+        self::assertSame([], $authority->allRecords()[$activityId]['relationships']);
     }
 
     public function testActivityIdentityFieldsNoIncoming(): void
@@ -830,7 +823,7 @@ final class ProvenanceAuthorityTest extends Unit
 
         $authority->bindActivityRelationship($targetId, $activityId, false);
 
-        self::assertSame($activityId, $activityId);
+        self::assertFalse(array_key_exists($activityId, $authority->allRecords()));
     }
 
     public function testBusinessIdForExportIdReturnsNullForUnknownId(): void

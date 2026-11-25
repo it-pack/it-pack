@@ -452,6 +452,10 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return;
         }
 
+        if ($this->releasing) {
+            return;
+        }
+
         if (!isset($this->records[$targetId]) || !isset($this->records[$activityId])) {
             return;
         }
