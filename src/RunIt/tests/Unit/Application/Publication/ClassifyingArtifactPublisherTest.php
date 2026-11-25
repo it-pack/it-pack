@@ -1890,6 +1890,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $inner = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface {
             /** @var list<ExecutionArtifactInterface> */
             public array $published = [];
+            public bool $flushed = false;
 
             public function publish(ExecutionArtifactInterface $artifact): void
             {
@@ -1898,32 +1899,36 @@ final class ClassifyingArtifactPublisherTest extends Unit
 
             public function flush(): void
             {
+                $this->flushed = true;
             }
         };
         $publisher = new ClassifyingArtifactPublisher($inner);
 
         $publisher->flush();
 
-        self::assertInstanceOf(FlushablePublisherInterface::class, $inner);
+        self::assertTrue($inner->flushed);
         self::assertCount(0, $inner->published);
     }
 
     public function testCloseDelegatesToInnerWhenInnerIsCloseable(): void
     {
         $inner = new class () implements ArtifactPublisherInterface, CloseablePublisherInterface {
+            public bool $closed = false;
+
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
 
             public function close(): void
             {
+                $this->closed = true;
             }
         };
         $publisher = new ClassifyingArtifactPublisher($inner);
 
         $publisher->close();
 
-        self::assertInstanceOf(CloseablePublisherInterface::class, $inner);
+        self::assertTrue($inner->closed);
     }
 
     public function testSnapshotWithInvalidPayloadIsDropped(): void

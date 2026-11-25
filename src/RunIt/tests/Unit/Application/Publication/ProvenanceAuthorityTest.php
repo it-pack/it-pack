@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Instant;
 use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
@@ -131,20 +132,20 @@ final class ProvenanceAuthorityTest extends Unit
     public function testReportUnverifiedIsGuardedAgainstReentrancy(): void
     {
         $reporter = new class () implements InternalHealthReporterInterface {
-            public bool $reported = false;
+            public int $calls = 0;
+            public ?ProvenanceAuthority $authority = null;
             public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
-                $this->reported = true;
+                $this->calls++;
+                $this->authority?->reportUnverified(new RuntimeException('nested'));
             }
         };
         $authority = new ProvenanceAuthority($reporter);
+        $reporter->authority = $authority;
         $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
 
         $authority->reportUnverified(new RuntimeException('first'));
-        self::assertTrue($reporter->reported);
-
-        $authority->reportUnverified(new RuntimeException('second'));
-        self::assertTrue($reporter->reported);
+        self::assertSame(1, $reporter->calls);
     }
 
     public function testReportUnverifiedUsesFallbackWhenNoHealthReporter(): void
@@ -153,6 +154,8 @@ final class ProvenanceAuthorityTest extends Unit
         $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
 
         $authority->reportUnverified(new RuntimeException('unverified drop'));
+
+        self::assertTrue($authority->hasLiveRecords('exec-1'));
     }
 
     public function testBindArtifactReturnsNullWhenRelationshipRejected(): void
@@ -265,10 +268,13 @@ final class ProvenanceAuthorityTest extends Unit
     public function testBindActivityRelationshipWithNullIdsIsNoOp(): void
     {
         $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
 
         $authority->bindActivityRelationship(null, null);
         $authority->bindActivityRelationship('runit-export-abc', null);
         $authority->bindActivityRelationship(null, 'runit-export-def');
+
+        self::assertTrue($authority->verifyExportId($exportId, 'execution', 'exec-1'));
     }
 
     public function testAllRecordsReturnsEmptyInitially(): void
@@ -317,5 +323,172 @@ final class ProvenanceAuthorityTest extends Unit
 
         self::assertNotNull($exportId);
         self::assertStringStartsWith('runit-export-', $exportId);
+    }
+
+    public function testRegisterRelationshipRejectsWhenMaxEdgesReached(): void
+    {
+        $authority = new ProvenanceAuthority(null, 100000, 1, 1024, 100000);
+        $from = $authority->issueExportId('execution', 'execution', 'exec-1', 'parent');
+        $to = $authority->issueExportId('execution', 'execution', 'exec-1', 'child');
+
+        self::assertTrue($authority->registerRelationship($from, $to, 'parent'));
+
+        $from2 = $authority->issueExportId('execution', 'execution', 'exec-1', 'parent2');
+        $to2 = $authority->issueExportId('execution', 'execution', 'exec-1', 'child2');
+
+        self::assertFalse($authority->registerRelationship($from2, $to2, 'parent'));
+    }
+
+    public function testIssueExportIdRejectsWhenMaxRecordsPerExecutionReached(): void
+    {
+        $authority = new ProvenanceAuthority(null, 1, 100000, 1024, 100000);
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+
+        try {
+            $authority->issueExportId('execution', 'execution', 'exec-1', 'business-2');
+            self::fail('Expected RuntimeException');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        }
+    }
+
+    public function testIssueExportIdRejectsWhenMaxTotalRecordsReached(): void
+    {
+        $authority = new ProvenanceAuthority(null, 100000, 100000, 1024, 1);
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+
+        try {
+            $authority->issueExportId('execution', 'execution', 'exec-2', 'business-2');
+            self::fail('Expected RuntimeException');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        }
+    }
+
+    public function testIssueExportIdRejectsWhenIdentifierTooLong(): void
+    {
+        $authority = new ProvenanceAuthority(null, 100000, 100000, 5, 100000);
+
+        try {
+            $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+            self::fail('Expected RuntimeException');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('Provenance capacity exceeded', $e->getMessage());
+        }
+    }
+
+    public function testRegisterRelationshipRejectsCrossExecutionActivityEdge(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $from = $authority->issueExportId('activity', 'activity', 'exec-1', 'act-1');
+        $to = $authority->issueExportId('observation', 'observation', 'exec-2', 'obs-1');
+
+        self::assertFalse($authority->registerRelationship($from, $to, 'activity-artifact'));
+    }
+
+    public function testRegisterRelationshipRejectsSelfReferencingActivityEdge(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $from = $authority->issueExportId('activity', 'activity', 'exec-1', 'act-1');
+
+        self::assertFalse($authority->registerRelationship($from, $from, 'activity-artifact'));
+    }
+
+    public function testAttestSuccessorReturnsTrueForValidSuccessor(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $previous = new class () implements ExecutionArtifactInterface {
+            /** @var array<string, mixed> */
+            public array $fields = [
+                ArtifactField::ID => 'exec-1',
+                ArtifactField::EXECUTION_ID => 'exec-1',
+            ];
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return $this->fields;
+            }
+        };
+        $successor = new class () implements ExecutionArtifactInterface {
+            /** @var array<string, mixed> */
+            public array $fields = [
+                ArtifactField::ID => 'exec-1',
+                ArtifactField::EXECUTION_ID => 'exec-1',
+            ];
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return $this->fields;
+            }
+        };
+
+        self::assertTrue($authority->attest($previous, $exportId));
+        self::assertTrue($authority->attestSuccessor($previous, $successor));
+    }
+
+    public function testExportIdentityFieldsReturnsFieldsForAttestedArtifact(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $artifact = new class () implements ExecutionArtifactInterface {
+            /** @var array<string, mixed> */
+            public array $fields = [
+                ArtifactField::ID => 'exec-1',
+                ArtifactField::EXECUTION_ID => 'exec-1',
+            ];
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return $this->fields;
+            }
+        };
+
+        self::assertTrue($authority->attest($artifact, $exportId));
+        $fields = $authority->exportIdentityFields($artifact);
+
+        self::assertNotNull($fields);
+        self::assertArrayHasKey(ArtifactField::ID, $fields);
+    }
+
+    public function testExportIdForArtifactReturnsNullWhenIdentityFieldsChange(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        $artifact = new class () implements ExecutionArtifactInterface {
+            /** @var array<string, mixed> */
+            public array $fields = [
+                ArtifactField::ID => 'exec-1',
+                ArtifactField::EXECUTION_ID => 'exec-1',
+            ];
+            /** @return array<string, mixed> */
+            public function normalize(): array
+            {
+                return $this->fields;
+            }
+        };
+
+        self::assertTrue($authority->attest($artifact, $exportId));
+        self::assertSame($exportId, $authority->exportIdForArtifact($artifact));
+
+        $artifact->fields[ArtifactField::ID] = 'changed';
+        self::assertNull($authority->exportIdForArtifact($artifact));
+    }
+
+    public function testReleaseExecutionRemovesRecordsAndEdges(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $executionId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+        $artifactId = $authority->issueExportId('observation', 'observation', 'exec-1', 'obs-1');
+
+        self::assertTrue($authority->registerRelationship($executionId, $artifactId, 'execution-observation'));
+
+        $authority->releaseExecution('exec-1');
+
+        self::assertFalse($authority->verifyExportId($executionId, 'execution', 'exec-1'));
+        self::assertFalse($authority->verifyExportId($artifactId, 'observation', 'exec-1'));
     }
 }

@@ -157,29 +157,37 @@ final class RedactingArtifactPublisherTest extends Unit
     public function testFlushDelegatesToInner(): void
     {
         $inner = new class () implements ArtifactPublisherInterface, \ItPack\RunIt\Contract\Port\FlushablePublisherInterface {
+            public bool $flushed = false;
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
             public function flush(): void
             {
+                $this->flushed = true;
             }
         };
         $publisher = new RedactingArtifactPublisher(null, $inner);
         $publisher->flush();
+
+        self::assertTrue($inner->flushed);
     }
 
     public function testCloseDelegatesToInner(): void
     {
         $inner = new class () implements ArtifactPublisherInterface, CloseablePublisherInterface {
+            public bool $closed = false;
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
             public function close(): void
             {
+                $this->closed = true;
             }
         };
         $publisher = new RedactingArtifactPublisher(null, $inner);
         $publisher->close();
+
+        self::assertTrue($inner->closed);
     }
 
     private function innerPublisher(): RecordingArtifactPublisher
