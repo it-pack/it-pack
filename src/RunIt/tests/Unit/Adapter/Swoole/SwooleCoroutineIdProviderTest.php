@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUndefinedFunctionInspection */
 /** @noinspection PhpUndefinedNamespaceInspection */
 /** @noinspection PhpUndefinedClassInspection */

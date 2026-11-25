@@ -7,7 +7,6 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\RecursivePublicationException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use RuntimeException;
 
 #[CoversClass(RecursivePublicationException::class)]
 final class RecursivePublicationExceptionTest extends Unit

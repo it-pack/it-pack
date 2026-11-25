@@ -158,6 +158,7 @@ final class RedactingArtifactPublisherTest extends Unit
     {
         $inner = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface {
             public bool $flushed = false;
+
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
