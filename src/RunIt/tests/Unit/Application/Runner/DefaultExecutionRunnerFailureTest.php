@@ -232,10 +232,12 @@ final class DefaultExecutionRunnerFailureTest extends Unit
         }
 
         $reported = 0;
+        $reportedFailures = [];
         $kit = new RunItTestKit(
             publisher: $publisher,
-            onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$reported, &$reportedFailures): void {
                 ++$reported;
+                $reportedFailures[] = $failure;
             },
             storage: $storage,
         );
@@ -262,9 +264,12 @@ final class DefaultExecutionRunnerFailureTest extends Unit
             $result,
         );
 
-        if (in_array($scenario, ['detach', 'business'], true)) {
-            self::assertGreaterThan(0, $reported, 'detach failure must reach the health callback');
+        if ($scenario === 'business') {
+            self::assertSame(2, $reported, 'terminal publication and detach failures must both be reported');
+        } elseif ($scenario === 'detach') {
+            self::assertSame(1, $reported, 'detach failure must reach the health callback');
         } else {
+            self::assertTrue(in_array($failure, $reportedFailures, true), 'start/terminal publication failure must be reported');
             self::assertNull($kit->storage->current(), 'previous context must be restored after normal detach');
         }
     }
@@ -280,7 +285,7 @@ final class DefaultExecutionRunnerFailureTest extends Unit
         );
     }
 
-    public function createArtifactPublisher(
+    private function createArtifactPublisher(
         int $published,
         string $scenario,
         RuntimeException $failure
@@ -296,19 +301,5 @@ final class DefaultExecutionRunnerFailureTest extends Unit
             },
         );
         return $publisher;
-    }
-
-    public function createItTestKit(
-        ArtifactPublisherInterface $publisher,
-        int $reported,
-        ?ContextStorageInterface $storage
-    ): RunItTestKit {
-        return new RunItTestKit(
-            publisher: $publisher,
-            onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
-                ++$reported;
-            },
-            storage: $storage,
-        );
     }
 }
