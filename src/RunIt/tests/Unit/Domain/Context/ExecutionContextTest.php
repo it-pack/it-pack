@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\Context;
 
+use ArrayIterator;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ContextCollisionPolicy;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
@@ -109,6 +110,30 @@ final class ExecutionContextTest extends Unit
         $this->expectException(InvalidContextValueException::class);
 
         $context->with(ContextEntry::public(ContextKey::fromString('overflow'), 1));
+    }
+
+    public function testMergeEnforcesCapacityOnNewKey(): void
+    {
+        $base = ExecutionContext::empty();
+        for ($index = 0; $index < ExecutionContext::MAX_ENTRIES; ++$index) {
+            $base = $base->with(ContextEntry::public(ContextKey::fromString('k' . $index), $index));
+        }
+
+        $other = ExecutionContext::empty()->with(ContextEntry::public(ContextKey::fromString('new'), 1));
+
+        $this->expectException(InvalidContextValueException::class);
+        $base->merge($other, ContextCollisionPolicy::Replace);
+    }
+
+    public function testGetIteratorReturnsEntryIterator(): void
+    {
+        /** @var ExecutionContext $context */
+        $context = ExecutionContext::empty()->with(ContextEntry::public(ContextKey::fromString('a'), 1));
+
+        $iterator = $context->getIterator();
+
+        self::assertInstanceOf(ArrayIterator::class, $iterator);
+        self::assertSame(1, iterator_count($iterator));
     }
 
     public function testIterationYieldsEntries(): void

@@ -7,6 +7,7 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\ClassifiedOccurrenceFactory;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
@@ -47,6 +48,31 @@ final class ClassifiedOccurrenceFactoryTest extends Unit
         self::assertSame('occ-1', $result->id()->toString());
         self::assertSame('exec-1', $result->executionId()->toString());
         self::assertSame('itpack.custom.v1', $result->type()->toString());
+    }
+
+    public function testCreateWithValidActivityIdReturnsOccurrence(): void
+    {
+        $factory = new ClassifiedOccurrenceFactory();
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-1'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.custom.v1'),
+            'test-source',
+            Instant::of(1000),
+            [],
+            ActivityId::fromString('act-1'),
+            null,
+            null,
+            'application/json',
+            AttributeCollection::empty(),
+            ArtifactSequence::initial()
+        );
+        $fields = $occurrence->normalize();
+
+        $result = $factory->create($fields);
+
+        self::assertInstanceOf(OccurrenceInterface::class, $result);
+        self::assertSame('act-1', $result->activityId()?->toString());
     }
 
     public function testCreateWithMissingKeyReturnsNull(): void

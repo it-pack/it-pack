@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Exception\ConflictingActivityCompletionException;
 use ItPack\RunIt\Domain\Exception\InvalidActivityTransitionException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Domain\Shared\Duration;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -209,6 +210,44 @@ final class ActivityTest extends Unit
         );
 
         self::assertSame(['http.status' => 200], $activity->attributes());
+        self::assertSame(1000, $activity->startedAt()->epochSeconds());
+        self::assertNull($activity->endedAt());
+        self::assertNull($activity->duration());
+        self::assertNull($activity->throwableDescription());
+    }
+
+    public function testCompletedActivityExposesDurationAndThrowable(): void
+    {
+        $description = ThrowableDescription::create(
+            'RuntimeException',
+            'boom',
+            0,
+            previous: null,
+            trace: null,
+        );
+        $duration = Duration::ofNanoseconds(5_000_000);
+
+        $running = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        );
+        $done = $running->complete(
+            ActivityStatus::Succeeded,
+            throwableDescription: $description,
+            endedAt: Instant::of(2000),
+            duration: $duration,
+        );
+
+        self::assertSame(2000, $done->endedAt()?->epochSeconds());
+        self::assertSame($description, $done->throwableDescription());
+        self::assertSame($duration, $done->duration());
+
+        $normalized = $done->normalize();
+        self::assertSame(5_000_000, $normalized['duration_ns']);
+        self::assertSame(1000, $normalized['started_at']);
+        self::assertSame(2000, $normalized['ended_at']);
     }
 
     public function testNormalizationIsDeterministic(): void

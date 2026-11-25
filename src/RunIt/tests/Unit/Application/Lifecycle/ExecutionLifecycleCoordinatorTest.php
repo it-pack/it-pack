@@ -47,6 +47,14 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         self::assertSame(ExecutionStatus::Running, $running->status());
     }
 
+    public function testStartRejectsNonCreatedStatus(): void
+    {
+        $coordinator = new ExecutionLifecycleCoordinator();
+
+        $this->expectException(InvalidLifecycleTransitionException::class);
+        $coordinator->start($this->running());
+    }
+
     public function testRunningToSucceededIsAllowed(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();

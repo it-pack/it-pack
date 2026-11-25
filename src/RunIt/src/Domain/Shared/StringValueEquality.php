@@ -19,10 +19,6 @@ use ItPack\RunIt\Common\Contract\StringValueEqualityInterface;
  */
 final readonly class StringValueEquality implements StringValueEqualityInterface
 {
-    private function __construct()
-    {
-    }
-
     public static function equals(StringableInterface $subject, object $other): bool
     {
         if ($other::class !== $subject::class || !$other instanceof StringableInterface) {

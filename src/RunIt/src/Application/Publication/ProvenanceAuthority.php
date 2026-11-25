@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use InvalidArgumentException;
 use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
+use ItPack\RunIt\Behavior\Application\Publication\ProvenanceVerificationGuards;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\ProvenanceAuthorityInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
@@ -41,6 +42,8 @@ use WeakMap;
  */
 final class ProvenanceAuthority implements ProvenanceAuthorityInterface
 {
+    use ProvenanceVerificationGuards;
+
     public const string KEY_FROM = 'from';
 
     public const string KEY_TO = 'to';
@@ -217,7 +220,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return false;
         }
 
-        try {
+        return $this->safeVerify(function () use ($artifact, $exportId): bool {
             $fields = $this->identityFields($artifact);
             $record = $this->records[$exportId];
             $executionId = $record['role'] === 'execution'
@@ -230,11 +233,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             }
 
             $this->evidence[$artifact] = ['exportId' => $exportId, 'fields' => $fields];
-        } catch (Throwable) {
-            return false;
-        }
 
-        return true;
+            return true;
+        });
     }
 
     /** Return the issued export ID only for the unchanged, live object. */
@@ -245,11 +246,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return null;
         }
 
-        try {
-            if ($evidence['fields'] !== $this->identityFields($artifact)) {
-                return null;
-            }
-        } catch (Throwable) {
+        $fieldsMatch = $this->safeVerify(fn (): bool => $evidence['fields'] === $this->identityFields($artifact));
+
+        if (!$fieldsMatch) {
             return null;
         }
 
@@ -264,11 +263,11 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             return false;
         }
 
-        try {
-            if ($this->identityFields($previous) !== $this->identityFields($successor)) {
-                return false;
-            }
-        } catch (Throwable) {
+        $fieldsMatch = $this->safeVerify(
+            fn (): bool => $this->identityFields($previous) === $this->identityFields($successor)
+        );
+
+        if (!$fieldsMatch) {
             return false;
         }
 

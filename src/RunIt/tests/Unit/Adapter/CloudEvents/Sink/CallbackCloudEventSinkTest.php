@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\CloudEvents\Sink;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\CloudEvents\Sink\CallbackCloudEventSink;
 use ItPack\RunIt\Contract\Adapter\CloudEvents\CloudEventInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -13,6 +14,12 @@ use Throwable;
 #[CoversClass(CallbackCloudEventSink::class)]
 final class CallbackCloudEventSinkTest extends Unit
 {
+    public function testRejectsNonCallable(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new CallbackCloudEventSink('not a callable');
+    }
+
     /**
      * @throws Throwable
      */

@@ -47,6 +47,24 @@ final class CloudEventPublisherTest extends Unit
         self::assertSame('exec-1', $captured->extensions['executionid']);
     }
 
+    public function testPublishesOccurrenceWithActivityIdIncludesActivityExtension(): void
+    {
+        $captured = null;
+        $publisher = new CloudEventPublisher(
+            new DefaultOccurrenceToCloudEventMapper(),
+            new CallbackCloudEventSink(static function (CloudEvent $event) use (&$captured): void {
+                $captured = $event;
+            }),
+        );
+
+        $publisher->publish(
+            RunItArtifactFactory::occurrence('occ-1', 'exec-1', 'itpack.event.v1', activityId: 'act-1'),
+        );
+
+        self::assertInstanceOf(CloudEvent::class, $captured);
+        self::assertSame('act-1', $captured->extensions['activityid']);
+    }
+
     public function testIgnoresNonOccurrenceArtifacts(): void
     {
         $calls = 0;

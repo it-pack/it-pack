@@ -31,12 +31,14 @@ use ItPack\RunIt\Application\Publication\PublicationPipeline;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -51,6 +53,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
+use Throwable;
 
 /**
  * @group application
@@ -446,6 +449,51 @@ final class PublicationPipelineTest extends Unit
         ));
 
         self::assertCount(1, $sink->published());
+    }
+
+    public function testBuildUsesHealthAwareStackFactoryWhenHealthIsProvided(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+            }
+        };
+        $stackFactory = new class () implements HealthAwarePublisherStackFactoryInterface {
+            public ?InternalHealthReporterInterface $capturedHealth = null;
+
+            public function compose(
+                ArtifactPublisherInterface $base,
+                ?RedactorInterface $redactor,
+                ?SamplingPolicyInterface $samplingPolicy,
+            ): ArtifactPublisherInterface {
+                throw new RuntimeException('compose must not be called when health is provided');
+            }
+
+            public function composeWithHealth(
+                ArtifactPublisherInterface $base,
+                ?RedactorInterface $redactor,
+                ?SamplingPolicyInterface $samplingPolicy,
+                InternalHealthReporterInterface $health,
+            ): ArtifactPublisherInterface {
+                $this->capturedHealth = $health;
+                return $base;
+            }
+        };
+
+        $sink = new InMemoryArtifactPublisher();
+        $pipeline = new PublicationPipeline(
+            sink: $sink,
+            clock: $this->clock,
+            byteEstimator: $this->estimator,
+            health: $health,
+            stackFactory: $stackFactory,
+        );
+
+        $publisher = $pipeline->build();
+
+        $publisher->publish($this->observation());
+        self::assertCount(1, $sink->published());
+        self::assertSame($health, $stackFactory->capturedHealth);
     }
 }
 
