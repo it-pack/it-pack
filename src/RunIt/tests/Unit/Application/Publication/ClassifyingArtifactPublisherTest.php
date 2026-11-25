@@ -1890,6 +1890,7 @@ final class ClassifyingArtifactPublisherTest extends Unit
         $inner = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface {
             /** @var list<ExecutionArtifactInterface> */
             public array $published = [];
+
             public bool $flushed = false;
 
             public function publish(ExecutionArtifactInterface $artifact): void
