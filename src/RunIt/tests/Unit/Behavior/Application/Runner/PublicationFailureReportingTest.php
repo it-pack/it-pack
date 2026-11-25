@@ -42,34 +42,78 @@ final class PublicationFailureReportingTest extends Unit
 
     public function testThrowingCallbackFallsBackWithoutRethrowing(): void
     {
-        $fixture = $this->fixture(
-            static function (Throwable $failure): never {
-                throw new RuntimeException('callback broken');
-            },
-        );
+        $tmpFile = tempnam(sys_get_temp_dir(), 'runit_error_log_');
+        $previousErrorLog = ini_set('error_log', $tmpFile);
+        $logged = '';
 
-        $fixture->report(new RuntimeException('boom'));
+        try {
+            $calls = 0;
+            $fixture = $this->fixture(
+                static function (Throwable $failure) use (&$calls): never {
+                    ++$calls;
+                    throw new RuntimeException('callback broken');
+                },
+            );
+
+            $fixture->report(new RuntimeException('boom'));
+
+            $logged = file_get_contents($tmpFile);
+        } finally {
+            ini_set('error_log', $previousErrorLog);
+            if ($tmpFile !== false && file_exists($tmpFile)) {
+                unlink($tmpFile);
+            }
+        }
+
+        self::assertSame(1, $calls);
+        self::assertIsString($logged);
+        self::assertStringContainsString('[runit] publication health fallback:', $logged);
     }
 
     public function testNoCallbackReportsToErrorLogWithoutRethrowing(): void
     {
-        $fixture = $this->fixture(null);
+        $tmpFile = tempnam(sys_get_temp_dir(), 'runit_error_log_');
+        $previousErrorLog = ini_set('error_log', $tmpFile);
+        $logged = '';
 
-        $fixture->report(new RuntimeException('boom'));
+        try {
+            $fixture = $this->fixture(null);
+
+            $fixture->report(new RuntimeException('boom'));
+
+            $logged = file_get_contents($tmpFile);
+        } finally {
+            ini_set('error_log', $previousErrorLog);
+            if ($tmpFile !== false && file_exists($tmpFile)) {
+                unlink($tmpFile);
+            }
+        }
+
+        self::assertIsString($logged);
+        self::assertStringContainsString('[runit] publication health:', $logged);
     }
 
     public function testRecursiveReportingRoutesToFallback(): void
     {
         /** @var FailureReportingFixtureInterface|null $fixture */
         $fixture = null;
+        $calls = 0;
         $fixture = $this->fixture(
-            static function (Throwable $failure) use (&$fixture): void {
+            static function (Throwable $failure) use (&$fixture, &$calls): void {
                 // Nested report while already reporting must not recurse.
+                ++$calls;
                 $fixture?->report(new RuntimeException('nested'));
             },
         );
 
         $fixture->report(new RuntimeException('boom'));
+
+        self::assertSame(1, $calls);
+
+        // Recursion guard must reset so a second independent report invokes the callback again.
+        $fixture->report(new RuntimeException('boom again'));
+
+        self::assertSame(2, $calls);
     }
 
     private function fixture(?Closure $onPublicationFailure): FailureReportingFixtureInterface

@@ -459,12 +459,14 @@ final class PublicationPipelineTest extends Unit
             }
         };
         $stackFactory = new class () implements HealthAwarePublisherStackFactoryInterface {
+            public ?InternalHealthReporterInterface $capturedHealth = null;
+
             public function compose(
                 ArtifactPublisherInterface $base,
                 ?RedactorInterface $redactor,
                 ?SamplingPolicyInterface $samplingPolicy,
             ): ArtifactPublisherInterface {
-                return $base;
+                throw new RuntimeException('compose must not be called when health is provided');
             }
 
             public function composeWithHealth(
@@ -473,6 +475,7 @@ final class PublicationPipelineTest extends Unit
                 ?SamplingPolicyInterface $samplingPolicy,
                 InternalHealthReporterInterface $health,
             ): ArtifactPublisherInterface {
+                $this->capturedHealth = $health;
                 return $base;
             }
         };
@@ -490,6 +493,7 @@ final class PublicationPipelineTest extends Unit
 
         $publisher->publish($this->observation());
         self::assertCount(1, $sink->published());
+        self::assertSame($health, $stackFactory->capturedHealth);
     }
 }
 
