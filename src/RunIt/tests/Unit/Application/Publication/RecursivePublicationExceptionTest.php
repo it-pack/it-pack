@@ -7,26 +7,21 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\RecursivePublicationException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use RuntimeException;
 
 #[CoversClass(RecursivePublicationException::class)]
 final class RecursivePublicationExceptionTest extends Unit
 {
-    public function testExceptionCanBeCreatedWithMessage(): void
+    public function testCanBeInstantiatedWithMessage(): void
     {
-        $exception = new RecursivePublicationException('recursive publication detected');
+        $exception = new RecursivePublicationException('recursive publication');
 
-        self::assertSame('recursive publication detected', $exception->getMessage());
-        self::assertSame(0, $exception->getCode());
+        self::assertSame('recursive publication', $exception->getMessage());
     }
 
-    public function testExceptionCanBeCreatedWithCodeAndPrevious(): void
+    public function testForNestedPublish(): void
     {
-        $previous = new RuntimeException('previous');
-        $exception = new RecursivePublicationException('recursive', 42, $previous);
+        $exception = RecursivePublicationException::forNestedPublish();
 
-        self::assertSame('recursive', $exception->getMessage());
-        self::assertSame(42, $exception->getCode());
-        self::assertSame($previous, $exception->getPrevious());
+        self::assertStringContainsString('Publication re-entered', $exception->getMessage());
     }
 }

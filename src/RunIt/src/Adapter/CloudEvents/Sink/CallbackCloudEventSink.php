@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\CloudEvents\Sink;
 
+use Closure;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
+use ItPack\RunIt\Contract\Adapter\CloudEvents\CloudEventInterface;
 
 /**
  * Sink that forwards every CloudEvent to a caller-supplied callback.
@@ -21,11 +23,11 @@ final readonly class CallbackCloudEventSink implements CloudEventSinkInterface
      * @param callable(CloudEvent): void $callback
      */
     public function __construct(
-        private mixed $callback,
+        private Closure $callback,
     ) {
     }
 
-    public function send(CloudEvent $event): void
+    public function send(CloudEventInterface $event): void
     {
         ($this->callback)($event);
     }
