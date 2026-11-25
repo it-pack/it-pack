@@ -14,7 +14,10 @@ use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
+use ItPack\RunIt\Contract\Application\NestedExecutionMode;
+use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
@@ -793,6 +796,54 @@ final class ResilienceTest extends Unit
             )),
             'the transition fault on the success path must be reported',
         );
+    }
+
+    public function testActivityContextPolicyReturnsConfiguredValue(): void
+    {
+        $kit = new RunItTestKit(activityContextPolicy: 'direct');
+
+        self::assertSame('direct', $kit->runner->activityContextPolicy());
+    }
+
+    public function testActivityOnlyWithoutCurrentScopeBecomesChildExecution(): void
+    {
+        $policy = new class () implements NestedExecutionPolicyInterface {
+            public function resolve(
+                ?ExecutionScopeInterface $current,
+                ExecutionDefinitionInterface $definition
+            ): NestedExecutionMode {
+                return NestedExecutionMode::ActivityOnly;
+            }
+        };
+        $kit = new RunItTestKit(nestedPolicy: $policy);
+
+        $result = $kit->runner->run($this->definition(), static fn (): int => 42);
+
+        self::assertSame(42, $result);
+    }
+
+    public function testActivityOnlyWithCurrentScopeRunsAsActivity(): void
+    {
+        $policy = new class () implements NestedExecutionPolicyInterface {
+            public function resolve(
+                ?ExecutionScopeInterface $current,
+                ExecutionDefinitionInterface $definition
+            ): NestedExecutionMode {
+                return NestedExecutionMode::ActivityOnly;
+            }
+        };
+        $outer = new RunItTestKit();
+        $kit = new RunItTestKit(storage: $outer->storage, nestedPolicy: $policy);
+
+        $result = $outer->runner->run(
+            $this->definition(),
+            fn (ExecutionScopeInterface $parent): mixed => $kit->runner->run(
+                $this->definition(),
+                static fn (): int => 7
+            )
+        );
+
+        self::assertSame(7, $result);
     }
 
     private function definition(): ExecutionDefinition

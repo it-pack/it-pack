@@ -41,6 +41,25 @@ final class ObservationTest extends Unit
         self::assertTrue($observation->severity()->isError());
     }
 
+    public function testThrowableDescriptionGetter(): void
+    {
+        $description = ThrowableDescription::create(
+            'RuntimeException',
+            'boom',
+            0,
+            previous: null,
+            trace: null,
+        );
+        $observation = Observation::critical(
+            ObservationId::fromString('obs-1'),
+            ExecutionId::fromString('exec-1'),
+            'failure',
+            throwableDescription: $description,
+        );
+
+        self::assertSame($description, $observation->throwableDescription());
+    }
+
     public function testThrowableFreeSerialization(): void
     {
         $observation = Observation::critical(

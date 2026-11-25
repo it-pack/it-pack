@@ -38,6 +38,18 @@ final class MeasurementTest extends Unit
         self::assertSame(MeasurementKind::Counter, $measurement->kind());
         self::assertSame(42, $measurement->value());
         self::assertSame(1000, $measurement->timestamp());
+        self::assertSame('files.loaded', $measurement->name()->toString());
+    }
+
+    public function testNameGetterReturnsConfiguredName(): void
+    {
+        $measurement = Measurement::gauge(
+            MeasurementName::fromString('cpu.usage'),
+            ExecutionId::fromString('exec-1'),
+            12.5,
+        );
+
+        self::assertSame('cpu.usage', $measurement->name()->toString());
     }
 
     public function testGaugeRequiresFiniteFloatValue(): void

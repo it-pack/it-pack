@@ -7894,6 +7894,17 @@
                         "optional": true
                     }
                 ]
+            },
+            "safeVerify": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "check",
+                        "type": "callable",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -9515,6 +9526,22 @@
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
                 "params": []
+            },
+            "reportFailure": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "failure",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifact",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": true
+                    }
+                ]
             }
         },
         "cases": []

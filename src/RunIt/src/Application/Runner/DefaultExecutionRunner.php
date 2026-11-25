@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Runner;
 
-use ArrayObject;
 use Closure;
 use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
 use ItPack\RunIt\Application\Policy\FailExecutionOnOpenActivitiesPolicy;
@@ -12,13 +11,12 @@ use ItPack\RunIt\Application\Propagation\StackActivityContextStorage;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
-use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
-use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
+use ItPack\RunIt\Behavior\Application\Runner\PublicationFailureReporting;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -90,9 +88,10 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface, DefaultExecutionRunnerInterface
+final class DefaultExecutionRunner implements ExecutionRunnerInterface, DefaultExecutionRunnerInterface
 {
     use InstantClockBehavior;
+    use PublicationFailureReporting;
 
     /**
      * Diagnostic code recorded on the failure observation of a failed execution.
@@ -116,9 +115,6 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface,
     private FailSafeArtifactPublisher $safePublisher;
 
     private ExecutionEngineInterface  $engine;
-
-    /** @var ArrayObject<string, bool> */
-    private ArrayObject $healthState;
 
     public function __construct(
         private CurrentExecutionInterface              $currentExecution,
@@ -154,7 +150,6 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface,
         private string                                  $activityContextPolicy = 'fallback',
         private bool                                  $runOnActivityContextAttachFailure = false,
     ) {
-        $this->healthState = new ArrayObject(['reporting' => false]);
         $health = new readonly class (fn (Throwable $failure, ExecutionArtifactInterface $artifact) =>
             $this->reportFailure($failure, $artifact)) implements InternalHealthReporterInterface {
                 public function __construct(private Closure $reportCallback)
@@ -487,7 +482,10 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface,
         try {
             $completed = $this->coordinator->transition(
                 $execution,
-                ExecutionFailure::of(ExecutionStatus::Failed, $description ?? $this->fallbackDescription($throwable)),
+                ExecutionFailure::of(
+                    ExecutionStatus::Failed,
+                    $description ?? $this->fallbackDescription($throwable)
+                ),
                 $this->now(),
             );
         } catch (Throwable $failure) {
@@ -637,78 +635,6 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface,
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
         }
-    }
-
-    /** @noinspection PhpSecondWriteToReadonlyPropertyInspection */
-    private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
-    {
-        if ($this->healthState['reporting'] ?? false) {
-            $this->reportPublicationFailureToFallback();
-
-            return;
-        }
-
-        $this->healthState['reporting'] = true;
-        try {
-            $this->reportFailureOnce($failure, $artifact);
-        } finally {
-            $this->healthState['reporting'] = false;
-        }
-    }
-
-    private function reportFailureOnce(Throwable $failure, ?ExecutionArtifactInterface $artifact): void
-    {
-        if ($this->onPublicationFailure instanceof Closure) {
-            try {
-                ($this->onPublicationFailure)($failure);
-
-                return;
-            } catch (Throwable) {
-                $this->reportPublicationFailureToFallback();
-
-                return;
-            }
-        }
-
-        // No callback configured: the replaceable SDK default reports to the
-        // PHP error log so a broken publisher stays observable even when the
-        // runner is constructed directly without a health handler. An explicit
-        // opt-out is a no-op closure passed as the handler, which reaches this
-        // branch as a Closure and reports nothing.
-        $this->reportToDefaultErrorLog($failure, $artifact);
-    }
-
-    private function reportToDefaultErrorLog(Throwable $failure, ?ExecutionArtifactInterface $artifact): void
-    {
-        $artifact ??= $this->placeholderArtifact();
-
-        try {
-            new ErrorLogHealthReporter($this->throwableMapper)->report($failure, $artifact);
-        } catch (Throwable) {
-            $this->reportPublicationFailureToFallback();
-        }
-    }
-
-    private function reportPublicationFailureToFallback(): void
-    {
-        try {
-            new FallbackErrorLogReporter()->report(
-                new RuntimeException(FallbackErrorLogReporter::FALLBACK_PRIMARY_MESSAGE),
-                new RuntimeException(FallbackErrorLogReporter::FALLBACK_HANDLER_FAULT_MESSAGE),
-            );
-        } catch (Throwable) {
-            // No further independent sink remains; preserve the business outcome.
-        }
-    }
-
-    private function placeholderArtifact(): ExecutionArtifactInterface
-    {
-        return new class () implements ExecutionArtifactInterface {
-            public function normalize(): array
-            {
-                return [];
-            }
-        };
     }
 
     /**

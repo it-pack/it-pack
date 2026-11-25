@@ -979,4 +979,56 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertArrayNotHasKey($from, $records);
         self::assertSame([], $records[$to]['relationships'] ?? []);
     }
+
+    public function testAttestReturnsFalseWhenIdentityFieldsThrow(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                throw new RuntimeException('normalize failed');
+            }
+        };
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'exec-1');
+
+        self::assertFalse($authority->attest($artifact, $exportId));
+    }
+
+    public function testIssueExportIdThrowsWhenReleasing(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $reflection = new ReflectionClass($authority);
+        $releasing = $reflection->getProperty('releasing');
+        $releasing->setValue($authority, true);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Provenance authority is releasing; no new issuance permitted.');
+        $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+    }
+
+    public function testRegisterRelationshipReturnsTrueForDuplicateEdge(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $from = $authority->issueExportId('execution', 'execution', 'exec-1', 'parent');
+        $to = $authority->issueExportId('execution', 'execution', 'exec-1', 'child');
+
+        self::assertTrue($authority->registerRelationship($from, $to, 'parent'));
+        self::assertTrue($authority->registerRelationship($from, $to, 'parent'));
+    }
+
+    public function testBusinessIdForExportIdReturnsBusinessId(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+
+        self::assertSame('business-1', $authority->businessIdForExportId($exportId));
+    }
+
+    public function testExecutionIdForExportIdReturnsExecutionId(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $exportId = $authority->issueExportId('execution', 'execution', 'exec-1', 'business-1');
+
+        self::assertSame('exec-1', $authority->executionIdForExportId($exportId));
+    }
 }

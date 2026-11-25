@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
@@ -88,6 +89,23 @@ final class SnapshotTest extends Unit
         );
 
         self::assertSame('snap-1', $snapshot->predecessorId()?->toString());
+    }
+
+    public function testContentTypeAndAttributesAreExposed(): void
+    {
+        $snapshot = Snapshot::create(
+            SnapshotId::fromString('snap-1'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('execution.snapshot'),
+            1,
+            ['count' => 3],
+            $this->calculator(),
+            contentType: 'application/json',
+            attributes: AttributeCollection::empty()->with('region', 'eu'),
+        );
+
+        self::assertSame('application/json', $snapshot->contentType());
+        self::assertSame(['region' => 'eu'], $snapshot->attributes());
     }
 
     public function testExecutionSnapshotIsSnapshot(): void

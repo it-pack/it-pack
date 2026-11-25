@@ -77,6 +77,13 @@ final class DefaultRunItTest extends TestCase
         self::assertNull($runtime->currentExecution());
     }
 
+    public function testExecutionRunnerReturnsConfiguredRunner(): void
+    {
+        $runtime = $this->runtime();
+
+        self::assertInstanceOf(ExecutionRunnerInterface::class, $runtime->executionRunner());
+    }
+
     public function testWrapReturnsExecutedCallable(): void
     {
         $runtime = $this->runtime();

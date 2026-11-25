@@ -64,6 +64,15 @@ final class Psr7RequestContextExtractorTest extends Unit
         self::assertSame('get.a.20b-c.d', (string) $context->getName());
     }
 
+    public function testExtractIgnoresEmptyPathSegment(): void
+    {
+        $request = $this->request('GET', '/', []);
+
+        $context = $this->extractor->extract($request);
+
+        self::assertSame('get', (string) $context->getName());
+    }
+
     public function testExtractWithCustomCardinalityPlaceholder(): void
     {
         $extractor = new Psr7RequestContextExtractor(

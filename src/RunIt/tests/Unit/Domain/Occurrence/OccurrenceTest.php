@@ -7,6 +7,7 @@ namespace Tests\Unit\Domain\Occurrence;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
+use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
@@ -57,6 +58,29 @@ final class OccurrenceTest extends Unit
         self::assertSame(['path' => '/etc/app.yaml'], $occurrence->data());
         self::assertSame(['priority' => 'high'], $occurrence->extensionAttributes());
         self::assertSame(1000, $occurrence->timestamp());
+    }
+
+    public function testGettersExposeIdentityAndMetadata(): void
+    {
+        $activityId = ActivityId::fromString('act-1');
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-1'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.system.event.v2'),
+            'svc',
+            Instant::of(1000),
+            ['count' => 3],
+            activityId: $activityId,
+            subject: 'tenant-7',
+            dataSchema: 'https://schema.example/config.v1.json',
+            contentType: 'application/json',
+        );
+
+        self::assertSame('occ-1', $occurrence->id()->toString());
+        self::assertSame('act-1', $occurrence->activityId()?->toString());
+        self::assertSame(1000, $occurrence->time()->epochSeconds());
+        self::assertSame('https://schema.example/config.v1.json', $occurrence->dataSchema());
+        self::assertSame('application/json', $occurrence->contentType());
     }
 
     public function testNestedObjectDataIsRejected(): void

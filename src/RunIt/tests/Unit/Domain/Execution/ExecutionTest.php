@@ -181,6 +181,18 @@ final class ExecutionTest extends Unit
         }
     }
 
+    public function testBeginRunningOnNonCreatedStatusIsRejected(): void
+    {
+        $running = Execution::start(
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000)
+        );
+
+        $this->expectException(InvalidLifecycleTransitionException::class);
+        $running->beginRunning();
+    }
+
     public function testLifecycleExceptionsRemainCatchableAsInvalidValue(): void
     {
         $conflict = ConflictingCompletionException::forConflict(
