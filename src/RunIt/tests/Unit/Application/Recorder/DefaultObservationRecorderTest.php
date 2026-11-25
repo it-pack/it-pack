@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Recorder\DefaultObservationRecorder;
+use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
@@ -23,6 +24,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
@@ -35,6 +37,7 @@ use Throwable;
  * @group recorder
  */
 #[CoversClass(DefaultObservationRecorder::class)]
+#[UsesClass(DefaultExecutionRunner::class)]
 final class DefaultObservationRecorderTest extends Unit
 {
     private RunItTestKit $kit;

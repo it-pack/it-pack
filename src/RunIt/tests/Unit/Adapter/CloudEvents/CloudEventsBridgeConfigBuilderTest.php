@@ -7,7 +7,6 @@ namespace Tests\Unit\Adapter\CloudEvents;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
-use ItPack\RunIt\Adapter\CloudEvents\CloudEventsBridgeConfig;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventsBridgeConfigBuilder;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface;
@@ -36,7 +35,8 @@ final class CloudEventsBridgeConfigBuilderTest extends Unit
 
         $config = new CloudEventsBridgeConfigBuilder()
             ->withSink($sink)
-            ->build();
+            ->build()
+        ;
 
         self::assertSame($sink, $config->sink);
     }
@@ -50,7 +50,8 @@ final class CloudEventsBridgeConfigBuilderTest extends Unit
                 $this->createSink()
             )->withPolicy(
                 $policy
-            )->build();
+            )->build()
+        ;
 
         self::assertSame($policy, $config->policy);
     }
@@ -69,7 +70,8 @@ final class CloudEventsBridgeConfigBuilderTest extends Unit
                 $this->createSink()
             )->withMapper(
                 $mapper
-            )->build();
+            )->build()
+        ;
 
         self::assertSame($mapper, $config->mapper);
     }
@@ -77,7 +79,9 @@ final class CloudEventsBridgeConfigBuilderTest extends Unit
     private function createSink(): CloudEventSinkInterface
     {
         return new class () implements CloudEventSinkInterface {
-            public function send(object $event): void{}
+            public function send(object $event): void
+            {
+            }
         };
     }
 
