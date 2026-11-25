@@ -10126,6 +10126,32 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Common\\Contract\\StringValueEqualityInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "equals": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "subject",
+                        "type": "ItPack\\RunIt\\Common\\Contract\\StringableInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "other",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Common\\Contract\\StringableInterface": {
         "kind": "interface",
         "final": false,
@@ -21212,7 +21238,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Common\\Contract\\StringValueEqualityInterface": "ItPack\\RunIt\\Common\\Contract\\StringValueEqualityInterface"
+        },
         "constants": [],
         "methods": {
             "equals": {
