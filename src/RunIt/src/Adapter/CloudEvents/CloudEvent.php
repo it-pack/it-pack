@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\CloudEvents;
 
+use ItPack\RunIt\Contract\Adapter\CloudEvents\CloudEventInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
@@ -26,7 +27,7 @@ use ItPack\RunIt\Domain\Context\ContextValueValidator;
  *
  * @see https://cloudevents.io/
  */
-final readonly class CloudEvent
+final readonly class CloudEvent implements CloudEventInterface
 {
     public const string SPEC_VERSION_1_0 = '1.0';
 

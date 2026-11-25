@@ -17,4 +17,5 @@ namespace ItPack\RunIt\Contract\Domain;
  */
 interface ContextSourceInterface extends StringProviderInterface
 {
+    public function equals(ContextSourceInterface $other): bool;
 }

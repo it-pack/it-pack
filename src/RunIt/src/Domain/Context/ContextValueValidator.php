@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Context;
 
-use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
-use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Domain\Shared\BoundedKeyGuard;
+use ItPack\RunIt\Domain\Shared\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**

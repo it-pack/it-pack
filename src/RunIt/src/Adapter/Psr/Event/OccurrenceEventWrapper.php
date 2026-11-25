@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Event;
 
+use ItPack\RunIt\Contract\Adapter\Psr\Event\OccurrenceEventWrapperInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 
 /**
@@ -17,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
  *
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-final class OccurrenceEventWrapper
+final class OccurrenceEventWrapper implements OccurrenceEventWrapperInterface
 {
     public function wrap(OccurrenceInterface $occurrence): OccurrenceEvent
     {

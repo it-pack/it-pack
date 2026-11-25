@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
+use ItPack\RunIt\Contract\Application\Publication\FallbackErrorLogReporterInterface;
 use Throwable;
 
 /**
@@ -25,7 +26,7 @@ use Throwable;
  *
  * @internal safety net for health-callback faults; not a public contract.
  */
-final readonly class FallbackErrorLogReporter
+final readonly class FallbackErrorLogReporter implements FallbackErrorLogReporterInterface
 {
     public const string FALLBACK_PRIMARY_MESSAGE = 'Publication health reporting failed';
 

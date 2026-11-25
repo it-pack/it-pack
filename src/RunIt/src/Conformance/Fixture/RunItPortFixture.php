@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Conformance\Fixture;
 
 use Closure;
-use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\PortFixtureInterface as ConformancePortFixtureInterface;
+use ItPack\RunIt\Contract\Conformance\PortFixtureInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
@@ -37,7 +38,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class RunItPortFixture implements PortFixtureInterface
+final readonly class RunItPortFixture implements ConformancePortFixtureInterface, PortFixtureInterface
 {
     private const int FIXED_INSTANT_NANOS = 1_700_000_000;
 

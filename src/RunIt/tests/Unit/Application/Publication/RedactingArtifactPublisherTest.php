@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterfac
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
@@ -25,9 +26,17 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
+use ItPack\RunIt\Domain\Shared\ArtifactSequence;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use ItPack\RunIt\Domain\Snapshot\Snapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
+use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
+use ReflectionClass;
 use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 use Throwable;
@@ -48,24 +57,6 @@ final class RedactingArtifactPublisherTest extends Unit
 
     public function testPublishWithRedactorRedacts(): void
     {
-        new readonly class (['id' => 'redacted']) implements RedactedArtifactInterface {
-            /** @param array<string, mixed> $data */
-            public function __construct(private array $data)
-            {
-            }
-
-            public function artifactType(): string
-            {
-                return 'execution';
-            }
-
-            /** @return array<string, mixed> */
-            public function normalize(): array
-            {
-                return $this->data;
-            }
-        };
-
         $redactor = new class () implements RedactorInterface {
             public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
             {
@@ -229,5 +220,83 @@ final class RedactingArtifactPublisherTest extends Unit
             ExecutionFailure::of($failure, ThrowableDescription::create(RuntimeException::class, 'boom', 1, null, '')),
             Instant::of(2000),
         );
+    }
+
+    public function testValidSnapshotStructureInvalidClassification(): void
+    {
+        $publisher = new RedactingArtifactPublisher(null, $this->innerPublisher());
+        $reflection = new ReflectionClass($publisher);
+        $method = $reflection->getMethod('validSnapshotStructure');
+
+        $snapshot = Snapshot::create(
+            SnapshotId::fromString('snap-1'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('state.v1'),
+            1,
+            ['data' => 'test'],
+            new class () implements HashCalculatorInterface {
+                public function calculate(string $content): string
+                {
+                    return hash('sha256', $content);
+                }
+            },
+            null,
+            null,
+            SnapshotClassification::Checkpoint,
+            Instant::of(1000),
+            'application/json',
+            AttributeCollection::empty(),
+            ArtifactSequence::of(0),
+        );
+
+        $result = $method->invoke($publisher, $snapshot, [
+            ArtifactField::CLASSIFICATION => 'bogus',
+            ArtifactField::CREATED_AT => 1000,
+            ArtifactField::SEQUENCE => 0,
+        ]);
+
+        self::assertFalse($result);
+    }
+
+    public function testBuildExportProjectionWithLinkedExecutionIds(): void
+    {
+        $publisher = new RedactingArtifactPublisher(null, $this->innerPublisher());
+        $reflection = new ReflectionClass($publisher);
+        $method = $reflection->getMethod('buildExportProjection');
+
+        $result = $method->invoke(
+            $publisher,
+            [ArtifactField::LINKED_EXECUTION_IDS => ['exec-1']],
+            [],
+            [],
+            'execution',
+            false,
+        );
+
+        self::assertInstanceOf(ExecutionArtifactInterface::class, $result);
+        self::assertArrayHasKey(ArtifactField::LINKED_EXECUTION_IDS, $result->normalize());
+    }
+
+    public function testResolveArtifactKindReturnsEmptyForUnknown(): void
+    {
+        $publisher = new RedactingArtifactPublisher(null, $this->innerPublisher());
+        $reflection = new ReflectionClass($publisher);
+        $method = $reflection->getMethod('resolveArtifactKind');
+
+        $artifact = new class () implements ExecutionArtifactInterface {
+            public function artifactType(): string
+            {
+                return 'unknown';
+            }
+
+            public function normalize(): array
+            {
+                return [];
+            }
+        };
+
+        $result = $method->invoke($publisher, $artifact);
+
+        self::assertSame('', $result);
     }
 }

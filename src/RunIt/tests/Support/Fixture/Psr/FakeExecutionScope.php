@@ -10,6 +10,8 @@ use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface;
 use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
+use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 
@@ -59,5 +61,35 @@ final readonly class FakeExecutionScope implements ExecutionScopeInterface
     public function snapshots(): SnapshotRecorderInterface
     {
         return new NoopSnapshotRecorder($this->execution->executionId());
+    }
+
+    public function currentActivityId(): ?ActivityIdInterface
+    {
+        return null;
+    }
+
+    public function setCurrentActivityId(?ActivityIdInterface $currentActivityId): void
+    {
+    }
+
+    public function trackOpenActivity(ActivityInterface $activity): void
+    {
+    }
+
+    public function clearOpenActivity(ActivityIdInterface $activityId): void
+    {
+    }
+
+    /**
+     * @return list<ActivityInterface>
+     */
+    public function openActivities(): array
+    {
+        return [];
+    }
+
+    public function runWithoutActivityContext(callable $operation): mixed
+    {
+        return $operation();
     }
 }

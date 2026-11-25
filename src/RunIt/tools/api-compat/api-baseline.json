@@ -3,7 +3,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface"
+        },
         "constants": {
             "SPEC_VERSION_1_0": "public",
             "SPEC_VERSION_KEY": "public"
@@ -250,21 +252,18 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface"
+        },
         "constants": [],
         "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
             "withSink": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilder",
                 "params": [
                     {
                         "name": "sink",
-                        "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\Contract\\CloudEventSinkInterface",
+                        "type": "object",
                         "optional": false
                     }
                 ]
@@ -275,7 +274,7 @@
                 "params": [
                     {
                         "name": "policy",
-                        "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\Mapping\\CloudEventMappingPolicy",
+                        "type": "object",
                         "optional": false
                     }
                 ]
@@ -286,7 +285,7 @@
                 "params": [
                     {
                         "name": "mapper",
-                        "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\Contract\\OccurrenceToCloudEventMapperInterface",
+                        "type": "object",
                         "optional": false
                     }
                 ]
@@ -706,7 +705,7 @@
                 "params": [
                     {
                         "name": "event",
-                        "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEvent",
+                        "type": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface",
                         "optional": false
                     }
                 ]
@@ -1183,7 +1182,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface"
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemoryArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemoryArtifactPublisherInterface"
         },
         "constants": [],
         "methods": {
@@ -1211,7 +1211,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface": "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface"
+            "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface": "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface",
+            "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemorySnapshotStoreInterface": "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemorySnapshotStoreInterface"
         },
         "constants": [],
         "methods": {
@@ -1284,7 +1285,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface"
+        },
         "constants": [],
         "methods": {
             "__construct": {
@@ -1419,7 +1422,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface"
+        },
         "constants": [],
         "methods": {
             "withTracerProvider": {
@@ -1472,7 +1477,7 @@
                 "params": [
                     {
                         "name": "policy",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SnapshotPayloadPolicy",
+                        "type": "object",
                         "optional": false
                     }
                 ]
@@ -2133,7 +2138,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface"
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface",
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -2291,7 +2297,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Metrics\\InstrumentCacheInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Metrics\\InstrumentCacheInterface"
+        },
         "constants": [],
         "methods": {
             "__construct": {
@@ -2439,7 +2447,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface"
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\TelemetryPublisherInterface": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\TelemetryPublisherInterface"
         },
         "constants": [],
         "methods": {
@@ -3103,7 +3112,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "Psr\\EventDispatcher\\StoppableEventInterface": "Psr\\EventDispatcher\\StoppableEventInterface"
+            "Psr\\EventDispatcher\\StoppableEventInterface": "Psr\\EventDispatcher\\StoppableEventInterface",
+            "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface": "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface"
         },
         "constants": [],
         "methods": {
@@ -3135,7 +3145,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventWrapperInterface": "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventWrapperInterface"
+        },
         "constants": [],
         "methods": {
             "wrap": {
@@ -4239,6 +4251,11 @@
         },
         "constants": [],
         "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
             "currentCoroutineId": {
                 "static": false,
                 "return": "int",
@@ -5570,7 +5587,8 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
             "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
-            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\BufferedArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\BufferedArtifactPublisherInterface"
         },
         "constants": [],
         "methods": {
@@ -5800,7 +5818,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\ClassifiedOccurrenceFactoryInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\ClassifiedOccurrenceFactoryInterface"
+        },
         "constants": [],
         "methods": {
             "create": {
@@ -6636,7 +6656,8 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
             "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
-            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\DefaultOccurrenceClassifierInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\DefaultOccurrenceClassifierInterface"
         },
         "constants": [],
         "methods": {
@@ -7078,7 +7099,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\FallbackErrorLogReporterInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\FallbackErrorLogReporterInterface"
+        },
         "constants": {
             "FALLBACK_PRIMARY_MESSAGE": "public",
             "FALLBACK_HANDLER_FAULT_MESSAGE": "public"
@@ -7537,9 +7560,23 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthorityInterface": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthorityInterface"
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\ProvenanceAuthorityInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\ProvenanceAuthorityInterface"
         },
-        "constants": [],
+        "constants": {
+            "KEY_FROM": "public",
+            "KEY_TO": "public",
+            "KEY_PARENT": "public",
+            "KEY_LINK": "public",
+            "KEY_EXECUTION_ACTIVITY": "public",
+            "KEY_EXECUTION_OBSERVATION": "public",
+            "KEY_EXECUTION_OCCURRENCE": "public",
+            "KEY_EXECUTION_MEASUREMENT": "public",
+            "KEY_EXECUTION_SNAPSHOT": "public",
+            "KEY_EXECUTION_TERMINAL_SNAPSHOT": "public",
+            "KEY_ACTIVITY_ARTIFACT": "public",
+            "KEY_ACTIVITY_PARENT": "public",
+            "RELATIONSHIP_ROLES": "public"
+        },
         "methods": {
             "__construct": {
                 "static": false,
@@ -8244,7 +8281,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface"
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface",
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\RecordingBatchFlushObserverInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\RecordingBatchFlushObserverInterface"
         },
         "constants": [],
         "methods": {
@@ -9306,7 +9344,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Contract\\Application\\ExecutionRunnerInterface": "ItPack\\RunIt\\Contract\\Application\\ExecutionRunnerInterface"
+            "ItPack\\RunIt\\Contract\\Application\\ExecutionRunnerInterface": "ItPack\\RunIt\\Contract\\Application\\ExecutionRunnerInterface",
+            "ItPack\\RunIt\\Contract\\Application\\Runner\\DefaultExecutionRunnerInterface": "ItPack\\RunIt\\Contract\\Application\\Runner\\DefaultExecutionRunnerInterface"
         },
         "constants": [],
         "methods": {
@@ -9653,6 +9692,60 @@
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Application\\SnapshotRecorderInterface",
                 "params": []
+            },
+            "currentActivityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                "params": []
+            },
+            "setCurrentActivityId": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "currentActivityId",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "trackOpenActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "clearOpenActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activityId",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "openActivities": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "runWithoutActivityContext": {
+                "static": false,
+                "return": "mixed",
+                "params": [
+                    {
+                        "name": "operation",
+                        "type": "callable",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -10033,6 +10126,32 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Common\\Contract\\StringValueEqualityInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "equals": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "subject",
+                        "type": "ItPack\\RunIt\\Common\\Contract\\StringableInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "other",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Common\\Contract\\StringableInterface": {
         "kind": "interface",
         "final": false,
@@ -10052,6 +10171,517 @@
                 "return": "string",
                 "params": [],
                 "internalInterface": "Stringable"
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "toArray": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "withExtensions": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface",
+                "params": [
+                    {
+                        "name": "extensions",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventMappingPolicyInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventSinkInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "send": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "event",
+                        "type": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "withSink": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "sink",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMapper": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "mapper",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "build": {
+                "static": false,
+                "return": "object",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventsBridgeConfigInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\OccurrenceToCloudEventMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "map": {
+                "static": false,
+                "return": "object",
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "policy",
+                        "type": "null|object",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemoryArtifactPublisherInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "published": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\Memory\\InMemorySnapshotStoreInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "stored": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "any": {
+                "static": false,
+                "return": "bool",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "withTracerProvider": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "tracerProvider",
+                        "type": "null|OpenTelemetry\\API\\Trace\\TracerProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMeterProvider": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "meterProvider",
+                        "type": "null|OpenTelemetry\\API\\Metrics\\MeterProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withLoggerProvider": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "loggerProvider",
+                        "type": "null|OpenTelemetry\\API\\Logs\\LoggerProviderInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPropagator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "propagator",
+                        "type": "OpenTelemetry\\Context\\Propagation\\TextMapPropagatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotPayloadPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "withObservationLogging": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withObservationSpanEvents": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceLogging": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceSpanEvents": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMetricAttributeAllowList": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "allowedAttributeKeys",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceLogAttributeAllowList": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "allowedAttributeKeys",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxInstrumentCacheSize": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeConfigBuilderInterface",
+                "params": [
+                    {
+                        "name": "maxInstrumentCacheSize",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "build": {
+                "static": false,
+                "return": "object",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Logs\\DefaultOccurrenceLogMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "mapOccurrence": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapSnapshot": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "snapshot",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedOccurrence": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedSnapshot": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "getAttributes": {
+                "static": false,
+                "return": "array",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\Metrics\\InstrumentCacheInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "has": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "get": {
+                "static": false,
+                "return": "null|object",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "put": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "instrument",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            },
+            "size": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\TelemetryPublisherInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "capability": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\OpenTelemetry\\BridgeCapabilityInterface",
+                "params": []
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "stopPropagation": {
+                "static": false,
+                "return": "void",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventWrapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "wrap": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Adapter\\Psr\\Event\\OccurrenceEventInterface",
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -10135,6 +10765,60 @@
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Application\\SnapshotRecorderInterface",
                 "params": []
+            },
+            "currentActivityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                "params": []
+            },
+            "setCurrentActivityId": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "currentActivityId",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "trackOpenActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "clearOpenActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activityId",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "openActivities": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "runWithoutActivityContext": {
+                "static": false,
+                "return": "mixed",
+                "params": [
+                    {
+                        "name": "operation",
+                        "type": "callable",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -10452,6 +11136,60 @@
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Application\\SnapshotRecorderInterface",
                 "params": []
+            },
+            "currentActivityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                "params": []
+            },
+            "setCurrentActivityId": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "currentActivityId",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "trackOpenActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "clearOpenActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activityId",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "openActivities": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "runWithoutActivityContext": {
+                "static": false,
+                "return": "mixed",
+                "params": [
+                    {
+                        "name": "operation",
+                        "type": "callable",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -10858,6 +11596,104 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\BufferedArtifactPublisherInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "bufferedCount": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "droppedCount": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "estimatedBytes": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\ClassifiedOccurrenceFactoryInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "create": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                "params": [
+                    {
+                        "name": "fields",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\DefaultOccurrenceClassifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "isNotValid": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "fields",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\FallbackErrorLogReporterInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "report": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "primary",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "handlerFault",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface": {
         "kind": "interface",
         "final": false,
@@ -10878,6 +11714,292 @@
                         "name": "artifact",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
                         "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\ProvenanceAuthorityInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "issueExportId": {
+                "static": false,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "kind",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationships",
+                        "type": "array",
+                        "optional": true
+                    }
+                ]
+            },
+            "verifyExportId": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "businessIdForExportId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "executionIdForExportId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdForBusinessId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "registerRelationship": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "fromExportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "toExportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationshipType",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "hasLiveRecords": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "releaseExecution": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "reportUnverified": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "failure",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            },
+            "attest": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "exportId",
+                        "type": "null|string",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdForArtifact": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "attestSuccessor": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "previous",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "successor",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdentityFields": {
+                "static": false,
+                "return": "null|array",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "bindActivityRelationship": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "targetId",
+                        "type": "null|string",
+                        "optional": true
+                    },
+                    {
+                        "name": "activityId",
+                        "type": "null|string",
+                        "optional": true
+                    },
+                    {
+                        "name": "parent",
+                        "type": "bool",
+                        "optional": true
+                    }
+                ]
+            },
+            "exportIdForBusinessIdExcluding": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "excludeExecutionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "allRecords": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "bindArtifact": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "kind",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationshipType",
+                        "type": "string",
+                        "optional": true
                     }
                 ]
             }
@@ -10951,6 +12073,41 @@
             "id": {
                 "static": false,
                 "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\RecordingBatchFlushObserverInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "flushCount": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "totalFlushed": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "maxBatch": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "lastFlushMicroseconds": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "lastRemainingBuffered": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -11036,6 +12193,37 @@
                         "optional": false
                     }
                 ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Application\\Runner\\DefaultExecutionRunnerInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "run": {
+                "static": false,
+                "return": "mixed",
+                "params": [
+                    {
+                        "name": "definition",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "operation",
+                        "type": "callable",
+                        "optional": false
+                    }
+                ]
+            },
+            "activityContextPolicy": {
+                "static": false,
+                "return": "string",
+                "params": []
             }
         },
         "cases": []
@@ -11201,6 +12389,472 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedKeyGuardInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedPrimitiveValueWalkerInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "assertSupported": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "safeObservation": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface",
+                "params": []
+            },
+            "sensitiveObservation": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface",
+                "params": []
+            },
+            "sensitiveAttributeValue": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "measurement": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\MeasurementInterface",
+                "params": []
+            },
+            "occurrence": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                "params": []
+            },
+            "snapshot": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                "params": []
+            },
+            "snapshotPatcher": {
+                "static": false,
+                "return": "Closure",
+                "params": []
+            },
+            "stringIdentifierValidator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\StringIdentifierValidatorInterface",
+                "params": []
+            },
+            "samplingArtifacts": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "Countable": "Countable"
+        },
+        "constants": [],
+        "methods": {
+            "add": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "violation",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceViolationInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "isConformant": {
+                "static": false,
+                "return": "bool",
+                "params": []
+            },
+            "errors": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "warnings": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getIterator": {
+                "static": false,
+                "return": "Traversable",
+                "params": []
+            },
+            "summary": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceViolationInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "Stringable": "Stringable"
+        },
+        "constants": [],
+        "methods": {
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "isError": {
+                "static": false,
+                "return": "bool",
+                "params": []
+            },
+            "severity": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "message": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "attributes": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\ArtifactPublisherVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "publisher",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fixture",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\ContextStorageVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "storage",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionScopeInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\ExecutionEngineVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "engine",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionEngineInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionScopeInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\IdentifierGeneratorVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "generator",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\IdentifierGeneratorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fixture",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\MonotonicClockVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "clock",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\MonotonicClockInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\RedactorVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "redactor",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fixture",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\SamplingPolicyVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fixture",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\SerializerVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "serializer",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\SerializerInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fixture",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Conformance\\Verifier\\SnapshotStoreVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "port": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "verify": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Conformance\\Result\\ConformanceResultInterface",
+                "params": [
+                    {
+                        "name": "store",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "fixture",
+                        "type": "ItPack\\RunIt\\Contract\\Conformance\\PortFixtureInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Domain\\ActivityDefinitionInterface": {
         "kind": "interface",
         "final": false,
@@ -11313,6 +12967,11 @@
             "throwableDescription": {
                 "static": false,
                 "return": "null|ItPack\\RunIt\\Contract\\Domain\\ThrowableDescriptionInterface",
+                "params": []
+            },
+            "duration": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
                 "params": []
             },
             "complete": {
@@ -12080,6 +13739,17 @@
         },
         "constants": [],
         "methods": {
+            "equals": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "other",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ContextSourceInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "toString": {
                 "static": false,
                 "return": "string",
@@ -12174,10 +13844,42 @@
                 "return": "int",
                 "params": []
             },
+            "microseconds": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "milliseconds": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
             "seconds": {
                 "static": false,
                 "return": "int",
                 "params": []
+            },
+            "plus": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
+                "params": [
+                    {
+                        "name": "other",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "equals": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "other",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
+                        "optional": false
+                    }
+                ]
             },
             "toString": {
                 "static": false,
@@ -12685,6 +14387,11 @@
             "predecessorId": {
                 "static": false,
                 "return": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotIdInterface",
+                "params": []
+            },
+            "sequence": {
+                "static": false,
+                "return": "int",
                 "params": []
             },
             "normalize": {
@@ -13318,6 +15025,137 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "withMaxAttributeCount": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxAttributeCount",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxAttributeKeyBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxAttributeKeyBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxAttributeValueBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxAttributeValueBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxAttributeDepth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxAttributeDepth",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxOccurrencePayloadBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxOccurrencePayloadBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxSnapshotPayloadBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxSnapshotPayloadBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxActivityDepth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxActivityDepth",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxArtifactsPerExecution": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxArtifactsPerExecution",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxSerializationDepth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxSerializationDepth",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxSerializationBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxSerializationBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxTrackedExecutions": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
+                "params": [
+                    {
+                        "name": "maxTrackedExecutions",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Domain\\SequenceAllocatorInterface": {
         "kind": "interface",
         "final": false,
@@ -13471,6 +15309,11 @@
             "predecessorId": {
                 "static": false,
                 "return": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotIdInterface",
+                "params": []
+            },
+            "sequence": {
+                "static": false,
+                "return": "int",
                 "params": []
             },
             "normalize": {
@@ -18724,6 +20567,159 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Domain\\Shared\\AttributeValidator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\AttributeValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\AttributeValidatorInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    }
+                ]
+            },
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertValidAttributes": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "attributes",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\BoundedKeyGuard": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedKeyGuardInterface": "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedKeyGuardInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "emptyKey",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "keyTooLong",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "unsupportedCharacters",
+                        "type": "Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\BoundedPrimitiveValueWalker": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedPrimitiveValueWalkerInterface": "ItPack\\RunIt\\Contract\\Behavior\\Domain\\BoundedPrimitiveValueWalkerInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    },
+                    {
+                        "name": "valueTooLong",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "valueTooDeep",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "unsupportedValue",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "oversizedArray",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "rejectOversizedArrays",
+                        "type": "bool",
+                        "optional": true
+                    }
+                ]
+            },
+            "assertSupported": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Shared\\CorrelationId": {
         "kind": "class",
         "final": true,
@@ -19005,7 +21001,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface"
+        },
         "constants": {
             "DEFAULT_MAX_ATTRIBUTE_COUNT": "public"
         },
@@ -19206,6 +21204,70 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\StringIdentifierValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\StringIdentifierValidatorInterface"
+        },
+        "constants": {
+            "MAX_LENGTH": "public"
+        },
+        "methods": {
+            "assertValid": {
+                "static": true,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "validate": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\StringValueEquality": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Common\\Contract\\StringValueEqualityInterface": "ItPack\\RunIt\\Common\\Contract\\StringValueEqualityInterface"
+        },
+        "constants": [],
+        "methods": {
+            "equals": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "subject",
+                        "type": "ItPack\\RunIt\\Common\\Contract\\StringableInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "other",
+                        "type": "object",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Shared\\StringValueValidator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\StringValueValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\StringValueValidatorInterface"
         },
         "constants": {
             "MAX_LENGTH": "public"
@@ -20242,6 +22304,39 @@
         },
         "constants": [],
         "methods": {
+            "withActivityContextStorage": {
+                "static": false,
+                "return": "static",
+                "params": [
+                    {
+                        "name": "storage",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ActivityContextStorageInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withActivityContextPolicy": {
+                "static": false,
+                "return": "static",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "withActivityContextAttachFailureFallback": {
+                "static": false,
+                "return": "static",
+                "params": [
+                    {
+                        "name": "enabled",
+                        "type": "bool",
+                        "optional": false
+                    }
+                ]
+            },
             "withConcurrencyValidator": {
                 "static": false,
                 "return": "ItPack\\RunIt\\SDK\\Builder\\ExtendedRunItBuilderInterface",

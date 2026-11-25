@@ -22,6 +22,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultActivitySpanMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
+use ItPack\RunIt\Contract\Adapter\OpenTelemetry\TelemetryPublisherInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactType;
@@ -55,7 +56,7 @@ use Throwable;
  *
  * @see https://opentelemetry.io/
  */
-final class TelemetryPublisher implements ArtifactPublisherInterface
+final class TelemetryPublisher implements ArtifactPublisherInterface, TelemetryPublisherInterface
 {
     private bool $writingHealthFallback = false;
 

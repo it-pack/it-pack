@@ -42,7 +42,7 @@ final class RedactorVerifierTest extends Unit
         $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('redact.secret.leaks', $result->errors()[0]->id);
+        self::assertSame('redact.secret.leaks', $result->errors()[0]->id());
     }
 
     public function testRedactorRemovesSecretIsConformant(): void
@@ -103,7 +103,7 @@ final class RedactorVerifierTest extends Unit
         $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('redact.secret.reassigns-execution', $result->errors()[0]->id);
+        self::assertSame('redact.secret.reassigns-execution', $result->errors()[0]->id());
     }
 
     public function testRedactorEquivalentExecutionIdFromDifferentImplementationIsConformant(): void
@@ -169,7 +169,7 @@ final class RedactorVerifierTest extends Unit
         $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('redact.safe.throws', $result->errors()[0]->id);
+        self::assertSame('redact.safe.throws', $result->errors()[0]->id());
     }
 
     public function testRedactSecretThrowIsRecorded(): void
@@ -188,7 +188,7 @@ final class RedactorVerifierTest extends Unit
         $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('redact.secret.throws', $result->errors()[0]->id);
+        self::assertSame('redact.secret.throws', $result->errors()[0]->id());
     }
 
     public function testRedactSafeAltersIsRecorded(): void
@@ -215,6 +215,6 @@ final class RedactorVerifierTest extends Unit
         $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('redact.safe.alters', $result->errors()[0]->id);
+        self::assertSame('redact.safe.alters', $result->errors()[0]->id());
     }
 }

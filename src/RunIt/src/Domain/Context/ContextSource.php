@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Domain\Context;
 
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
-use ItPack\RunIt\Behavior\Domain\StringValueEquality;
-use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Domain\ContextSourceInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
+use ItPack\RunIt\Domain\Shared\StringValueValidator;
 
 /**
  * An optional context entry source identifier.

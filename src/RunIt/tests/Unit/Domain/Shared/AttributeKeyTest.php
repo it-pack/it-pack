@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\AttributeValidator;
-use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
-use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\AttributeKey;
+use ItPack\RunIt\Domain\Shared\AttributeValidator;
+use ItPack\RunIt\Domain\Shared\BoundedKeyGuard;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 

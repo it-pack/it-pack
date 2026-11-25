@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Behavior\Domain;
+namespace ItPack\RunIt\Domain\Shared;
 
 use ItPack\RunIt\Common\Contract\StringableInterface;
+use ItPack\RunIt\Common\Contract\StringValueEqualityInterface;
 
 /**
  * The single value-equality rule shared by every string-backed value object.
@@ -16,7 +17,7 @@ use ItPack\RunIt\Common\Contract\StringableInterface;
  *
  * @internal shared behavior machinery; not a public contract.
  */
-final readonly class StringValueEquality
+final readonly class StringValueEquality implements StringValueEqualityInterface
 {
     private function __construct()
     {

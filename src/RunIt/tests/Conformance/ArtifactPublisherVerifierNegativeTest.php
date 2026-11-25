@@ -7,7 +7,6 @@ namespace Tests\Conformance;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
-use ItPack\RunIt\Conformance\Result\ViolationSeverity;
 use ItPack\RunIt\Conformance\Verifier\ArtifactPublisherVerifier;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -40,7 +39,7 @@ final class ArtifactPublisherVerifierNegativeTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertSame(['publish.throws'], ConformanceViolations::ids($result));
-        self::assertSame(ViolationSeverity::Error, $result->violations[0]->severity);
+        self::assertSame('error', $result->violations[0]->severity());
     }
 
     public function testMutatedArtifactIsReportedAsError(): void
@@ -80,8 +79,8 @@ final class ArtifactPublisherVerifierNegativeTest extends Unit
 
         self::assertTrue($result->isConformant(), 'a warning must not fail conformance');
         self::assertSame(1, count($result));
-        self::assertSame('flush.throws', $result->violations[0]->id);
-        self::assertSame(ViolationSeverity::Warning, $result->violations[0]->severity);
+        self::assertSame('flush.throws', $result->violations[0]->id());
+        self::assertSame('warning', $result->violations[0]->severity());
     }
 
     public function testThrowingCloseIsReportedAsWarningAndStaysConformant(): void
@@ -108,8 +107,8 @@ final class ArtifactPublisherVerifierNegativeTest extends Unit
 
         self::assertTrue($result->isConformant());
         self::assertSame(1, count($result));
-        self::assertSame('close.throws', $result->violations[0]->id);
-        self::assertSame(ViolationSeverity::Warning, $result->violations[0]->severity);
+        self::assertSame('close.throws', $result->violations[0]->id());
+        self::assertSame('warning', $result->violations[0]->severity());
     }
 
     public function testThrowingFlushAndCloseAreBothReported(): void

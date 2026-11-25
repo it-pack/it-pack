@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Event;
 
+use ItPack\RunIt\Contract\Adapter\Psr\Event\OccurrenceEventInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 
@@ -18,7 +19,7 @@ use Psr\EventDispatcher\StoppableEventInterface;
  *
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-final class OccurrenceEvent implements StoppableEventInterface
+final class OccurrenceEvent implements StoppableEventInterface, OccurrenceEventInterface
 {
     private bool $propagationStopped = false;
 

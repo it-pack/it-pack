@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Application\Publication;
 use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Behavior\Application\Publication\DropsWithHealthReport;
+use ItPack\RunIt\Contract\Application\Publication\DefaultOccurrenceClassifierInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactType;
@@ -23,7 +24,8 @@ use Throwable;
 final class DefaultOccurrenceClassifier implements
     ArtifactPublisherInterface,
     FlushablePublisherInterface,
-    CloseablePublisherInterface
+    CloseablePublisherInterface,
+    DefaultOccurrenceClassifierInterface
 {
     use DelegatesPublisherLifecycleBehavior;
     use DropsWithHealthReport;

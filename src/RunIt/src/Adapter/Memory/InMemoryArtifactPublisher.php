@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Memory;
 
+use ItPack\RunIt\Contract\Adapter\Memory\InMemoryArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 
@@ -16,7 +17,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class InMemoryArtifactPublisher implements ArtifactPublisherInterface
+final class InMemoryArtifactPublisher implements ArtifactPublisherInterface, InMemoryArtifactPublisherInterface
 {
     /**
      * @var list<ExecutionArtifactInterface>

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Domain\Context;
 
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
-use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Domain\ContextKeyInterface;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Domain\Shared\StringValueEquality;
 
 /**
  * A validated context key.

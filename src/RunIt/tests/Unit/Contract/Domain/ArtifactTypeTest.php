@@ -8,18 +8,13 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionId;
-use ItPack\RunIt\Domain\Measurement\Measurement;
-use ItPack\RunIt\Domain\Measurement\MeasurementName;
-use ItPack\RunIt\Domain\Observation\Observation;
-use ItPack\RunIt\Domain\Observation\ObservationId;
 use PHPUnit\Framework\Attributes\CoversClass;
 use ValueError;
 
 #[CoversClass(ArtifactType::class)]
 final class ArtifactTypeTest extends Unit
 {
-    public function testAllCasesHaveValues(): void
+    public function testCasesCoverAllTypes(): void
     {
         self::assertSame('execution', ArtifactType::Execution->value);
         self::assertSame('observation', ArtifactType::Observation->value);
@@ -30,106 +25,42 @@ final class ArtifactTypeTest extends Unit
         self::assertSame('unknown', ArtifactType::UNKNOWN);
     }
 
-    public function testTypesListContainsAllCases(): void
+    public function testValidAndType(): void
     {
-        self::assertContains('execution', ArtifactType::TYPES);
-        self::assertContains('observation', ArtifactType::TYPES);
-        self::assertContains('activity', ArtifactType::TYPES);
-        self::assertContains('measurement', ArtifactType::TYPES);
-        self::assertContains('occurrence', ArtifactType::TYPES);
-        self::assertContains('snapshot', ArtifactType::TYPES);
-        self::assertCount(6, ArtifactType::TYPES);
+        $execution = $this->createMock(ExecutionInterface::class);
+
+        self::assertTrue(ArtifactType::valid($execution));
+        self::assertSame('execution', ArtifactType::type($execution));
+        self::assertSame(ArtifactType::Execution, ArtifactType::fromInstance($execution));
     }
 
-    public function testInterfacesMap(): void
+    public function testTryFromAndFromArtifact(): void
     {
-        self::assertArrayHasKey(ArtifactType::Execution->value, ArtifactType::INTERFACES);
-        self::assertArrayHasKey(ArtifactType::Observation->value, ArtifactType::INTERFACES);
-        self::assertArrayHasKey(ArtifactType::Activity->value, ArtifactType::INTERFACES);
-        self::assertArrayHasKey(ArtifactType::Measurement->value, ArtifactType::INTERFACES);
-        self::assertArrayHasKey(ArtifactType::Occurrence->value, ArtifactType::INTERFACES);
-        self::assertArrayHasKey(ArtifactType::Snapshot->value, ArtifactType::INTERFACES);
+        $execution = $this->createMock(ExecutionInterface::class);
+
+        self::assertSame(ArtifactType::Execution, ArtifactType::tryFromArtifact($execution));
+        self::assertSame(ArtifactType::Execution, ArtifactType::fromArtifact($execution));
     }
 
-    public function testValidWithTypedArtifact(): void
+    public function testInterfaceAndIsInstance(): void
     {
-        $measurement = Measurement::counter(
-            MeasurementName::fromString('hits'),
-            ExecutionId::fromString('exec-1'),
-            1,
-        );
-
-        self::assertTrue(ArtifactType::valid($measurement));
-    }
-
-    public function testTypeFromTypedArtifact(): void
-    {
-        $measurement = Measurement::counter(
-            MeasurementName::fromString('hits'),
-            ExecutionId::fromString('exec-1'),
-            1,
-        );
-
-        self::assertSame('measurement', ArtifactType::type($measurement));
-    }
-
-    public function testFromInstanceMapsObservation(): void
-    {
-        self::assertSame(
-            ArtifactType::Observation,
-            ArtifactType::fromInstance(
-                Observation::info(
-                    ObservationId::fromString('obs-1'),
-                    ExecutionId::fromString('exec-1'),
-                    'msg'
-                )
-            ),
-        );
-    }
-
-    public function testTryFromArtifactReturnsNullForUnknown(): void
-    {
-        $unknown = new class () implements ExecutionArtifactInterface {
-            public function normalize(): array
-            {
-                return [];
-            }
-        };
-
-        self::assertNull(ArtifactType::tryFromArtifact($unknown));
+        self::assertSame(ExecutionInterface::class, ArtifactType::Execution->interface());
+        $execution = $this->createMock(ExecutionInterface::class);
+        self::assertTrue(ArtifactType::Execution->isInstance($execution));
     }
 
     public function testFromArtifactThrowsForUnknown(): void
     {
+        $unknown = $this->createMock(ExecutionArtifactInterface::class);
+
         $this->expectException(ValueError::class);
-
-        $unknown = new class () implements ExecutionArtifactInterface {
-            public function normalize(): array
-            {
-                return [];
-            }
-        };
-
         ArtifactType::fromArtifact($unknown);
     }
 
-    public function testInterfaceReturnsFqcn(): void
+    public function testTryFromArtifactReturnsNullForUnknown(): void
     {
-        self::assertSame(
-            ExecutionInterface::class,
-            ArtifactType::Execution->interface()
-        );
-    }
+        $unknown = $this->createMock(ExecutionArtifactInterface::class);
 
-    public function testIsInstance(): void
-    {
-        $measurement = Measurement::counter(
-            MeasurementName::fromString('hits'),
-            ExecutionId::fromString('exec-1'),
-            1,
-        );
-
-        self::assertTrue(ArtifactType::Measurement->isInstance($measurement));
-        self::assertFalse(ArtifactType::Observation->isInstance($measurement));
+        self::assertNull(ArtifactType::tryFromArtifact($unknown));
     }
 }

@@ -199,6 +199,9 @@ readonly class Snapshot implements SnapshotInterface
         return $this->createdAt->epochSeconds();
     }
 
+    /**
+     * @return int<0, max>
+     */
     public function sequence(): int
     {
         return $this->sequence->value();

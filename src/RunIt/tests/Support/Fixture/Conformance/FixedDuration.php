@@ -22,9 +22,29 @@ final readonly class FixedDuration implements DurationInterface
         return $this->nanoseconds;
     }
 
+    public function microseconds(): int
+    {
+        return intdiv($this->nanoseconds, 1_000);
+    }
+
+    public function milliseconds(): int
+    {
+        return intdiv($this->nanoseconds, 1_000_000);
+    }
+
     public function seconds(): int
     {
         return intdiv($this->nanoseconds, 1_000_000_000);
+    }
+
+    public function plus(DurationInterface $other): self
+    {
+        return new self($this->nanoseconds + $other->nanoseconds());
+    }
+
+    public function equals(DurationInterface $other): bool
+    {
+        return $this->nanoseconds === $other->nanoseconds();
     }
 
     public function toString(): string
