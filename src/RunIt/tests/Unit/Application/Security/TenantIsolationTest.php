@@ -9,6 +9,7 @@ use Fiber;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
 use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
+use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -34,14 +35,10 @@ use Tests\Support\Fixture\RunItTestKit;
  * @group security
  * @group isolation
  */
+#[CoversClass(StackContextStorage::class)]
 #[CoversClass(FiberContextStorage::class)]
 final class TenantIsolationTest extends Unit
 {
-    private function definition(string $name): ExecutionDefinition
-    {
-        return ExecutionDefinition::create(ExecutionName::fromString($name), ExecutionKind::fromString('task'));
-    }
-
     public function testSequentialExecutionsLeaveNoAmbientContext(): void
     {
         $kit = new RunItTestKit();
@@ -64,7 +61,10 @@ final class TenantIsolationTest extends Unit
         self::assertNotNull($first);
         self::assertNotNull($second);
         self::assertNotSame($first, $second);
-        self::assertNull($kit->storage->current(), 'ambient context must not persist after execution completes');
+        self::assertNull(
+            $kit->storage->current(),
+            'ambient context must not persist after execution completes'
+        );
     }
 
     public function testArtifactsAreScopedToTheirExecution(): void
@@ -167,6 +167,14 @@ final class TenantIsolationTest extends Unit
         self::assertArrayHasKey('first', $ids);
         self::assertArrayHasKey('second', $ids);
         self::assertNotSame($ids['first'], $ids['second']);
-        self::assertNull($kit->storage->current(), 'coroutine context must not leak after the coroutine completes');
+        self::assertNull(
+            $kit->storage->current(),
+            'coroutine context must not leak after the coroutine completes'
+        );
+    }
+
+    private function definition(string $name): ExecutionDefinition
+    {
+        return ExecutionDefinition::create(ExecutionName::fromString($name), ExecutionKind::fromString('task'));
     }
 }

@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
+use stdClass;
 
 #[CoversClass(ContextValueValidator::class)]
 final class ContextValueValidatorTest extends Unit
@@ -28,8 +29,8 @@ final class ContextValueValidatorTest extends Unit
         try {
             $validator->assertValidKey('');
             self::fail('Expected InvalidContextValueException');
-        } catch (InvalidContextValueException $e) {
-            self::assertInstanceOf(InvalidContextValueException::class, $e);
+        } catch (InvalidContextValueException $invalidContextValueException) {
+            self::assertInstanceOf(InvalidContextValueException::class, $invalidContextValueException);
         }
     }
 
@@ -40,8 +41,8 @@ final class ContextValueValidatorTest extends Unit
         try {
             $validator->assertValidKey('bad key!');
             self::fail('Expected InvalidContextValueException');
-        } catch (InvalidContextValueException $e) {
-            self::assertInstanceOf(InvalidContextValueException::class, $e);
+        } catch (InvalidContextValueException $invalidContextValueException) {
+            self::assertInstanceOf(InvalidContextValueException::class, $invalidContextValueException);
         }
     }
 
@@ -63,10 +64,10 @@ final class ContextValueValidatorTest extends Unit
         $validator = new ContextValueValidator();
 
         try {
-            $validator->assertSupportedValue(new \stdClass());
+            $validator->assertSupportedValue(new stdClass());
             self::fail('Expected InvalidContextValueException');
-        } catch (InvalidContextValueException $e) {
-            self::assertInstanceOf(InvalidContextValueException::class, $e);
+        } catch (InvalidContextValueException $invalidContextValueException) {
+            self::assertInstanceOf(InvalidContextValueException::class, $invalidContextValueException);
         }
     }
 }

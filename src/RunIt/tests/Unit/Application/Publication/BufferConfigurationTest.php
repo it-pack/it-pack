@@ -60,8 +60,11 @@ final class BufferConfigurationTest extends Unit
                 overflow: OverflowStrategy::DropOldest,
             );
             self::fail('Expected InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            self::assertSame('Buffer configuration values must not be negative.', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame(
+                'Buffer configuration values must not be negative.',
+                $invalidArgumentException->getMessage()
+            );
         }
     }
 
@@ -78,8 +81,11 @@ final class BufferConfigurationTest extends Unit
                 overflow: OverflowStrategy::DropOldest,
             );
             self::fail('Expected InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            self::assertSame('Buffer configuration values must not be negative.', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame(
+                'Buffer configuration values must not be negative.',
+                $invalidArgumentException->getMessage()
+            );
         }
     }
 }
