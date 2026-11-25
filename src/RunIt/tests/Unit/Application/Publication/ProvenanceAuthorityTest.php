@@ -391,7 +391,7 @@ final class ProvenanceAuthorityTest extends Unit
         $authority = new ProvenanceAuthority();
         $from = $authority->issueExportId('activity', 'activity', 'exec-1', 'act-1');
 
-        self::assertFalse($authority->registerRelationship($from, $from, 'activity-artifact'));
+        self::assertFalse($authority->registerRelationship($from, $from, ProvenanceAuthority::KEY_ACTIVITY_PARENT));
     }
 
     public function testAttestSuccessorReturnsTrueForValidSuccessor(): void
