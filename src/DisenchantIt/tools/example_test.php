@@ -10,7 +10,7 @@ declare(strict_types=1);
  * exits with code 0. Intended as a CI smoke test: if any example breaks,
  * this script exits non-zero.
  *
- * Run: php tools/smoke_test.php
+ * Run: php tools/example_test.php
  */
 
 
@@ -43,7 +43,7 @@ foreach ($files as $file) {
     if ($exitCode !== 0) {
         $failures[basename($file)] = [
             'exit' => $exitCode,
-            'output' => implode("\n", $output),
+            'output' => $output,
         ];
         continue;
     }
