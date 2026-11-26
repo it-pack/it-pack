@@ -7,6 +7,7 @@ namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\Reporting\SarifRecorder;
 use ItPack\DisenchantIt\ValueObject\Execution\ExecutionArtifactInterface;
+use RuntimeException;
 
 final class SarifRecorderTest extends Unit
 {
@@ -39,7 +40,7 @@ final class SarifRecorderTest extends Unit
         $recorder = new SarifRecorder();
         $recorder->record($this->artifact(['kind' => tmpfile(), 'payload' => []]));
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
         $recorder->toSarif();
     }

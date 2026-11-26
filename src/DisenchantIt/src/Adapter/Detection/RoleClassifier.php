@@ -7,10 +7,22 @@ namespace ItPack\DisenchantIt\Adapter\Detection;
 use ItPack\DisenchantIt\Contract\Detection\RoleClassifierInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
 use PhpParser\Node;
-use PhpParser\Node\Expr;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Const_;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\BinaryOp\Equal;
+use PhpParser\Node\Expr\BinaryOp\Identical;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\Match_;
+use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\DNumber;
 use PhpParser\Node\Scalar\LNumber;
-use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Case_;
+use PhpParser\Node\Stmt\EnumCase;
 
 /**
  * Classifies a String_ node's role by looking at its immediate parent node —
@@ -31,11 +43,11 @@ final readonly class RoleClassifier implements RoleClassifierInterface
             return LiteralRole::NumericExpression;
         }
 
-        if ($parent instanceof Node\Arg) {
+        if ($parent instanceof Arg) {
             $call = $parent->getAttribute('parent');
 
-            if ($call instanceof Expr\New_) {
-                $className = $call->class instanceof Node\Name ? $call->class->toString() : null;
+            if ($call instanceof New_) {
+                $className = $call->class instanceof Name ? $call->class->toString() : null;
 
                 // Heuristic: constructing anything whose short name ends in
                 // "Exception" is almost always a prose message, not a magic
@@ -49,7 +61,7 @@ final readonly class RoleClassifier implements RoleClassifierInterface
                 return LiteralRole::ConstructorArg;
             }
 
-            if ($call instanceof Expr\FuncCall && $call->name instanceof Node\Name) {
+            if ($call instanceof FuncCall && $call->name instanceof Name) {
                 if (in_array($call->name->toString(), self::NOISE_FUNCTIONS, true)) {
                     return LiteralRole::FormatString;
                 }
@@ -62,14 +74,14 @@ final readonly class RoleClassifier implements RoleClassifierInterface
             // case DisenchantIt exists to catch (occurrence types, event
             // names), so they get their own role rather than falling through
             // to unclassified.
-            if ($call instanceof Expr\MethodCall || $call instanceof Expr\StaticCall) {
+            if ($call instanceof MethodCall || $call instanceof StaticCall) {
                 return LiteralRole::MethodCallArg;
             }
 
             return LiteralRole::CallArg;
         }
 
-        if ($parent instanceof Node\Expr\ArrayItem) {
+        if ($parent instanceof ArrayItem) {
             // ['origin' => 'defaults'] — $parent->key is the String_ node
             // itself when this string IS the key; when it's the value
             // instead, $parent->key is a *different* node (or null for a
@@ -82,19 +94,19 @@ final readonly class RoleClassifier implements RoleClassifierInterface
             return LiteralRole::ArrayValueLiteral;
         }
 
-        if ($parent instanceof Node\Expr\ArrayDimFetch) {
+        if ($parent instanceof ArrayDimFetch) {
             return LiteralRole::ArrayKey;
         }
 
-        if ($parent instanceof Expr\BinaryOp\Identical || $parent instanceof Expr\BinaryOp\Equal) {
+        if ($parent instanceof Identical || $parent instanceof Equal) {
             return LiteralRole::Comparison;
         }
 
-        if ($parent instanceof Node\Expr\Match_ || $parent instanceof Node\Stmt\Case_) {
+        if ($parent instanceof Match_ || $parent instanceof Case_) {
             return LiteralRole::BranchValue;
         }
 
-        if ($parent instanceof Node\Stmt\EnumCase) {
+        if ($parent instanceof EnumCase) {
             return LiteralRole::EnumBackingValue;
         }
 
@@ -103,7 +115,7 @@ final readonly class RoleClassifier implements RoleClassifierInterface
         // constant. Excluding it is what makes a rewrite idempotent: on a
         // second pass the const's value literal is no longer re-promoted
         // (which would corrupt it into `self::PATH`).
-        if ($parent instanceof Node\Const_) {
+        if ($parent instanceof Const_) {
             return LiteralRole::ClassConstValue;
         }
 

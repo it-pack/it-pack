@@ -76,12 +76,17 @@
             "@analyse",
             "@architecture",
             "@test",
-            "@security:audit"
+            "@security:audit",
+            "@examples"
         ],
         "rector": "vendor/bin/rector",
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
-        "security:audit": "@composer audit",
+        "security:audit": "@composer audit --no-dev",
+        "security:audit:full": [
+            "@putenv COMPOSER_AUDIT_ABANDONED=report",
+            "@composer audit"
+        ],
         "test": "vendor/bin/codecept run",
         "test:acceptance": "vendor/bin/codecept run Acceptance",
         "test:coverage": "vendor/bin/codecept run --coverage --coverage-html",

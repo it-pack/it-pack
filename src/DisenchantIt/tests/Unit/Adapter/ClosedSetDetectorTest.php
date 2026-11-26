@@ -9,6 +9,7 @@ use ItPack\DisenchantIt\Adapter\Grouping\ClosedSetDetector;
 use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
 use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 
@@ -107,7 +108,6 @@ final class ClosedSetDetectorTest extends Unit
                 className: 'C',
                 methodName: 'f',
                 raw: "'x'",
-                namingContext: null,
             ),
             new StringLiteral(
                 value: 'y',
@@ -116,7 +116,6 @@ final class ClosedSetDetectorTest extends Unit
                 className: 'C',
                 methodName: 'f',
                 raw: "'y'",
-                namingContext: null,
             ),
         ];
 
@@ -135,7 +134,7 @@ final class ClosedSetDetectorTest extends Unit
                 raw: "'a'",
                 namingContext: new NamingContext(variableName: 'v'),
             ),
-            new \ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral(
+            new NumberLiteral(
                 kind: LiteralKind::Int->value,
                 value: '1',
                 raw: '1',

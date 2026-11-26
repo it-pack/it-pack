@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\SemConv;
 
-use ItPack\DisenchantIt\Adapter\Grouping\PerClassConstantStrategy;
-use ItPack\DisenchantIt\Adapter\Grouping\SameClassConstantStrategy;
-use ItPack\DisenchantIt\Adapter\SemConv\SemConvAliasRewriter;
-use ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
-
 /**
  * Step 2 + Step 3 of the SemConv pattern discussed with Tydal:
  *
@@ -43,12 +37,10 @@ use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 final class SemConvConfig implements SemConvConfigInterface
 {
     private const string DOT = '.';
+
     private const string PHP_FILE_EXTENSION = 'php';
 
     private const string NAMESPACE_SEPARATOR = '\\';
-
-    // @phpstan-ignore shipmonk.deadProperty.neverRead
-    private readonly ?string $outputPathOverride;
 
     // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $outputPath {
@@ -69,9 +61,8 @@ final class SemConvConfig implements SemConvConfigInterface
         public readonly string $interfaceName = self::DEFAULT_INTERFACE_NAME,
         // @phpstan-ignore shipmonk.deadProperty.neverRead
         public readonly ?string $namespace = self::DEFAULT_NAMESPACE,
-        ?string $outputPath = null,
+        private readonly ?string $outputPathOverride = null,
     ) {
-        $this->outputPathOverride = $outputPath;
     }
 
     public function fullyQualifiedName(): string

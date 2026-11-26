@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Contract\Rewriting;
 
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
-use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifact;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifactInterface;
 
 /**

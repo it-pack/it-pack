@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Literal;
 
-use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
-use ItPack\DisenchantIt\Adapter\Grouping\CandidateFilter;
-
 /**
  * Closed set of roles a detected literal can play in the source, inferred by
  * RoleClassifier from its AST parent. Genuinely closed internal state, so a

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Exception;
 
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
+use RuntimeException;
+use Throwable;
 
 /**
  * Thrown when the nikic parser cannot produce an AST for a source string
@@ -13,9 +15,9 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  *
  * @see \ItPack\DisenchantIt\Adapter\Detection\Detector
  */
-final class ParseFailureException extends \RuntimeException implements DisenchantItExceptionInterface
+final class ParseFailureException extends RuntimeException implements DisenchantItExceptionInterface
 {
-    public function __construct(int $code = 0, ?\Throwable $previous = null)
+    public function __construct(int $code = 0, ?Throwable $previous = null)
     {
         parent::__construct(
             'Source could not be parsed into an AST.',

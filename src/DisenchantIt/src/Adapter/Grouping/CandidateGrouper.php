@@ -17,8 +17,8 @@ use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 final readonly class CandidateGrouper implements CandidateGrouperInterface
 {
     public function __construct(
-        private readonly GroupingStrategyInterface $strings,
-        private readonly GroupingStrategyInterface $numbers,
+        private GroupingStrategyInterface $strings,
+        private GroupingStrategyInterface $numbers,
     ) {
     }
 

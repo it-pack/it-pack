@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\SemConv\FileSemConvStore;
+use RuntimeException;
 
 final class FileSemConvStoreTest extends Unit
 {
@@ -55,7 +56,7 @@ final class FileSemConvStoreTest extends Unit
         set_error_handler(static fn (int $errno, string $errstr): bool => true);
         try {
             $store = new FileSemConvStore('failread://semconv');
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(RuntimeException::class);
             $store->load();
         } finally {
             restore_error_handler();
@@ -73,7 +74,7 @@ final class FileSemConvStoreTest extends Unit
 
             $this->assertSame('interface body', file_get_contents($path));
         } finally {
-            array_map('unlink', glob($dir . '/*') ?: []);
+            array_map(unlink(...), glob($dir . '/*') ?: []);
             @rmdir($dir);
             @rmdir(dirname($dir));
         }
@@ -86,7 +87,7 @@ final class FileSemConvStoreTest extends Unit
         set_error_handler(static fn (int $errno, string $errstr): bool => true);
         try {
             $store = new FileSemConvStore($path);
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(RuntimeException::class);
             $store->save('x');
         } finally {
             restore_error_handler();
@@ -101,7 +102,7 @@ final class FileSemConvStoreTest extends Unit
         set_error_handler(static fn (int $errno, string $errstr): bool => true);
         try {
             $store = new FileSemConvStore($dir);
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(RuntimeException::class);
             $store->save('x');
         } finally {
             restore_error_handler();
@@ -112,17 +113,17 @@ final class FileSemConvStoreTest extends Unit
 
 final class FailReadStreamWrapper
 {
-    public function url_stat(string $path, int $flags): array
+    public function url_stat(): array
     {
         return ['size' => 10, 'mode' => 0o100000];
     }
 
-    public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
+    public function stream_open(): bool
     {
         return false;
     }
 
-    public function stream_read(int $count): string
+    public function stream_read(): string
     {
         return '';
     }

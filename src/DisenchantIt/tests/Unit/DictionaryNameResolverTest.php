@@ -9,19 +9,20 @@ use ItPack\DisenchantIt\Adapter\Naming\DictionaryNameResolver;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
 use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use RuntimeException;
 
 final class DictionaryNameResolverTest extends Unit
 {
     private function literal(string $value): StringLiteral
     {
         return new StringLiteral(
-            raw: $value,
             value: $value,
             line: 1,
             role: LiteralRole::Unclassified,
-            subkind: LiteralSubkind::Unknown,
             className: 'C',
             methodName: 'f',
+            raw: $value,
+            subkind: LiteralSubkind::Unknown,
         );
     }
 
@@ -55,7 +56,7 @@ final class DictionaryNameResolverTest extends Unit
 
     public function testFromFileMissingThrows(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         DictionaryNameResolver::fromFile('/path/that/does/not/exist.json');
     }
 
@@ -65,7 +66,7 @@ final class DictionaryNameResolverTest extends Unit
         file_put_contents($path, '"just a string"');
 
         try {
-            $this->expectException(\RuntimeException::class);
+            $this->expectException(RuntimeException::class);
             DictionaryNameResolver::fromFile($path);
         } finally {
             unlink($path);

@@ -21,7 +21,7 @@ final class PromotionArtifactTest extends Unit
         return new NumberLiteral(
             kind: LiteralKind::Int->value,
             value: $value,
-            raw: (string) $value,
+            raw: $value,
             line: $line,
             role: LiteralRole::NumericExpression,
             className: 'C',

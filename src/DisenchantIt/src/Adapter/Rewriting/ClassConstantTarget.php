@@ -7,7 +7,6 @@ namespace ItPack\DisenchantIt\Adapter\Rewriting;
 use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementFactoryInterface;
 use ItPack\DisenchantIt\Contract\Naming\ConstantNameResolverInterface;
 use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifact;

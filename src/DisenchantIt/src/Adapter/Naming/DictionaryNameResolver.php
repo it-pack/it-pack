@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Adapter\Naming;
 
 use ItPack\DisenchantIt\Contract\Naming\DictionaryNameResolverInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
+use RuntimeException;
 
 /**
  * Dictionary-backed name resolver. Holds a literal-value → constant-name map and
@@ -37,12 +38,12 @@ final readonly class DictionaryNameResolver implements DictionaryNameResolverInt
     public static function fromFile(string $path): self
     {
         if (!is_file($path)) {
-            throw new \RuntimeException("Naming dictionary file not found: {$path}");
+            throw new RuntimeException("Naming dictionary file not found: {$path}");
         }
 
         $decoded = json_decode((string) /** @phpstan-ignore-next-line */ file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
         if (!is_array($decoded)) {
-            throw new \RuntimeException("Naming dictionary must be a JSON object: {$path}");
+            throw new RuntimeException("Naming dictionary must be a JSON object: {$path}");
         }
 
         /** @var array<string, string> $map */

@@ -9,11 +9,11 @@ use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementStrategyInterface;
 use ItPack\DisenchantIt\Contract\Naming\ConstantNameResolverInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
 
-final class SameClassConstantStrategy implements ConstantPlacementStrategyInterface
+final readonly class SameClassConstantStrategy implements ConstantPlacementStrategyInterface
 {
     public function __construct(
-        private readonly ConstantPlacementFactoryInterface $placements,
-        private readonly ConstantNameResolverInterface $resolver,
+        private ConstantPlacementFactoryInterface $placements,
+        private ConstantNameResolverInterface $resolver,
     ) {
     }
 

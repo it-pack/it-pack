@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Exception;
 
 use InvalidArgumentException;
-use ItPack\DisenchantIt\Adapter\Detection\ParsedSourceCache;
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
+use Throwable;
 
 /**
  * Thrown when a ParsedSourceCache is configured with a bound below one entry.
@@ -17,7 +17,7 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  */
 final class InvalidCacheConfigurationException extends InvalidArgumentException implements DisenchantItExceptionInterface
 {
-    public function __construct(int $maxEntries, ?\Throwable $previous = null)
+    public function __construct(int $maxEntries, ?Throwable $previous = null)
     {
         parent::__construct(
             sprintf(

@@ -6,7 +6,6 @@ namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 use ItPack\DisenchantIt\ValueObject\Candidate\CandidateInterface;
 

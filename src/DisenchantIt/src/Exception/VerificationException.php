@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Exception;
 
-use ItPack\DisenchantIt\Adapter\Reporting\PhpLintObserver;
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
+use RuntimeException;
+use Throwable;
 
 /**
  * Thrown by the post-rewrite verification observer (e.g. PhpLintObserver) when
@@ -14,9 +15,9 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  * not replace an in-flight business exception raised earlier in the pipeline
  * (see AGENTS.md execution-lifecycle rules).
  */
-final class VerificationException extends \RuntimeException implements DisenchantItExceptionInterface
+final class VerificationException extends RuntimeException implements DisenchantItExceptionInterface
 {
-    public function __construct(string $message = '', int $code = 0, ?\Throwable $previous = null)
+    public function __construct(string $message = '', int $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }

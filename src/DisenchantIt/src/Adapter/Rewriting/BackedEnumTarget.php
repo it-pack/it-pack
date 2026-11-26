@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Rewriting;
 
-use ItPack\DisenchantIt\Adapter\Grouping\CandidateFilter;
-use ItPack\DisenchantIt\Adapter\Grouping\ClosedSetDetector;
 use ItPack\DisenchantIt\Adapter\Naming\NameSlugifierInterface;
 use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
@@ -34,7 +32,7 @@ use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
 final readonly class BackedEnumTarget implements PromotionTargetInterface
 {
     public function __construct(
-        private readonly NameSlugifierInterface $nameSlugifier,
+        private NameSlugifierInterface $nameSlugifier,
     ) {
     }
 
@@ -121,10 +119,6 @@ final readonly class BackedEnumTarget implements PromotionTargetInterface
      */
     private function firstClassName(array $occurrences): string
     {
-        foreach ($occurrences as $lit) {
-            return $lit->className;
-        }
-
-        return '(unknown)';
+        return $occurrences[0]->className ?? '(unknown)';
     }
 }

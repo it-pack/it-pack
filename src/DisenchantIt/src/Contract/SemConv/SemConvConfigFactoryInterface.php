@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract\SemConv;
 
-use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfigInterface;
 
 /**

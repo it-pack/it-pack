@@ -12,15 +12,19 @@ use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
 use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
-use ItPack\DisenchantIt\ValueObject\Scope\DisenchantScope;
 use ItPack\DisenchantIt\ValueObject\Scope\DisenchantScopeInterface;
 use PhpParser\Node;
 use PhpParser\Node\Expr\BinaryOp\BitwiseAnd;
 use PhpParser\Node\Expr\BinaryOp\BitwiseOr;
 use PhpParser\Node\Expr\BinaryOp\BitwiseXor;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Scalar\DNumber;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\ClassConst;
+use PhpParser\Node\Stmt\ClassLike;
+use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\EnumCase;
 use PhpParser\NodeVisitorAbstract;
 
 /**
@@ -37,18 +41,13 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
 {
     /** @var list<LiteralInterface> */
     private array $found = [];
-    private ?string $currentClass = null;
-    private ?string $currentMethod = null;
-    private string $code;
 
-    public function __construct(
-        private readonly RoleClassifierInterface $classifier,
-        private readonly NamingContextExtractorInterface $extractor,
-        string $code,
-        private readonly ContentClassifierInterface $contentClassifier,
-        private readonly int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS,
-    ) {
-        $this->code = $code;
+    private ?string $currentClass = null;
+
+    private ?string $currentMethod = null;
+
+    public function __construct(private readonly RoleClassifierInterface $classifier, private readonly NamingContextExtractorInterface $extractor, private readonly string $code, private readonly ContentClassifierInterface $contentClassifier, private readonly int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS)
+    {
     }
 
     /**
@@ -57,15 +56,15 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
      */
     public function enterNode(Node $node): null
     {
-        if ($node instanceof Node\Stmt\ClassLike && $node->name !== null) {
+        if ($node instanceof ClassLike && $node->name instanceof Identifier) {
             $this->currentClass = $node->name->toString();
         }
 
-        if ($node instanceof Node\Stmt\ClassMethod) {
+        if ($node instanceof ClassMethod) {
             $this->currentMethod = $node->name->toString();
         }
 
-        if ($node instanceof Node\Stmt\EnumCase) {
+        if ($node instanceof EnumCase) {
             $this->currentMethod = 'case ' . $node->name->toString();
         }
 
@@ -112,9 +111,9 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                     className: $proto->className,
                     methodName: $proto->methodName,
                     raw: $proto->raw,
-                    endLine: $proto->endLine,
                     namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
                     subkind: $this->contentClassifier->classify($proto, false),
+                    endLine: $proto->endLine,
                     isClassnameString: $this->contentClassifier->isClassNameString($proto->value),
                 );
 
@@ -149,9 +148,9 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $proto->className,
                 methodName: $proto->methodName,
                 raw: $proto->raw,
-                endLine: $proto->endLine,
                 namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
                 subkind: $this->contentClassifier->classify($proto, $inBitwiseContext),
+                endLine: $proto->endLine,
                 isClassnameString: $this->contentClassifier->isClassNameString($proto->value),
             );
 
@@ -192,8 +191,8 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $proto->className,
                 methodName: $proto->methodName,
                 namingContext: $proto->namingContext,
-                endLine: $proto->endLine,
                 subkind: $this->contentClassifier->classify($proto, $inBitwiseContext),
+                endLine: $proto->endLine,
             );
 
             return null;
@@ -221,7 +220,11 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         $end = $node->getEndFilePos();
 
         if ($start < 0 || $end < $start) {
-            return (string) ($node->value ?? '');
+            if ($node instanceof String_ || $node instanceof LNumber || $node instanceof DNumber) {
+                return (string) ($node->value ?? '');
+            }
+
+            return '';
         }
 
         /** @phpstan-ignore-next-line */
@@ -243,7 +246,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         $current = $node->getAttribute('parent');
 
         while ($current !== null) {
-            if ($current instanceof Node\Stmt\ClassConst) {
+            if ($current instanceof ClassConst) {
                 return true;
             }
 

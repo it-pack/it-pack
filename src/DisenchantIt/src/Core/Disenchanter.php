@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Core;
 
-use ItPack\DisenchantIt\Adapter\Grouping\CandidateGrouper;
 use ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
 use ItPack\DisenchantIt\Contract\Grouping\CandidateFilterInterface;
@@ -15,7 +14,6 @@ use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
 use ItPack\DisenchantIt\Contract\Reporting\VerificationObserverInterface;
 use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
 use ItPack\DisenchantIt\Contract\Rewriting\RewriterInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvCollectorInterface;
 use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
@@ -229,7 +227,6 @@ final readonly class Disenchanter implements DisenchanterInterface
 
     /**
      * @param array<string, GroupedCandidateInterface> $groups
-     * @param int $minOccurrences
      * @return list<PromotionArtifactInterface>
      */
     private function buildArtifacts(array $groups, int $minOccurrences): array

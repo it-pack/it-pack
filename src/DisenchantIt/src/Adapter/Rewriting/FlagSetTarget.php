@@ -38,7 +38,7 @@ use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 final readonly class FlagSetTarget implements PromotionTargetInterface
 {
     public function __construct(
-        private readonly NameSlugifierInterface $nameSlugifier,
+        private NameSlugifierInterface $nameSlugifier,
     ) {
     }
 

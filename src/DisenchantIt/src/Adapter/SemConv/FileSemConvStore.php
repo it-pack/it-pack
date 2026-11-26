@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\SemConv;
 
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvStoreInterface;
+use RuntimeException;
 
 /**
  * Filesystem-backed SemConvStoreInterface. Loads/saves the canonical
@@ -18,7 +18,7 @@ use ItPack\DisenchantIt\Contract\SemConv\SemConvStoreInterface;
  * Save is fail-closed: a write failure throws rather than silently losing the
  * accumulated registry.
  */
-final class FileSemConvStore implements SemConvStoreInterface
+final readonly class FileSemConvStore implements SemConvStoreInterface
 {
     public function __construct(
         private string $path,
@@ -34,7 +34,7 @@ final class FileSemConvStore implements SemConvStoreInterface
         /** @phpstan-ignore-next-line */
         $contents = file_get_contents($this->path);
         if ($contents === false) {
-            throw new \RuntimeException("Failed to read SemConv store: {$this->path}");
+            throw new RuntimeException("Failed to read SemConv store: {$this->path}");
         }
 
         return $contents === '' ? null : $contents;
@@ -45,14 +45,14 @@ final class FileSemConvStore implements SemConvStoreInterface
         $dir = dirname($this->path);
         if ($dir !== '' && $dir !== '.' && !is_dir($dir)) {
             if (!mkdir($dir, 0o755, true) && !is_dir($dir)) {
-                throw new \RuntimeException("Failed to create SemConv store directory: {$dir}");
+                throw new RuntimeException("Failed to create SemConv store directory: {$dir}");
             }
         }
 
         /** @phpstan-ignore-next-line */
         $written = file_put_contents($this->path, $source);
         if ($written === false) {
-            throw new \RuntimeException("Failed to write SemConv store: {$this->path}");
+            throw new RuntimeException("Failed to write SemConv store: {$this->path}");
         }
     }
 }

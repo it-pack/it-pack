@@ -11,6 +11,7 @@ use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 
 /**
  * Default candidate filter. Strings keep the original rules (skip enum backing
@@ -92,6 +93,6 @@ final readonly class CandidateFilter implements CandidateFilterInterface
 
         // Only promote when at least one naming hint is present; a bare literal
         // in a comparison/branch carries none.
-        return $lit->namingContext !== null && $lit->namingContext->hasHint();
+        return $lit->namingContext instanceof NamingContextInterface && $lit->namingContext->hasHint();
     }
 }

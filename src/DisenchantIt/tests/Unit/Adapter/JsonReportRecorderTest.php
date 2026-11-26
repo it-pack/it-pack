@@ -7,6 +7,7 @@ namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\Reporting\JsonReportRecorder;
 use ItPack\DisenchantIt\ValueObject\Execution\ExecutionArtifactInterface;
+use RuntimeException;
 
 final class JsonReportRecorderTest extends Unit
 {
@@ -31,7 +32,7 @@ final class JsonReportRecorderTest extends Unit
         $artifact->method('normalize')->willReturn(['payload' => tmpfile()]);
 
         $recorder->record($artifact);
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
         $recorder->toJson();
     }

@@ -41,7 +41,7 @@ final class CandidateGrouperTest extends Unit
 
         $this->assertSame(['a', 'b'], array_keys($groups));
         $this->assertCount(2, $groups['a']);
-        $this->assertSame([10, 20], array_map(static fn (StringLiteralInterface $l) => $l->line, $groups['a']));
+        $this->assertSame([10, 20], array_map(static fn (StringLiteralInterface $l): int => $l->line, $groups['a']));
     }
 
     public function testEmptyInputYieldsEmptyGroups(): void

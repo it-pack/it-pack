@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Detection;
 
+use Generator;
 use ItPack\DisenchantIt\Contract\Detection\MagicStringVisitorFactoryInterface;
 use ItPack\DisenchantIt\Contract\Detection\ParsedSourceCacheInterface;
 use ItPack\DisenchantIt\Contract\Detection\ParserFactoryInterface;
@@ -12,8 +13,9 @@ use ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\Detection\TraverserFactoryInterface;
 use ItPack\DisenchantIt\Exception\SourceTooLargeException;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 use ItPack\DisenchantIt\ValueObject\Source\SourceCodeInterface;
+use PhpParser\Node\Stmt;
+use PhpParser\Parser;
 
 /**
  * Detection half of DisenchantIt's pipeline.
@@ -49,7 +51,7 @@ final class Detector implements StringLiteralDetectorInterface
      * constructor/return signature, so Core stays free of vendor type
      * dependencies in its public API.
      *
-     * @var \PhpParser\Parser|null
+     * @var Parser|null
      */
     private ?object $parser = null;
 
@@ -79,14 +81,12 @@ final class Detector implements StringLiteralDetectorInterface
             return $cached;
         }
 
-        if ($this->parser === null) {
-            $this->parser = $this->parsers->build();
-        }
+        $this->parser ??= $this->parsers->build();
 
-        /** @var \PhpParser\Parser $parser */
+        /** @var Parser $parser */
         $parser = $this->parser;
 
-        /** @var array<\PhpParser\Node\Stmt>|null $ast */
+        /** @var array<Stmt>|null $ast */
         $ast = $parser->parse($code->code);
         if ($ast === null) {
             return [];
@@ -116,9 +116,9 @@ final class Detector implements StringLiteralDetectorInterface
      * so callers can incrementally consume detections without holding the whole
      * list. True streaming would require a streaming lexer and is out of scope.
      *
-     * @return \Generator<int, LiteralInterface, void, void>
+     * @return Generator<int, LiteralInterface, void, void>
      */
-    public function scanSourceStreaming(SourceCodeInterface $code): \Generator
+    public function scanSourceStreaming(SourceCodeInterface $code): Generator
     {
         yield from $this->scanSource($code);
     }

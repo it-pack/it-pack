@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Contract\Grouping;
 
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacement;
 use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface;
 
 /**

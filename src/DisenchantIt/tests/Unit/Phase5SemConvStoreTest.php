@@ -50,13 +50,13 @@ final class Phase5SemConvStoreTest extends Unit
 
         // Second run loads the prior registry from the store (existingSource is
         // null) and merges a new entry without discarding the old one.
-        $second = $collector->collect([$this->placement('STATUS_ACTIVE', 'active')], null);
+        $second = $collector->collect([$this->placement('STATUS_ACTIVE', 'active')]);
         $this->assertStringContainsString('ADMIN_USER', $second);
         $this->assertStringContainsString('STATUS_ACTIVE', $second);
 
         // A third run that re-collects ADMIN_USER finds it already present and
         // merges idempotently (no duplicate, no collision).
-        $third = $collector->collect([$this->placement('ADMIN_USER', 'admin-user')], null);
+        $third = $collector->collect([$this->placement('ADMIN_USER', 'admin-user')]);
         $this->assertSame(
             substr_count($third, 'public const string ADMIN_USER'),
             1,
@@ -70,7 +70,7 @@ final class Phase5SemConvStoreTest extends Unit
         $collector = new SemConvCollector(new SemConvConfig(), $store);
 
         $collector->collect([$this->placement('ADMIN_USER', 'admin-user')]);
-        $collector->collect([$this->placement('STATUS_ACTIVE', 'active')], null);
+        $collector->collect([$this->placement('STATUS_ACTIVE', 'active')]);
 
         $contents = $store->load();
         $this->assertStringContainsString('ADMIN_USER', $contents);
@@ -86,7 +86,7 @@ final class Phase5SemConvStoreTest extends Unit
         $this->expectException(SemConvCollisionException::class);
 
         // Same name, differing value → hard error (per domain invariant).
-        $collector->collect([$this->placement('CODE', 'two')], null);
+        $collector->collect([$this->placement('CODE', 'two')]);
     }
 
     public function testCollectorWithoutStoreStaysPure(): void

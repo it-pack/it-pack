@@ -10,6 +10,7 @@ use ItPack\DisenchantIt\Adapter\Detection\NamingContextExtractor;
 use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
 use ItPack\DisenchantIt\Contract\Detection\ContentClassifierInterface;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
 use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
@@ -105,7 +106,7 @@ final class MagicLiteralVisitorTest extends Unit
 
         $strings = array_values(array_filter(
             $visitor->getFound(),
-            static fn ($lit): bool => $lit->kind === LiteralKind::String->value,
+            static fn (LiteralInterface $lit): bool => $lit->kind === LiteralKind::String->value,
         ));
 
         $this->assertCount(1, $strings);

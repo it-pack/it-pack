@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use PhpParser\ErrorHandler;
+
 /**
  * Phase P4 benchmark — parse-once caching.
  *
@@ -39,7 +41,7 @@ final class CountingParser implements Parser
     {
     }
 
-    public function parse(string $code, ?\PhpParser\ErrorHandler $errorHandler = null): ?array
+    public function parse(string $code, ?ErrorHandler $errorHandler = null): ?array
     {
         $this->parses++;
 
@@ -55,6 +57,7 @@ final class CountingParser implements Parser
 final class CountingParserFactory implements ParserFactoryInterface
 {
     public int $builds = 0;
+
     public CountingParser $last;
 
     public function build(): Parser
@@ -100,6 +103,7 @@ for ($i = 0; $i < $iterations; $i++) {
     $detector->scanSource($same);
 }
 $sameParserBuilds = $factory->builds;
+/** @noinspection PhpTypedPropertyMightBeUninitializedInspection */
 $sameParses = $factory->last->parses;
 
 // Reset and scan DISTINCT sources: parser reused, but each parse is a miss.
@@ -115,6 +119,7 @@ for ($i = 0; $i < $iterations; $i++) {
     $detector2->scanSource(new SourceCode(makeLargeSource(300) . "// $i"));
 }
 $distinctParserBuilds = $factory2->builds;
+/** @noinspection PhpTypedPropertyMightBeUninitializedInspection */
 $distinctParses = $factory2->last->parses;
 
 echo "Iterations per scenario : $iterations\n";

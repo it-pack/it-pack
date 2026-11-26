@@ -21,7 +21,7 @@ $examplesDir = __DIR__ . '/../examples';
 
 $files = "{$examplesDir}/*.php"
             |> glob(...)
-            |> (static fn($x) => array_filter($x, fn(string $path): bool => basename($path) !== 'bootstrap.php',))
+            |> (static fn($x): array => array_filter($x, fn(string $path): bool => basename($path) !== 'bootstrap.php',))
             |> array_values(...);
 
 sort($files);

@@ -22,7 +22,6 @@ use ItPack\DisenchantIt\Adapter\Rewriting\BackedEnumTarget;
 use ItPack\DisenchantIt\Adapter\Rewriting\ClassConstantTarget;
 use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
 use ItPack\DisenchantIt\Adapter\Naming\NameSlugifier;
-use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
 use ItPack\DisenchantIt\Factory\ConstantPlacementFactory;
 use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
 

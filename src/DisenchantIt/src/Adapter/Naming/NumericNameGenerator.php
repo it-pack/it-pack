@@ -6,7 +6,6 @@ namespace ItPack\DisenchantIt\Adapter\Naming;
 
 use ItPack\DisenchantIt\Contract\Naming\NumericNameGeneratorInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 
 /**
@@ -29,7 +28,7 @@ final readonly class NumericNameGenerator implements NumericNameGeneratorInterfa
 
     public function generate(LiteralInterface $lit, ?NamingContextInterface $ctx): ?string
     {
-        if ($ctx === null) {
+        if (!$ctx instanceof NamingContextInterface) {
             return null;
         }
 

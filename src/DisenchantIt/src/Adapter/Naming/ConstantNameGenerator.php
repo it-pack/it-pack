@@ -38,6 +38,6 @@ final readonly class ConstantNameGenerator implements ConstantNameGeneratorInter
         // Last resort: name it after the value's own character codes so it's
         // at least deterministic and non-empty, rather than throwing.
         /** @phpstan-ignore-next-line */
-        return 'CHAR_' . implode('_', array_map('ord', str_split($rawValue)));
+        return 'CHAR_' . implode('_', array_map(ord(...), str_split($rawValue)));
     }
 }

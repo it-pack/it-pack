@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Literal;
 
-use ItPack\DisenchantIt\Adapter\Detection\ContentClassifier;
-
 /**
  * Closed set of *content* sub-kinds a detected literal can represent, inferred
  * by ContentClassifier from the literal's raw value (and, later, from the

@@ -139,7 +139,7 @@ final class BackedEnumTargetTest extends Unit
 
     public function testEnumNameDefaultsToDisenchantedWhenProposedEmpty(): void
     {
-        $group = new GroupedCandidate($this->candidateWithValues(['a', 'b']), true, null);
+        $group = new GroupedCandidate($this->candidateWithValues(['a', 'b']), true);
         $artifact = $this->target()->build($group);
 
         $enumSource = implode("\n", $artifact->insertions[0]->lines);

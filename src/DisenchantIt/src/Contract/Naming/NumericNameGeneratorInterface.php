@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Contract\Naming;
 
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 
 /**

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\ValueObject\Rewrite;
 
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 
 /**
  * Port for the placement of one promoted constant: where its declaration lives

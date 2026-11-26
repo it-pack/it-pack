@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Naming;
 
-use ItPack\DisenchantIt\Adapter\Rewriting\BackedEnumTarget;
-use ItPack\DisenchantIt\Adapter\Rewriting\FlagSetTarget;
-
 /**
  * Default NameSlugifierInterface implementation. Stateless and immutable;
  * behavior is byte-compatible with the former private copies inside

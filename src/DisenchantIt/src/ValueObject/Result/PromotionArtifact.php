@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Result;
 
-use ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface;
 use ItPack\DisenchantIt\ValueObject\Rewrite\Insertion;
 use ItPack\DisenchantIt\ValueObject\Rewrite\Replacement;

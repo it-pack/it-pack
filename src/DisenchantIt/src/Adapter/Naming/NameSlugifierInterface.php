@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Naming;
 
-use ItPack\DisenchantIt\Adapter\Rewriting\BackedEnumTarget;
-use ItPack\DisenchantIt\Adapter\Rewriting\FlagSetTarget;
-
 /**
  * Port for turning raw literal / variable names into valid PHP identifier
  * fragments. Shared by the promotion targets so case naming can never drift

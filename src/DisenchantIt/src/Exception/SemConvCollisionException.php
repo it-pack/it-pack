@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Exception;
 
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
+use RuntimeException;
+use Throwable;
 
 /**
  * Thrown by the SemConv collector when two placements resolve to the same
@@ -14,12 +15,12 @@ use ItPack\DisenchantIt\Contract\SemConv\SemConv;
  *
  * @see \ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector
  */
-final class SemConvCollisionException extends \RuntimeException implements DisenchantItExceptionInterface
+final class SemConvCollisionException extends RuntimeException implements DisenchantItExceptionInterface
 {
     /**
      * @param list<string> $conflictingNames
      */
-    public function __construct(array $conflictingNames, ?\Throwable $previous = null)
+    public function __construct(array $conflictingNames, ?Throwable $previous = null)
     {
         $message = sprintf(
             'SemConv collection found name collisions with differing values for: %s. '

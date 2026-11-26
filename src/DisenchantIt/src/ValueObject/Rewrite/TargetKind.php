@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Rewrite;
 
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
-
 /**
  * Closed set of promotion targets DisenchantIt can emit for a detected group of
  * literals. Genuinely closed internal state, so a backed enum (per AGENTS.md /

@@ -7,6 +7,7 @@ namespace ItPack\DisenchantIt\Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
+use ItPack\DisenchantIt\ValueObject\Candidate\CandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
 use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
@@ -25,7 +26,7 @@ final class NumericDetectionTest extends Unit
     {
         return array_values(array_filter(
             $literals,
-            static fn ($lit): bool => $lit instanceof NumberLiteral,
+            static fn (object $lit): bool => $lit instanceof NumberLiteral,
         ));
     }
 
@@ -86,14 +87,7 @@ final class NumericDetectionTest extends Unit
         $code = '<?php class C { public function f(): int { $timeoutMs = 30000; return $timeoutMs; } }';
 
         $candidates = $disenchanter->detect($code);
-
-        $numeric = null;
-        foreach ($candidates as $candidate) {
-            if ($candidate->value === '30000') {
-                $numeric = $candidate;
-                break;
-            }
-        }
+        $numeric = array_find($candidates, fn ($candidate): bool => $candidate->value === '30000');
 
         $this->assertNotNull($numeric, 'hinted number is promoted');
         $this->assertSame('TIMEOUT_MS', $numeric->constantName);
@@ -114,14 +108,7 @@ final class NumericDetectionTest extends Unit
             PHP;
 
         $candidates = $disenchanter->detect($code);
-
-        $numeric = null;
-        foreach ($candidates as $candidate) {
-            if ($candidate->value === '30') {
-                $numeric = $candidate;
-                break;
-            }
-        }
+        $numeric = array_find($candidates, fn ($candidate): bool => $candidate->value === '30');
 
         $this->assertNotNull($numeric);
         $this->assertSame('T_SECONDS', $numeric->constantName);
@@ -141,8 +128,8 @@ final class NumericDetectionTest extends Unit
         $candidates = $disenchanter->detect($code);
 
         $numericNames = array_values(array_map(
-            static fn ($c) => $c->constantName,
-            array_filter($candidates, static fn ($c) => $c->value === '100'),
+            static fn (CandidateInterface $c): string => $c->constantName,
+            array_filter($candidates, static fn (CandidateInterface $c): bool => $c->value === '100'),
         ));
 
         $this->assertContains('TIMEOUT_MS', $numericNames);

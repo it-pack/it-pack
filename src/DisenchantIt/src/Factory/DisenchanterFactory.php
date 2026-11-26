@@ -19,7 +19,6 @@ use ItPack\DisenchantIt\Contract\Naming\DictionaryNameResolverInterface;
 use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
 use ItPack\DisenchantIt\Contract\Reporting\VerificationObserverInterface;
 use ItPack\DisenchantIt\Contract\Rewriting\RewriterInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvStoreInterface;

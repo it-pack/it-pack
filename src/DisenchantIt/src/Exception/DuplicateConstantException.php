@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Exception;
 
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
+use RuntimeException;
+use Throwable;
 
 /**
  * Thrown when a placement targets a class constant that already exists with a
@@ -14,9 +16,9 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  *
  * @see \ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter
  */
-final class DuplicateConstantException extends \RuntimeException implements DisenchantItExceptionInterface
+final class DuplicateConstantException extends RuntimeException implements DisenchantItExceptionInterface
 {
-    public function __construct(string $constantName, string $className, ?\Throwable $previous = null)
+    public function __construct(string $constantName, string $className, ?Throwable $previous = null)
     {
         parent::__construct(
             sprintf(

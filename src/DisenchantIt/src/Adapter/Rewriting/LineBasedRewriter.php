@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter\Rewriting;
 
 use ItPack\DisenchantIt\Contract\Rewriting\RewriterInterface;
-use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifactInterface;
 use ItPack\DisenchantIt\ValueObject\Rewrite\InsertionInterface;
 
@@ -225,14 +224,7 @@ final class LineBasedRewriter implements RewriterInterface
         if ($name === null) {
             return false;
         }
-
-        foreach ($lines as $line) {
-            if (preg_match('/\benum\s+' . preg_quote($name, '/') . '\b/', $line) === 1) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($lines, fn (string $line): bool => preg_match('/\benum\s+' . preg_quote($name, '/') . '\b/', $line) === 1);
     }
 
     /**
