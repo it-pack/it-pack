@@ -18,11 +18,11 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
-use ItPack\DisenchantIt\Adapter\BackedEnumTarget;
-use ItPack\DisenchantIt\Adapter\ClassConstantTarget;
-use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
-use ItPack\DisenchantIt\Adapter\NameSlugifier;
-use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
+use ItPack\DisenchantIt\Adapter\Rewriting\BackedEnumTarget;
+use ItPack\DisenchantIt\Adapter\Rewriting\ClassConstantTarget;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\Naming\NameSlugifier;
+use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
 use ItPack\DisenchantIt\Factory\ConstantPlacementFactory;
 use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
 
@@ -52,7 +52,6 @@ $strategies = [
 ];
 
 foreach ($strategies as $label => $target) {
-    /** @var PromotionTargetInterface|null $target */
     $disenchanter = buildCustom($target);
     $out = $disenchanter->rewrite($multiClassCode);
     code("OUTPUT — target: {$label}", $out);

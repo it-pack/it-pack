@@ -17,13 +17,13 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
-use ItPack\DisenchantIt\Adapter\Detector;
+use ItPack\DisenchantIt\Contract\Detection\ParserFactoryInterface;
+use ItPack\DisenchantIt\Adapter\Detection\Detector;
 use ItPack\DisenchantIt\Factory\MagicStringVisitorFactory;
 use ItPack\DisenchantIt\Factory\NikicTraverserFactory;
-use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
-use ItPack\DisenchantIt\Adapter\RoleClassifier;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\Adapter\Detection\ParsedSourceCache;
+use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 
@@ -55,7 +55,7 @@ final class CountingParser implements Parser
 final class CountingParserFactory implements ParserFactoryInterface
 {
     public int $builds = 0;
-    public ?CountingParser $last = null;
+    public CountingParser $last;
 
     public function build(): Parser
     {
@@ -100,7 +100,7 @@ for ($i = 0; $i < $iterations; $i++) {
     $detector->scanSource($same);
 }
 $sameParserBuilds = $factory->builds;
-$sameParses = $factory->last?->parses ?? 0;
+$sameParses = $factory->last->parses;
 
 // Reset and scan DISTINCT sources: parser reused, but each parse is a miss.
 $factory2 = new CountingParserFactory();
@@ -115,7 +115,7 @@ for ($i = 0; $i < $iterations; $i++) {
     $detector2->scanSource(new SourceCode(makeLargeSource(300) . "// $i"));
 }
 $distinctParserBuilds = $factory2->builds;
-$distinctParses = $factory2->last?->parses ?? 0;
+$distinctParses = $factory2->last->parses;
 
 echo "Iterations per scenario : $iterations\n";
 echo "Source size            : " . strlen($source) . " bytes\n\n";

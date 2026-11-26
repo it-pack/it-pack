@@ -14,9 +14,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
-use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateFilterInterface;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
 
 /**
  * A custom filter: keep everything the DEFAULT filter keeps, then remove any
@@ -28,13 +28,13 @@ final readonly class TemporaryKeyFilter implements CandidateFilterInterface
     {
     }
 
-    public function filterCandidates(array $literals): array
+    public function filterCandidates(array $literals, ?string $relativePath = null): array
     {
         $kept = $this->inner->filterCandidates($literals);
 
         return array_values(array_filter(
             $kept,
-            static fn (StringLiteralInterface $literal): bool => !str_starts_with($literal->value, 'tmp_'),
+            static fn (LiteralInterface $literal): bool => !str_starts_with($literal->value, 'tmp_'),
         ));
     }
 }
