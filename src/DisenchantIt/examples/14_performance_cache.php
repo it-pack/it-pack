@@ -100,7 +100,9 @@ for ($i = 0; $i < $iterations; $i++) {
     $detector->scanSource($same);
 }
 $sameParserBuilds = $factory->builds;
-$sameParses = $factory->last->parses;
+if (($factory !== null) && !empty($factory->last)) {
+    $sameParses = $factory->last->parses;
+}
 
 // Reset and scan DISTINCT sources: parser reused, but each parse is a miss.
 $factory2 = new CountingParserFactory();
@@ -115,7 +117,9 @@ for ($i = 0; $i < $iterations; $i++) {
     $detector2->scanSource(new SourceCode(makeLargeSource(300) . "// $i"));
 }
 $distinctParserBuilds = $factory2->builds;
-$distinctParses = $factory2->last->parses;
+if (isset($factory2)) {
+    $distinctParses = $factory2->last->parses;
+}
 
 echo "Iterations per scenario : $iterations\n";
 echo "Source size            : " . strlen($source) . " bytes\n\n";

@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection AutoloadingIssuesInspection */
 
 declare(strict_types=1);
 
@@ -30,7 +30,7 @@ final readonly class TemporaryKeyFilter implements CandidateFilterInterface
 
     public function filterCandidates(array $literals, ?string $relativePath = null): array
     {
-        $kept = $this->inner->filterCandidates($literals);
+        $kept = $this->inner->filterCandidates($literals, $relativePath);
 
         return array_values(array_filter(
             $kept,

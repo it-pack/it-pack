@@ -22,9 +22,6 @@ return RectorConfig::configure()
     ->withSkipPath(
         __DIR__ . '/tests/Support/_generated',
     )
-    ->withSkipPath(
-        __DIR__ . '/tests/Support/Fixture',
-    )
     ->withPhpSets(php85: true)
     ->withSets([
         SetList::CODE_QUALITY,
