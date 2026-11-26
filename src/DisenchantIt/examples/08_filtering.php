@@ -44,7 +44,7 @@ foreach ($kept as $value => $candidate) {
         "  • %-16s → const %s (%s)%s",
         "'{$value}'",
         $candidate->constantName,
-        $candidate->occurrences[0]->role,
+        $candidate->occurrences[0]->role->value,
         PHP_EOL,
     );
 }

@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 hr('Custom SemConvConfig — rename the shared registry');
 

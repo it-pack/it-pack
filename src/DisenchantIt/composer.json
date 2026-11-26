@@ -28,7 +28,7 @@
         "open-telemetry/sdk": "^1.0",
         "open-telemetry/sem-conv": "^1.0",
         "phparkitect/phparkitect": "^1.2",
-        "rector/rector": "^2.0"
+        "rector/rector": "^2.1.3"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -61,14 +61,21 @@
         "architecture": "vendor/bin/phparkitect check",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "examples": "tools/example_test.php",
+        "format": "@cs:fix",
         "mutation": "vendor/bin/infection --min-msi=80",
         "mutation:ci": "vendor/bin/infection --min-msi=0 --no-interaction",
+        "polish": [
+            "@composer normalize",
+            "@format",
+            "@refactor"
+        ],
         "quality": [
             "@cs:check",
+            "@refactor:dry",
             "@analyse",
             "@architecture",
             "@test",
-            "@mutation",
             "@security:audit"
         ],
         "rector": "vendor/bin/rector",

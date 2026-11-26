@@ -12,24 +12,23 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use ItPack\DisenchantIt\Adapter\ClosedSetDetector;
-use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
-use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
-use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
-use ItPack\DisenchantIt\Contract\ClosedSetDetectorInterface;
-use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
+use ItPack\DisenchantIt\Adapter\Grouping\ClosedSetDetector;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateFilterInterface;
+use ItPack\DisenchantIt\Adapter\Naming\NumericNameGenerator;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
-use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
+use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
 use ItPack\DisenchantIt\Core\Disenchanter;
-use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
-use ItPack\DisenchantIt\Adapter\LineBasedRewriter;
-use ItPack\DisenchantIt\Adapter\NullExecutionRecorder;
-use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
-use ItPack\DisenchantIt\Adapter\SemConvCollector;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter;
+use ItPack\DisenchantIt\Adapter\Reporting\NullExecutionRecorder;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvAliasRewriter;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfigInterface;
 
 function hr(string $title): void
 {
