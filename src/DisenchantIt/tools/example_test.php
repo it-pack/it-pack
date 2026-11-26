@@ -13,6 +13,10 @@ declare(strict_types=1);
  * Run: php tools/smoke_test.php
  */
 
+
+echo PHP_EOL;
+echo "Running examples..." . PHP_EOL;
+
 $examplesDir = __DIR__ . '/../examples';
 
 $files = "{$examplesDir}/*.php"
