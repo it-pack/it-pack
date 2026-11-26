@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Reporting;
 
-use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
 use ItPack\DisenchantIt\Contract\Reporting\SarifRecorderInterface;
 use ItPack\DisenchantIt\ValueObject\Execution\ExecutionArtifactInterface;
+use RuntimeException;
 
 /**
  * ExecutionRecorderInterface implementation that accumulates every recorded
@@ -68,7 +68,7 @@ final class SarifRecorder implements SarifRecorderInterface
 
         $sarif = json_encode($doc, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($sarif === false) {
-            throw new \RuntimeException('Failed to encode the SARIF report.');
+            throw new RuntimeException('Failed to encode the SARIF report.');
         }
 
         return $sarif;

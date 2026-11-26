@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Literal;
 
-use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacement;
-
 /**
  * Closed set of literal kinds DisenchantIt can detect and promote. Genuinely
  * closed internal state, so a backed enum (per AGENTS.md) rather than a

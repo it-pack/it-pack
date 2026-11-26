@@ -16,7 +16,7 @@ use ItPack\DisenchantIt\Exception\VerificationException;
  * A lint failure throws {@see VerificationException} carrying the linter output.
  * The temp file is always removed (best-effort) even when lint fails.
  */
-final class PhpLintObserver implements VerificationObserverInterface
+final readonly class PhpLintObserver implements VerificationObserverInterface
 {
     public function __construct(
         private string $phpBinary = PHP_BINARY,

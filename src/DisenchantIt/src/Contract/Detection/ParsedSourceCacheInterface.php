@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Contract\Detection;
 
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 use ItPack\DisenchantIt\ValueObject\Source\SourceCodeInterface;
 
 /**

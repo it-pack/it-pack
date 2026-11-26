@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support;
+namespace ItPack\DisenchantIt\Tests\Support;
+
+use Codeception\Actor;
+use ItPack\DisenchantIt\Tests\Support\_generated\AcceptanceTesterActions;
 
 /**
  * Inherited Methods
@@ -19,9 +22,9 @@ namespace Tests\Support;
  *
  * @SuppressWarnings(PHPMD)
 */
-class AcceptanceTester extends \Codeception\Actor
+class AcceptanceTester extends Actor
 {
-    use _generated\AcceptanceTesterActions;
+    use AcceptanceTesterActions;
 
     /**
      * Define custom actions here

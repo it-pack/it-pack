@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support;
+namespace ItPack\DisenchantIt\Tests\Support;
+
+use Codeception\Actor;
+use ItPack\DisenchantIt\Tests\Support\_generated\FunctionalTesterActions;
 
 /**
  * Inherited Methods
@@ -19,9 +22,9 @@ namespace Tests\Support;
  *
  * @SuppressWarnings(PHPMD)
 */
-class FunctionalTester extends \Codeception\Actor
+class FunctionalTester extends Actor
 {
-    use _generated\FunctionalTesterActions;
+    use FunctionalTesterActions;
 
     /**
      * Define custom actions here

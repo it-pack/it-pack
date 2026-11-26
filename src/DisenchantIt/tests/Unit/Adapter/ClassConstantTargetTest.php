@@ -7,7 +7,6 @@ namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
 use ItPack\DisenchantIt\Adapter\Rewriting\ClassConstantTarget;
-use ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter;
 use ItPack\DisenchantIt\Factory\ConstantPlacementFactory;
 use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidate;
@@ -87,7 +86,7 @@ final class ClassConstantTargetTest extends Unit
 
         // Mirrors the historical LineBasedRewriter declaration line exactly.
         $this->assertSame(
-            '    private const string ADMIN_USER = \'admin-user\';',
+            "    private const string ADMIN_USER = 'admin-user';",
             $artifact->insertions[0]->lines[0],
         );
     }

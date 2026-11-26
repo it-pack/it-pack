@@ -35,7 +35,7 @@ final readonly class DisenchantOccurrence implements ExecutionArtifactInterface
     public function normalize(): array
     {
         return [
-            'kind' => $this->kind(),
+            'kind' => $this->name,
             'payload' => $this->payload,
         ];
     }

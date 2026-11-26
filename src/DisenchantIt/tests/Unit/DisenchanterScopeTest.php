@@ -19,7 +19,7 @@ final class DisenchanterScopeTest extends Unit
         $this->disenchanter = DisenchanterFactory::create()->build();
     }
 
-    private const CODE = <<<'PHP'
+    private const string CODE = <<<'PHP'
         <?php
         class C {
             public function a(): string { return 'admin-user'; }

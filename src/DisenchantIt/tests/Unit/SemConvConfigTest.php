@@ -19,7 +19,7 @@ final class SemConvConfigTest extends Unit
 
     public function testOutputPathOverride(): void
     {
-        $c = new SemConvConfig(outputPath: 'custom/Registry.php');
+        $c = new SemConvConfig(outputPathOverride: 'custom/Registry.php');
 
         $this->assertSame('custom/Registry.php', $c->outputPath);
     }

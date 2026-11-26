@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
-use ItPack\DisenchantIt\Core\Disenchanter;
-use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
 use ItPack\DisenchantIt\ValueObject\Candidate\CandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Result\DisenchantResultInterface;
 
@@ -55,12 +52,6 @@ interface DisenchanterInterface
      * source plus the generated SemConv registry source (merged with
      * $existingSemConvSource when supplied, so re-runs accumulate rather than
      * overwrite).
-     *
-     * @param string $code
-     * @param int $minOccurrences
-     * @param string|null $existingSemConvSource
-     * @param string|null $relativePath
-     * @return DisenchantResultInterface
      */
     public function rewriteWithSemConv(
         string $code,

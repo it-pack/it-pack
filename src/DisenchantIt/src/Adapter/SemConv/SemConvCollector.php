@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\SemConv;
 
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvStoreInterface;
 use ItPack\DisenchantIt\Exception\SemConvCollisionException;
@@ -47,17 +46,17 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
      *        only this run's placements — silently discarding every constant a
      *        prior run had already collected. Found and fixed via an actual
      *        two-runs-in-a-row test, not by inspection.
-     * @return string
      */
     public function collect(array $placements, ?string $existingSource = null): string
     {
-        if ($existingSource === null && $this->store !== null) {
+        if ($existingSource === null && $this->store instanceof SemConvStoreInterface) {
             $existingSource = $this->store->load();
         }
 
         /** @var array<string, array{type: string, value: string}> $entries */
         $entries = $this->extractExistingEntries($existingSource);
         $collisions = [];
+        $collisionNames = [];
 
         foreach ($placements as $placement) {
             $name = $placement->constantName;
@@ -65,6 +64,9 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
 
             if (isset($entries[$name]) && $entries[$name]['value'] !== $canonical) {
                 $collisions[$name][] = $placement;
+                if (!in_array($name, $collisionNames, true)) {
+                    $collisionNames[] = $name;
+                }
                 continue;
             }
 
@@ -74,8 +76,8 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
             ];
         }
 
-        if ($collisions !== []) {
-            throw new SemConvCollisionException(array_keys($collisions));
+        if ($collisionNames !== []) {
+            throw new SemConvCollisionException($collisionNames);
         }
 
         ksort($entries);
@@ -85,7 +87,7 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
         // Persist the merged registry back to the store (when wired) so the
         // next run loads these entries and keeps names stable. No-op without a
         // store — the pure string transform is unchanged.
-        if ($this->store !== null) {
+        if ($this->store instanceof SemConvStoreInterface) {
             $this->store->save($rendered);
         }
 
@@ -116,6 +118,7 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
      *
      * @return array<string, array{type: string, value: string}>
      */
+    /** @return array<string, array{type: string, value: string}> */
     private function extractExistingEntries(?string $existingSource): array
     {
         if ($existingSource === null) {
@@ -123,12 +126,13 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
         }
 
         $entries = [];
-        if (preg_match_all(
+        $matchCount = preg_match_all(
             '/public const (?:(int|float|string)\s+)?([A-Z_][A-Z0-9_]*) = (.+?);/',
             $existingSource,
             $matches,
             PREG_SET_ORDER,
-        )) {
+        );
+        if ($matchCount !== false && $matchCount > 0) {
             foreach ($matches as $match) {
                 $type = $match[1] !== '' ? $match[1] : 'string';
                 $name = $match[2];
@@ -159,7 +163,7 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
     }
 
     /**
-     * @param array<string, array{type: string, value: string}> $entries
+     * @param array<mixed, mixed> $entries
      */
     private function render(array $entries): string
     {
@@ -191,10 +195,18 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
         ];
 
         foreach ($entries as $name => $entry) {
+            if (!is_string($name) || !is_array($entry)) {
+                continue;
+            }
+            $value = $entry['value'] ?? null;
+            $type = $entry['type'] ?? null;
+            if (!is_string($value) || !is_string($type)) {
+                continue;
+            }
             $lines[] = new ConstantDeclaration(
                 name: $name,
-                valueExpression: $entry['value'],
-                typeKeyword: $entry['type'],
+                valueExpression: $value,
+                typeKeyword: $type,
                 visibility: Visibility::Public,
             )->toCodeLine();
         }

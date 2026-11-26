@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
+use ItPack\DisenchantIt\Adapter\Rewriting\NamespaceUseInserterTrait;
 
 final class UseInserterHarness
 {
-    use \ItPack\DisenchantIt\Adapter\Rewriting\NamespaceUseInserterTrait;
+    use NamespaceUseInserterTrait;
 
     public function run(string $code, string $fqcn): string
     {

@@ -27,7 +27,7 @@ final readonly class ScopeFilter implements ScopeFilterInterface
     private const array TEST_DIR_GLOBS = ['tests/**', 'fixtures/**', 'var/**'];
 
     public function __construct(
-        private readonly DisenchantScopeInterface $scope,
+        private DisenchantScopeInterface $scope,
     ) {
     }
 
@@ -53,7 +53,7 @@ final readonly class ScopeFilter implements ScopeFilterInterface
 
         // 4. File allowlist (only constrains when non-empty).
         $includePaths = $this->scope->getIncludePaths();
-        return !($includePaths !== [] && !$this->matchesAny($includePaths, $filePath));
+        return $includePaths === [] || $this->matchesAny($includePaths, $filePath);
     }
 
     /**
@@ -70,7 +70,7 @@ final readonly class ScopeFilter implements ScopeFilterInterface
      */
     private function matchesAny(array $patterns, string $filePath): bool
     {
-        return array_any($patterns, fn ($pattern) => fnmatch($pattern, $filePath));
+        return array_any($patterns, fn (string $pattern): bool => fnmatch($pattern, $filePath));
 
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter\Rewriting;
 
 use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
-use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifact;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifactInterface;
@@ -26,7 +25,7 @@ final readonly class CompositePromotionTarget implements PromotionTargetInterfac
      * @param iterable<PromotionTargetInterface> $targets in priority order
      */
     public function __construct(
-        private readonly iterable $targets,
+        private iterable $targets,
     ) {
     }
 

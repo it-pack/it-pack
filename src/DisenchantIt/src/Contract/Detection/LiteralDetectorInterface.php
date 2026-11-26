@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract\Detection;
 
+use Generator;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 use ItPack\DisenchantIt\ValueObject\Source\SourceCodeInterface;
 
 /**
@@ -32,7 +32,7 @@ interface LiteralDetectorInterface
      * (nikic requires a complete AST) and then yields from the cached result, so
      * callers can consume a large result set without holding it all at once.
      *
-     * @return \Generator<int, LiteralInterface, void, void>
+     * @return Generator<int, LiteralInterface, void, void>
      */
-    public function scanSourceStreaming(SourceCodeInterface $code): \Generator;
+    public function scanSourceStreaming(SourceCodeInterface $code): Generator;
 }

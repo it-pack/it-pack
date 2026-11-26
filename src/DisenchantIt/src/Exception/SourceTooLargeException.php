@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Exception;
 
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
+use RuntimeException;
+use Throwable;
 
 /**
  * Thrown when a source string exceeds the configured size bound before parsing.
@@ -13,9 +15,9 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  *
  * @see \ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface::MAX_SOURCE_BYTES
  */
-final class SourceTooLargeException extends \RuntimeException implements DisenchantItExceptionInterface
+final class SourceTooLargeException extends RuntimeException implements DisenchantItExceptionInterface
 {
-    public function __construct(int $actualBytes, int $maxBytes, ?\Throwable $previous = null)
+    public function __construct(int $actualBytes, int $maxBytes, ?Throwable $previous = null)
     {
         parent::__construct(
             sprintf(

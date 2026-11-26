@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter\Grouping;
 
 use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementStrategyInterface;
-use ItPack\DisenchantIt\Factory\ConstantPlacementStrategyFactory;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface;
 
 /**
  * Composes an ordered set of placement strategies and delegates each candidate
@@ -28,7 +28,7 @@ final readonly class CompositeConstantPlacementStrategy implements ConstantPlace
      * @param iterable<ConstantPlacementStrategyInterface> $strategies in priority order
      */
     public function __construct(
-        private readonly iterable $strategies,
+        private iterable $strategies,
     ) {
     }
 
@@ -45,7 +45,7 @@ final readonly class CompositeConstantPlacementStrategy implements ConstantPlace
 
     /**
      * @param list<LiteralInterface> $occurrences
-     * @return list<\ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface>
+     * @return list<ConstantPlacementInterface>
      */
     public function decide(array $occurrences): array
     {

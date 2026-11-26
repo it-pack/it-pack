@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Codeception\Actor;
+use _generated\IntegrationTesterActions;
+
 /**
  * Inherited Methods
  * @method void wantTo($text)
@@ -17,9 +20,9 @@ declare(strict_types=1);
  *
  * @SuppressWarnings(PHPMD)
 */
-class IntegrationTester extends \Codeception\Actor
+class IntegrationTester extends Actor
 {
-    use _generated\IntegrationTesterActions;
+    use IntegrationTesterActions;
 
     /**
      * Define custom actions here

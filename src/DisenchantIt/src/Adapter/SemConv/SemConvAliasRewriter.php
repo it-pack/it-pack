@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\SemConv;
 
-use ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter;
+use ItPack\DisenchantIt\Adapter\Rewriting\NamespaceUseInserterTrait;
 use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Contract\SemConv\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface;
@@ -24,10 +24,12 @@ use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfigInterface;
  */
 final readonly class SemConvAliasRewriter implements SemConvAliasRewriterInterface
 {
-    use \ItPack\DisenchantIt\Adapter\Rewriting\NamespaceUseInserterTrait;
+    use NamespaceUseInserterTrait;
 
     private const string LINEBREAK = SemConv::LINEBREAK;
+
     private const string CONSTANT_SEPARATOR = SemConv::CONSTANT_SEPARATOR;
+
     private const string DECLARATION_PATTERN_REGEX
         = '/^(\s*(?:public|protected|private)?\s*const\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)?%s\s*=\s*)(.+?)(;\s*)$/';
 
@@ -37,9 +39,7 @@ final readonly class SemConvAliasRewriter implements SemConvAliasRewriterInterfa
     }
 
     /**
-     * @param string $code
      * @param list<ConstantPlacementInterface> $placements
-     * @return string
      */
     public function rewrite(string $code, array $placements): string
     {

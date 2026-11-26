@@ -81,7 +81,7 @@ final class CandidateFilterTest extends Unit
         $kept = $this->filter->filterCandidates($literals);
 
         $this->assertCount(2, $kept);
-        $this->assertSame(['origin', 'APP_KEY'], array_map(static fn (StringLiteralInterface $l) => $l->value, $kept));
+        $this->assertSame(['origin', 'APP_KEY'], array_map(static fn (StringLiteralInterface $l): string => $l->value, $kept));
     }
 
     public function testScopeFilterDropsExcludedLiteralValue(): void
@@ -97,7 +97,7 @@ final class CandidateFilterTest extends Unit
         ]);
 
         $this->assertCount(1, $kept);
-        $this->assertSame(['origin'], array_map(static fn (StringLiteralInterface $l) => $l->value, $kept));
+        $this->assertSame(['origin'], array_map(static fn (StringLiteralInterface $l): string => $l->value, $kept));
     }
 
     public function testScopeFilterDropsExcludedPath(): void

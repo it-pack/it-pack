@@ -9,7 +9,10 @@ use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\ArrayItem;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Param;
@@ -62,9 +65,10 @@ final readonly class NamingContextExtractor implements NamingContextExtractorInt
     {
         $chain = [];
         $current = $node;
-        while ($current !== null) {
+        while ($current instanceof Node) {
             $chain[] = $current;
-            $current = $current->getAttribute('parent');
+            $parent = $current->getAttribute('parent');
+            $current = $parent instanceof Node ? $parent : null;
         }
 
         return $chain;
@@ -75,21 +79,21 @@ final readonly class NamingContextExtractor implements NamingContextExtractorInt
         $chain = $this->ancestorChain($node);
 
         $current = $node;
-        while ($current !== null) {
+        while (true) {
             $parent = $current->getAttribute('parent');
-            if ($parent === null) {
+            if (!$parent instanceof Node) {
                 break;
             }
 
             // `$foo = <number>;` — the literal is the assigned value.
-            if ($parent instanceof Expr\Assign && in_array($parent->expr, $chain, true)) {
+            if ($parent instanceof Assign && in_array($parent->expr, $chain, true)) {
                 return $this->nameOf($parent->var);
             }
 
             // `['key' => <number>]` — the literal is an array value; the key
             // (e.g. a config token) is the hint.
             if ($parent instanceof ArrayItem && in_array($parent->value, $chain, true)) {
-                return $parent->key !== null ? $this->nameOf($parent->key) : null;
+                return $parent->key instanceof Expr ? $this->nameOf($parent->key) : null;
             }
 
             // `private int $maxRetries = <number>;` — a typed property default.
@@ -166,11 +170,11 @@ final readonly class NamingContextExtractor implements NamingContextExtractorInt
             return (string) $node->value;
         }
 
-        if ($node instanceof Expr\PropertyFetch) {
+        if ($node instanceof PropertyFetch) {
             return $this->nameOf($node->name);
         }
 
-        if ($node instanceof Expr\ArrayDimFetch) {
+        if ($node instanceof ArrayDimFetch) {
             return $this->nameOf($node->var);
         }
 

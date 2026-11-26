@@ -15,6 +15,7 @@ use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
 use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ReplacementInterface;
 use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 
@@ -37,7 +38,7 @@ final class FlagSetTargetTest extends Unit
 
     private function flagCandidate(NumberLiteral ...$occurrences): Candidate
     {
-        return new Candidate((string) $occurrences[0]->value, 'FLAG', $occurrences);
+        return new Candidate($occurrences[0]->value, 'FLAG', $occurrences);
     }
 
     private function flagGroup(NumberLiteral ...$occurrences): GroupedCandidate
@@ -62,7 +63,6 @@ final class FlagSetTargetTest extends Unit
 
     public function testSupportsFalseWhenNotBitmask(): void
     {
-        $lit = $this->flagOccurrence(1, 5);
         $lit = new NumberLiteral(
             kind: LiteralKind::Int->value,
             value: '1',
@@ -143,7 +143,7 @@ final class FlagSetTargetTest extends Unit
 
         // Each literal is replaced independently; the `|` stays, yielding
         // `self::Mode1 | self::Mode2` after the rewriter applies both edits.
-        $needles = array_map(static fn ($r) => $r->needle, $artifact->replacements);
+        $needles = array_map(static fn (ReplacementInterface $r): string => $r->needle, $artifact->replacements);
         $this->assertSame(['1', '2'], $needles);
     }
 

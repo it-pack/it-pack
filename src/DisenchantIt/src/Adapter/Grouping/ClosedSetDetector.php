@@ -10,7 +10,6 @@ use ItPack\DisenchantIt\ValueObject\Candidate\CandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidate;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 
@@ -37,6 +36,7 @@ use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 final readonly class ClosedSetDetector implements ClosedSetDetectorInterface
 {
     private const int MIN_DISTINCT = 2;
+
     private const int MAX_DISTINCT = 12;
 
     /**
@@ -61,8 +61,12 @@ final readonly class ClosedSetDetector implements ClosedSetDetectorInterface
                 continue;
             }
             $members = $this->setMembers($occurrences);
+            $variable = substr($key, 4);
+            if ($variable === false) {
+                continue;
+            }
             if ($this->isClosedSet($members)) {
-                $closed[$key] = ['variable' => substr($key, 4), 'members' => $members];
+                $closed[$key] = ['variable' => $variable, 'members' => $members];
             }
         }
 
@@ -89,7 +93,7 @@ final readonly class ClosedSetDetector implements ClosedSetDetectorInterface
             if ($insideClosed) {
                 continue;
             }
-            $groups[$valueKey] = new GroupedCandidate($candidate, false, null);
+            $groups[$valueKey] = new GroupedCandidate($candidate, false);
         }
 
         return $groups;

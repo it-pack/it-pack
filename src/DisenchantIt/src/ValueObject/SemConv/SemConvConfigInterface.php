@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\SemConv;
 
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
-
 /**
  * Port for the SemConv generation configuration (interface name, namespace,
  * output path). Concrete carrier: SemConvConfig.

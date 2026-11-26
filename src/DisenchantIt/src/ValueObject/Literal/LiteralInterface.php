@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Literal;
 
-use ItPack\DisenchantIt\Adapter\Detection\ContentClassifier;
-use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 
 /**

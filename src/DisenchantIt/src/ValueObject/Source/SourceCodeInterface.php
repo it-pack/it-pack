@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Source;
 
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
-
 /**
  * Immutable carrier for one PHP source string fed through DisenchantIt. Serves
  * as the cache key for the parsed-scan result: a single SourceCode instance is

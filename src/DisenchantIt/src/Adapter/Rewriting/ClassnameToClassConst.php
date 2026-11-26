@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter\Rewriting;
 
 use ItPack\DisenchantIt\Contract\Rewriting\ClassnameToClassConstInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifact;
 use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifactInterface;
@@ -30,14 +29,7 @@ final readonly class ClassnameToClassConst implements ClassnameToClassConstInter
         if ($occurrences === []) {
             return false;
         }
-
-        foreach ($occurrences as $lit) {
-            if (!$lit->isClassnameString) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($occurrences, fn ($lit) => $lit->isClassnameString);
     }
 
     public function build(GroupedCandidateInterface $group): PromotionArtifactInterface

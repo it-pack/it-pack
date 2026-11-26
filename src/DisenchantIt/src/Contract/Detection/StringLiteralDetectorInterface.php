@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract\Detection;
 
-use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-
 /**
  * String-specific detector port. Retained (pre-1.0, BC) as a subtype of
  * LiteralDetectorInterface; the unified scanner returns a list of the broader

@@ -7,7 +7,6 @@ namespace ItPack\DisenchantIt\Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\Reporting\PhpLintObserver;
 use ItPack\DisenchantIt\Contract\Reporting\VerificationObserverInterface;
-use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 use ItPack\DisenchantIt\Exception\SemConvCollisionException;
 use ItPack\DisenchantIt\Exception\VerificationException;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
@@ -106,7 +105,7 @@ final class Phase5VerifyObserverTest extends Unit
         $existingSemConv = "<?php\nnamespace Generated;\ninterface SemConv {\n"
             . "    public const string ADMIN_USER = 'DIFFERENT';\n}\n";
 
-        $this->expectException(\ItPack\DisenchantIt\Exception\SemConvCollisionException::class);
+        $this->expectException(SemConvCollisionException::class);
         $disenchanter->rewriteWithSemConv($code, 1, $existingSemConv);
 
         $this->assertFalse($observer->called, 'observer must not run when rewrite failed');

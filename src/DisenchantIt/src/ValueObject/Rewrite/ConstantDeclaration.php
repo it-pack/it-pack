@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Rewrite;
 
-use ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector;
-
 /**
  * Immutable carrier for one promoted constant declaration, shared by the
  * promotion targets (private) and SemConvCollector (public). Centralises the

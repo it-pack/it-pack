@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Rewriting;
 
-use ItPack\DisenchantIt\Adapter\SemConv\SemConvAliasRewriter;
-
 /**
  * Reusable `use`-statement insertion for line-based generators that emit PHP
  * source without a full AST reprint. Extracted from SemConvAliasRewriter so
@@ -19,8 +17,11 @@ use ItPack\DisenchantIt\Adapter\SemConv\SemConvAliasRewriter;
 trait NamespaceUseInserterTrait
 {
     private const string USE_INSERTER_LINEBREAK = "\n";
+
     private const string USE_STATEMENT_FORMAT = 'use %s;';
+
     private const string NAMESPACE_REGEX = '/^\s*namespace\s+[A-Za-z0-9_\\\\]+;/';
+
     private const string USE_STATEMENT_REGEX = '/^\s*use\s+[A-Za-z0-9_\\\\]+;/';
 
     protected function insertUseStatement(string $code, string $fqcn): string

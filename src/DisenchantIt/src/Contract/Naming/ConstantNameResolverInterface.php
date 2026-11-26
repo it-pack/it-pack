@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract\Naming;
 
-use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 
 /**
  * Single source of truth for turning a detected literal into its promoted

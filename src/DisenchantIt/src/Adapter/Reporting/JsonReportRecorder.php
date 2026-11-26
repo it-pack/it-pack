@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter\Reporting;
 
-use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
 use ItPack\DisenchantIt\Contract\Reporting\JsonReportRecorderInterface;
-use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 use ItPack\DisenchantIt\ValueObject\Execution\ExecutionArtifactInterface;
+use RuntimeException;
 
 /**
  * ExecutionRecorderInterface implementation that accumulates every recorded
@@ -39,7 +38,7 @@ final class JsonReportRecorder implements JsonReportRecorderInterface
     {
         $json = json_encode($this->reports(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
-            throw new \RuntimeException('Failed to encode the run report as JSON.');
+            throw new RuntimeException('Failed to encode the run report as JSON.');
         }
 
         return $json;
