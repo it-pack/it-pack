@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Domain\Shared;
 
 use ItPack\RunIt\Contract\Domain\AttributeValidatorInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 
@@ -31,7 +32,7 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 final readonly class AttributeValidator implements AttributeValidatorInterface
 {
     public function __construct(
-        private SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimitsInterface $limits = new SecurityLimits(),
     ) {
     }
 

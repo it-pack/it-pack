@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Domain\Shared;
 
 use Closure;
 use ItPack\RunIt\Contract\Behavior\Domain\BoundedKeyGuardInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Contract\Shared\KeyPattern;
 
@@ -28,7 +29,7 @@ final readonly class BoundedKeyGuard implements BoundedKeyGuardInterface
      * @param Closure(): RunItExceptionInterface                        $unsupportedCharacters
      */
     public function __construct(
-        private SecurityLimits $limits,
+        private SecurityLimitsInterface $limits,
         private Closure $emptyKey,
         private Closure $keyTooLong,
         private Closure $unsupportedCharacters,

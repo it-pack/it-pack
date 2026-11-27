@@ -28,7 +28,7 @@ use Throwable;
  * The mapper rebuilds a RunIt occurrence from a CloudEvent. The required
  * CloudEvent fields are assumed present (the value object and the serializer
  * enforce them), but the RunIt execution identity is mandatory: without the
- * `executionid` extension the event cannot be reconstructed as a RunIt
+ * `execution-id` extension the event cannot be reconstructed as a RunIt
  * occurrence and is rejected. Known RunIt extension attributes are folded into
  * their semantic fields; every other extension attribute is preserved in the
  * reconstructed occurrence so round trips keep their data.

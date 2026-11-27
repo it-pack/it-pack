@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
@@ -60,7 +61,7 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
     public function __construct(
         private readonly SamplingPolicyInterface $inner,
         ?Closure $keyOf = null,
-        ?SecurityLimits $limits = null,
+        ?SecurityLimitsInterface $limits = null,
     ) {
         $this->keyOf = $keyOf ?? $this->resolveKey(...);
         $this->maxTrackedExecutions = ($limits ?? SecurityLimits::default())->maxTrackedExecutions;

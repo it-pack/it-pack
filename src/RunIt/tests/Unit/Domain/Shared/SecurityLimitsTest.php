@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
+use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\Runtime\PropertyHook;
 
 /**
  * @group domain
@@ -19,7 +23,8 @@ final class SecurityLimitsTest extends Unit
     {
         $limits = new SecurityLimits();
 
-        foreach (
+        self::assertSame(
+            [64, 256, 4096, 8, 65536, 262144, 64, 10000, 64, 1048576, 10000],
             [
                 $limits->maxAttributeCount,
                 $limits->maxAttributeKeyBytes,
@@ -32,10 +37,8 @@ final class SecurityLimitsTest extends Unit
                 $limits->maxSerializationDepth,
                 $limits->maxSerializationBytes,
                 $limits->maxTrackedExecutions,
-            ] as $value
-        ) {
-            self::assertGreaterThan(0, $value);
-        }
+            ],
+        );
     }
 
     public function testWithersReturnIndependentInstancesWithTheValueApplied(): void
@@ -70,5 +73,16 @@ final class SecurityLimitsTest extends Unit
         self::assertSame(43, $modified->maxTrackedExecutions);
 
         self::assertSame(64, $base->maxAttributeCount, 'the base instance stays untouched');
+    }
+
+    public function testValidatorUsesLimitsFromAnotherImplementation(): void
+    {
+        $limits = self::createStub(SecurityLimitsInterface::class);
+        $limits->method(PropertyHook::get('maxAttributeKeyBytes'))->willReturn(3);
+        $validator = new ContextValueValidator($limits);
+
+        $validator->assertValidKey('abc');
+        $this->expectException(InvalidContextValueException::class);
+        $validator->assertValidKey('abcd');
     }
 }

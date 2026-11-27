@@ -12,15 +12,16 @@ code-level controls are covered by the threat model (`docs/security/threat-model
 
 - A Software Bill of Materials is generated for every release artifact (for example with
   `composer licenses` and a CycloneDX/SPDX export) and attached to the release.
-- The SBOM covers direct and transitive dependencies, including the optional adapter
-  dependencies (OpenTelemetry, CloudEvents, Swoole/OpenSwoole).
+- The SBOM covers direct and transitive dependencies, including the required
+  CloudEvents SDK and any installed optional adapter dependencies.
 
 ## Dependency review
 
 - Pull requests require a dependency-review step that diffs `composer.json` /
   `composer.lock` and flags newly introduced or changed packages and versions.
-- Optional adapter dependencies remain in `require-dev` / suggested `ext-*` only, so the
-  production artifact never pulls in a telemetry or runtime extension unless a consumer opts in.
+- CloudEvents SDK and OpenTelemetry semantic conventions are production
+  dependencies. Other adapter packages and runtime extensions may be optional;
+  consult `composer.json` for the current dependency contract.
 
 ## CI action pinning
 

@@ -50,6 +50,11 @@ milestone M15.
 
 ## Upgrade steps
 
+Replace references to `CloudEvent::SPEC_VERSION_KEY` with
+`CloudEventAttributeKey::SpecVersion->value` from the
+`ItPack\RunIt\Adapter\CloudEvents` namespace. The constant has been removed;
+CloudEvents structured JSON field names have not changed as a result.
+
 If you explicitly select `FailExecutionOnOpenActivitiesPolicy` with the default
 runner, successful operations with open activities now publish a failed terminal
 status. Adjust status-based alerts and consumers accordingly, or select the default
@@ -73,13 +78,18 @@ releases may remove API without notice; the changelog records such removals.
 
 ## Optional dependencies
 
-OpenTelemetry, CloudEvents, PSR, Swoole, and OpenSwoole are optional adapters. An
-upgrade may change an adapter's package or version constraint; core RunIt never
-requires them. See [`docs/compatibility.md`](docs/compatibility.md) for the
-integration compatibility matrix.
+OpenTelemetry, CloudEvents, PSR, Swoole, and OpenSwoole adapters are opt-in, but
+the RunIt package directly requires `cloudevents/sdk-php` and
+`open-telemetry/sem-conv`. Other integration packages may be optional. See
+[`integrations/compatibility-matrix.md`](integrations/compatibility-matrix.md).
 
 ## Behavior changes
 
+- CloudEvents structured JSON now defaults to SDK validation. Previously accepted
+  legacy events can fail and serialized output can differ. Test real producer and
+  consumer fixtures, configure a transitional whole-event legacy fallback only when
+  necessary, and configure independently constructed serializers separately. See
+  [`integrations/cloudevents.md`](integrations/cloudevents.md).
 - An omitted or `null` `onPublicationFailure` publication-failure handler now
   reports to the replaceable SDK default health sink (the PHP error log) instead
   of being silent, including when a `DefaultExecutionRunner` is constructed

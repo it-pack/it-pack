@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Domain\Shared;
 use ArrayIterator;
 use IteratorAggregate;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use Traversable;
 
@@ -39,7 +40,7 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
      */
     private function __construct(
         array $attributes,
-        private SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimitsInterface $limits = new SecurityLimits(),
     ) {
         $this->validateAttributes($attributes);
         $this->attributes = $attributes;
@@ -49,12 +50,12 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
      * Creates a collection from a set of attributes, validating each one.
      *
      * @param array<string, int|float|string|bool|null|array<int|string, mixed>> $attributes
-     * @param SecurityLimits|null $limits optional tighter bounds; defaults to the conservative built-in limits
+     * @param SecurityLimitsInterface|null $limits optional tighter bounds; defaults to the conservative built-in limits
      *
      * @throws InvalidAttributeException when a key or value violates a rule, or
      *                                    the attribute count is exceeded
      */
-    public static function fromArray(array $attributes, ?SecurityLimits $limits = null): self
+    public static function fromArray(array $attributes, ?SecurityLimitsInterface $limits = null): self
     {
         return new self($attributes, $limits ?? new SecurityLimits());
     }

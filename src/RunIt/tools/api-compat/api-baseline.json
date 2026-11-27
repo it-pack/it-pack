@@ -7,8 +7,7 @@
             "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface": "ItPack\\RunIt\\Contract\\Adapter\\CloudEvents\\CloudEventInterface"
         },
         "constants": {
-            "SPEC_VERSION_1_0": "public",
-            "SPEC_VERSION_KEY": "public"
+            "SPEC_VERSION_1_0": "public"
         },
         "methods": {
             "create": {
@@ -96,6 +95,68 @@
             }
         },
         "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEventAttributeKey": {
+        "kind": "enum",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "UnitEnum": "UnitEnum",
+            "BackedEnum": "BackedEnum"
+        },
+        "constants": {
+            "SpecVersion": "public",
+            "Id": "public",
+            "Source": "public",
+            "Type": "public",
+            "Subject": "public",
+            "Time": "public",
+            "DataContentType": "public",
+            "DataSchema": "public",
+            "Data": "public",
+            "DataBase64": "public"
+        },
+        "methods": {
+            "cases": {
+                "static": true,
+                "return": "array",
+                "params": []
+            },
+            "from": {
+                "static": true,
+                "return": "static",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "int|string",
+                        "optional": false
+                    }
+                ]
+            },
+            "tryFrom": {
+                "static": true,
+                "return": "null|static",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "int|string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": [
+            "SpecVersion",
+            "Id",
+            "Source",
+            "Type",
+            "Subject",
+            "Time",
+            "DataContentType",
+            "DataSchema",
+            "Data",
+            "DataBase64"
+        ]
     },
     "ItPack\\RunIt\\Adapter\\CloudEvents\\CloudEventExtensionKey": {
         "kind": "enum",
@@ -486,6 +547,11 @@
                         "name": "maxSerializedBytes",
                         "type": "int",
                         "optional": true
+                    },
+                    {
+                        "name": "allowLegacyFallback",
+                        "type": "bool",
+                        "optional": true
                     }
                 ]
             },
@@ -649,7 +715,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -922,7 +988,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -4584,7 +4650,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     },
                     {
@@ -5467,7 +5533,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     },
                     {
@@ -6172,7 +6238,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -6396,7 +6462,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     },
                     {
@@ -6583,7 +6649,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     },
                     {
@@ -6677,7 +6743,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     },
                     {
@@ -7274,7 +7340,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -7485,7 +7551,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -9301,7 +9367,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     },
                     {
@@ -9476,7 +9542,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     },
                     {
@@ -9867,7 +9933,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     },
                     {
@@ -15057,7 +15123,9 @@
         "final": false,
         "extends": null,
         "implements": [],
-        "constants": [],
+        "constants": {
+            "DEFAULT_MAX_ATTRIBUTE_COUNT": "public"
+        },
         "methods": {
             "withMaxAttributeCount": {
                 "static": false,
@@ -17660,7 +17728,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -20464,7 +20532,7 @@
                     },
                     {
                         "name": "limits",
-                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -20609,7 +20677,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": true
                     }
                 ]
@@ -20654,7 +20722,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     },
                     {
@@ -20703,7 +20771,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     },
                     {
@@ -22573,7 +22641,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     }
                 ]
@@ -22860,7 +22928,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     }
                 ]
@@ -23122,7 +23190,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SecurityLimitsInterface",
                         "optional": false
                     }
                 ]

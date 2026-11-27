@@ -17,6 +17,7 @@ use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
@@ -54,7 +55,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         private ThrowableMapperInterface         $throwableMapper,
         /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
         private StringIdentifierFactoryInterface $activityIdFactory,
-        private SecurityLimits                   $limits = new SecurityLimits(),
+        private SecurityLimitsInterface                   $limits = new SecurityLimits(),
         private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
         private ?ActivityContextStorageInterface $activityStorage = null,
         private ?Closure                         $onActivityContextFailure = null,

@@ -6,6 +6,16 @@ changes.
 
 ## Public API scope
 
+### CloudEvents SDK migration
+
+RunIt now directly requires `cloudevents/sdk-php` `^1.2`. Strict SDK validation is
+the default and may reject legacy inputs or alter structured JSON wire output;
+the opt-in whole-event fallback is transitional and can be non-conformant. Mapper
+and independently created serializer configuration must be reviewed separately.
+Review public API and wire differences, downstream consumers and dependency
+resolution before release; the API checker alone does not establish wire
+compatibility. See [`integrations/cloudevents.md`](integrations/cloudevents.md).
+
 ### Runtime-local activity context (in progress)
 
 The in-progress separate activity-context implementation preserves

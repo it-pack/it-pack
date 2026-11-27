@@ -39,6 +39,7 @@ use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
@@ -144,7 +145,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface, DefaultE
         private ?SnapshotStoreInterface                $snapshotStore = null,
         private ?Closure                               $onSnapshotStoreFailure = null,
         ?ExecutionEngineInterface                     $engine = null,
-        private SecurityLimits                         $limits = new SecurityLimits(),
+        private SecurityLimitsInterface                         $limits = new SecurityLimits(),
         private ProvenanceAuthority                   $authority = new ProvenanceAuthority(),
         private ?ActivityContextStorageInterface      $activityContextStorage = null,
         private string                                  $activityContextPolicy = 'fallback',

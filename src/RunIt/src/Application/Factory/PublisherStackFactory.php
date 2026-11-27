@@ -16,6 +16,7 @@ use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
@@ -46,7 +47,7 @@ final class PublisherStackFactory implements HealthAwarePublisherStackFactoryInt
         ?RedactorInterface $redactor,
         ?SamplingPolicyInterface $samplingPolicy,
         ?InternalHealthReporterInterface $health = null,
-        ?SecurityLimits $limits = null,
+        ?SecurityLimitsInterface $limits = null,
         ?ProvenanceAuthority $authority = null,
     ): ArtifactPublisherInterface {
         $health ??= new ErrorLogHealthReporter();

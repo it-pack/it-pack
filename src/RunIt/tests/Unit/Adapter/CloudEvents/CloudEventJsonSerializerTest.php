@@ -60,6 +60,32 @@ final class CloudEventJsonSerializerTest extends Unit
         self::assertSame('application/cloudevents+json', DefaultCloudEventJsonSerializer::CONTENT_TYPE);
     }
 
+    public function testSerializesWholeValuedFloatsInData(): void
+    {
+        $event = CloudEvent::create('id', '/source', 'example', ['value' => 1.0, 'nested' => [-2.0, 1.5]]);
+
+        $json = $this->serializer->serialize($event);
+
+        self::assertSame(['value' => 1, 'nested' => [-2, 1.5]], $this->serializer->deserialize($json)->data);
+    }
+
+    public function testDeserializesWholeValuedFloatsInData(): void
+    {
+        $event = $this->serializer->deserialize(
+            '{"specversion":"1.0","id":"id","source":"/source","type":"example",'
+            . '"data":{"value":1.0,"nested":[-2.0,1.5]}}',
+        );
+
+        self::assertSame(['value' => 1.0, 'nested' => [-2.0, 1.5]], $event->data);
+    }
+
+    public function testStillRejectsLossyDataConversion(): void
+    {
+        $this->expectException(InvalidCloudEventException::class);
+
+        $this->serializer->serialize(CloudEvent::create('id', '/source', 'example', (object) ['value' => 1.0]));
+    }
+
     public function testRejectsOversizedSerialization(): void
     {
         $this->expectException(InvalidCloudEventException::class);

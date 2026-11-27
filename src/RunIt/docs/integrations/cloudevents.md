@@ -3,11 +3,10 @@
 RunIt models execution with its own vendor-neutral vocabulary. The bridge in
 `src/Adapter/CloudEvents/` translates RunIt **occurrences** to and from the
 [CloudEvents](https://cloudevents.io) 1.0 envelope so RunIt facts can travel as
-portable, spec-compliant events without coupling the core to any CloudEvents SDK.
+portable events without coupling domain or application code to the CloudEvents SDK.
 
-The bridge is intentionally **SDK-free**: it implements the CloudEvents
-structured JSON representation directly, so the core remains usable without
-`cloudevents/sdk-php`. See
+The package directly requires `cloudevents/sdk-php` for structured JSON handling,
+even when the bridge is not used. See
 `docs/adr/ADR-021-cloudevents-bridge-placement.md`.
 
 ## Scope
@@ -36,32 +35,29 @@ artifact type, so it can sit inside the publication pipeline without side effect
 | `extensionAttributes['correlation.id']` | extension `correlationid` |
 | `extensionAttributes[<valid>]` | extension `<valid>` |
 
-CloudEvents extension attribute names must be lower-case letters, digits, and
-optional hyphens. Custom RunIt occurrence extension attributes whose keys are
-valid CloudEvents extension names are preserved; keys that cannot be represented
-(such as dotted or upper-case RunIt attribute keys) are dropped, because the
-spec cannot carry them. Unknown extensions on an inbound event are preserved in
-the reconstructed occurrence's extension attributes, so round trips do not lose
-information.
+Occurrence mapping has its own extension filtering and reserved fields. Dotted or
+upper-case RunIt attribute keys cannot be mapped as ordinary CloudEvent extensions;
+`correlation.id` is mapped separately. Strict mapping rejects incompatible names and
+collisions; legacy mapping can discard or overwrite attributes. Do not assume
+arbitrary occurrence attributes survive mapping. Strict SDK serialization rejects events containing
+unrepresentable extensions rather than silently rewriting them. For example, legacy
+hyphenated names, reserved or colliding names, and array, float or null extension
+values require particular migration attention. Test producer and consumer fixtures.
 
-## Required optional packages
+## Dependencies
 
-The bridge has **no required runtime dependency**. PSR-18 HTTP delivery, when
-used, relies only on the PSR interfaces already available (`psr/http-client`,
-`psr/http-factory`); a concrete HTTP client is supplied by the application.
+The CloudEvents SDK is a direct RunIt runtime dependency. For PSR-18 HTTP
+delivery, supply the PSR interfaces, factories, and a concrete client.
 
 | Capability | Package | Required |
 |------------|---------|----------|
-| Mapping, serialization, in-memory sinks | none | No |
+| Mapping, serialization, in-memory sinks | `cloudevents/sdk-php` `^1.2` | Installed with RunIt |
 | HTTP delivery | `psr/http-client` + `psr/http-factory` | Only for `Psr18CloudEventSink` |
-
-`cloudevents/sdk-php` is listed under `suggest` for consumers who already use it,
-but the bridge does not depend on it.
 
 ## Installation
 
 ```bash
-# nothing required for mapping and serialization
+# The CloudEvents SDK is installed with RunIt.
 composer require psr/http-client psr/http-factory
 # add a concrete PSR-18 client when you want HTTP delivery, e.g.:
 composer require symfony/http-client nyholm/psr7
@@ -102,12 +98,46 @@ $event = $serializer->deserialize($json); // reverse
 Serialization enforces a maximum size (default 65 536 bytes) and rejects
 oversized input, malformed JSON, and missing required fields.
 
+The default is strict SDK validation. Incompatible versions, fields or extension
+names and values fail with `InvalidCloudEventException`; wire formatting may also
+differ from the legacy serializer. An explicit transitional legacy fallback can
+use the entire legacy path for an incompatible event, but its output may not
+conform to CloudEvents. The legacy facade and mapper have their own lossiness
+limitations, including collisions and filtered attributes; fallback cannot make
+data that those components cannot represent lossless. Fallback is not a bypass
+for malformed JSON, size and depth limits, transport errors, or unrelated failures.
+It cannot restore fields already filtered during occurrence mapping.
+
+Mapping policy and an independently constructed serializer are configured
+separately: configuring the mapper does not configure the serializer or a custom
+sink. For example, to opt in on both components:
+
+```php
+use ItPack\RunIt\Adapter\CloudEvents\CloudEventsBridgeConfig;
+use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
+use ItPack\RunIt\Adapter\CloudEvents\Serialization\DefaultCloudEventJsonSerializer;
+
+$policy = new CloudEventMappingPolicy(allowLegacyFallback: true);
+$serializer = new DefaultCloudEventJsonSerializer($policy);
+$config = CloudEventsBridgeConfig::builder()
+    ->withPolicy($policy)
+    ->withSink($sink) // Configure the sink to use $serializer if it serializes.
+    ->build();
+```
+
+The SDK may normalize timestamps; strict processing rejects changes it cannot
+preserve. Explicit null data and `data_base64` are not fully representable by the
+RunIt facade, including on fallback. Before upgrading, exercise real legacy fixtures through both encoding and
+decoding, update incompatible producers and consumers, and use fallback only during
+the transition. Review custom mappers and serializers as well as wire consumers.
+
 ## HTTP delivery
 
 `Psr18CloudEventSink` posts the serialized event to a target URI with the
 `application/cloudevents+json` content type. It performs a single best-effort
 `POST`; it does **not** retry, buffer, or add durable delivery. A failed request
-throws and is handled by the surrounding publication failure policy.
+client exception propagates to the surrounding publication failure policy. HTTP
+response status codes, including 4xx and 5xx, are not treated as failures by the sink.
 
 ## Delivery guarantees
 

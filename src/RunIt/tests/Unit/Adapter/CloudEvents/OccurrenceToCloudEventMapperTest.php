@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\CloudEvents;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
+use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventToOccurrenceMapper;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
+use ItPack\RunIt\Adapter\CloudEvents\Serialization\DefaultCloudEventJsonSerializer;
+use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
@@ -50,6 +54,35 @@ final class OccurrenceToCloudEventMapperTest extends Unit
         self::assertSame(gmdate('Y-m-d\TH:i:s\Z', 1_600), $event->time);
     }
 
+    public function testDefaultMappedOccurrenceSerializesAndRoundTrips(): void
+    {
+        $occurrence = RunItArtifactFactory::occurrence(
+            'occ-1',
+            'exec-1',
+            'itpack.event.v1',
+            ['outcome' => 'ok'],
+            'act-1',
+        );
+        $serializer = new DefaultCloudEventJsonSerializer();
+        $json = $serializer->serialize($this->mapper->map($occurrence));
+        $mapped = new DefaultCloudEventToOccurrenceMapper()->map($serializer->deserialize($json));
+
+        self::assertSame('exec-1', $mapped->executionId()->toString());
+        self::assertSame('act-1', $mapped->activityId()?->toString());
+    }
+
+    public function testPreviouslyEmittedEventCanBeReconstructed(): void
+    {
+        $json = '{"specversion":"1.0","id":"occ-1","source":"/test","type":"itpack.event.v1",'
+            . '"executionid":"exec-1","activityid":"act-1","correlationid":"corr-1","sequence":1}';
+        $event = new DefaultCloudEventJsonSerializer()->deserialize($json);
+        $mapped = new DefaultCloudEventToOccurrenceMapper()->map($event);
+
+        self::assertSame('exec-1', $mapped->executionId()->toString());
+        self::assertSame('act-1', $mapped->activityId()?->toString());
+        self::assertSame('corr-1', $mapped->extensionAttributes()['correlation.id']);
+    }
+
     public function testMapsRunItCorrelationAsExtensions(): void
     {
         $occurrence = RunItArtifactFactory::occurrence(
@@ -81,7 +114,6 @@ final class OccurrenceToCloudEventMapperTest extends Unit
             extensionAttributes: AttributeCollection::fromArray([
                 'correlation.id' => 'corr-9',
                 'tenantflag' => 'acme',
-                'TenantFlag' => 'ignored',
             ]),
         );
 
@@ -90,6 +122,62 @@ final class OccurrenceToCloudEventMapperTest extends Unit
         self::assertSame('corr-9', $event->extensions[CloudEventExtensionKey::CorrelationId->value]);
         self::assertSame('acme', $event->extensions['tenantflag']);
         self::assertArrayNotHasKey('correlation.id', $event->extensions);
+    }
+
+    public function testStrictModeRejectsInvalidExtensionName(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-2'),
+            ExecutionId::fromString('exec-2'),
+            OccurrenceType::fromString('itpack.job.finished.v1'),
+            'it-pack/custom',
+            Instant::of(2_000),
+            extensionAttributes: AttributeCollection::fromArray(['TenantFlag' => 'ignored']),
+        );
+
+        $this->expectException(InvalidCloudEventException::class);
+        $this->mapper->map($occurrence);
+    }
+
+    /** @return iterable<string, array{string, string|float|list<string>|null}> */
+    public static function incompatibleExtensions(): iterable
+    {
+        yield 'hyphenated name' => ['tenant-flag', 'value'];
+        yield 'array value' => ['tenantflag', ['value']];
+        yield 'float value' => ['tenantflag', 1.5];
+        yield 'null value' => ['tenantflag', null];
+    }
+
+    /** @param string|float|list<string>|null $value */
+    #[DataProvider('incompatibleExtensions')]
+    public function testStrictModeRejectsSdkIncompatibleExtension(string $key, string|float|array|null $value): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-2'),
+            ExecutionId::fromString('exec-2'),
+            OccurrenceType::fromString('itpack.job.finished.v1'),
+            'it-pack/custom',
+            Instant::of(2_000),
+            extensionAttributes: AttributeCollection::fromArray([$key => $value]),
+        );
+
+        $this->expectException(InvalidCloudEventException::class);
+        $this->mapper->map($occurrence);
+    }
+
+    public function testLegacyFallbackRetainsHistoricalInvalidNameHandling(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-2'),
+            ExecutionId::fromString('exec-2'),
+            OccurrenceType::fromString('itpack.job.finished.v1'),
+            'it-pack/custom',
+            Instant::of(2_000),
+            extensionAttributes: AttributeCollection::fromArray(['TenantFlag' => 'ignored']),
+        );
+
+        $event = $this->mapper->map($occurrence, new CloudEventMappingPolicy(allowLegacyFallback: true));
+
         self::assertArrayNotHasKey('TenantFlag', $event->extensions);
     }
 

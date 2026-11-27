@@ -13,11 +13,11 @@ use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterfa
 use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
-use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
 /** @internal Classifies verified default-SDK occurrences before sampling. */
@@ -39,7 +39,7 @@ final class DefaultOccurrenceClassifier implements
     public function __construct(
         private readonly ArtifactPublisherInterface $inner,
         private readonly ?InternalHealthReporterInterface $health,
-        SecurityLimits $limits,
+        SecurityLimitsInterface $limits,
         ?RedactedArtifactFactoryInterface $redactedFactory = null,
     ) {
         $this->classifier = new ClassifyingArtifactPublisher($inner, $health, $limits);

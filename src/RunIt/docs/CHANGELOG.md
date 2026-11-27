@@ -28,6 +28,22 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Security-limit consumers now accept `SecurityLimitsInterface` instead of the
+  concrete `SecurityLimits` type. Custom implementations must provide the
+  interface's readable limit properties as well as its existing methods; update
+  implementations before upgrading. Implementations of `RunItBuilderInterface`
+  must accept the interface in `withSecurityLimits()`. Existing `SecurityLimits`
+  defaults remain.
+- Replaced the public `CloudEvent::SPEC_VERSION_KEY` constant with
+  `CloudEventAttributeKey::SpecVersion->value` and added enum cases for the
+  remaining CloudEvents context attributes and structured JSON data members.
+  Consumers referencing the removed constant must migrate; wire keys are unchanged.
+- CloudEvents structured JSON migrates to the official `cloudevents/sdk-php`
+  SDK, now a direct production dependency (`^1.2`). Strict SDK validation is the
+  default and can reject previously accepted events or change wire output. A
+  transitional opt-in legacy fallback handles whole incompatible events and may
+  produce non-conformant output. Independently constructed serializers require
+  separate configuration; see `integrations/cloudevents.md` for upgrade guidance.
 - Replaced hard-coded artifact-type values and normalized artifact-field keys in
   the CloudEvents and OpenTelemetry adapters (`CloudEventPublisher`,
   `TelemetryPublisher`, the execution/activity span mappers, and

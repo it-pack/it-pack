@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
@@ -41,7 +42,7 @@ final readonly class PayloadSectionByteEstimator implements ArtifactByteEstimato
     private const int NULL_BYTES = 0;
 
     public function __construct(
-        private SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimitsInterface $limits = new SecurityLimits(),
     ) {
     }
 

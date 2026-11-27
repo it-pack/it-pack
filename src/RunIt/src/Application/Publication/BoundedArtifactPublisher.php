@@ -9,6 +9,7 @@ use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBeh
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -60,7 +61,7 @@ final class BoundedArtifactPublisher implements
      * @param Closure(string, ExecutionArtifactInterface): void|null $onDropped receives the bound that was exceeded
      */
     public function __construct(
-        private readonly SecurityLimits $limits,
+        private readonly SecurityLimitsInterface $limits,
         private readonly ArtifactPublisherInterface $inner,
         private readonly ?Closure $onDropped = null,
         private readonly ArtifactByteEstimatorInterface $byteEstimator = new PayloadSectionByteEstimator(),

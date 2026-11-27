@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Domain\Context;
 
 use ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Shared\BoundedKeyGuard;
 use ItPack\RunIt\Domain\Shared\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
@@ -31,15 +33,21 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
 final readonly class ContextValueValidator implements ContextValueValidatorInterface
 {
     public function __construct(
-        private SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimitsInterface $limits = new SecurityLimits(),
     ) {
     }
 
+    /**
+     * @throws RunItExceptionInterface
+     */
     public function assertValidKey(string $key): void
     {
         $this->keyGuard()->assertValidKey($key);
     }
 
+    /**
+     * @throws RunItExceptionInterface
+     */
     public function assertSupportedValue(mixed $value): void
     {
         $this->walker()->assertSupported($value);
