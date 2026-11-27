@@ -2,7 +2,7 @@
 
 Status: proposed, not implemented. This document is an implementation plan, not an API
 or release promise. Examples show proposed behavior unless explicitly described as
-current. Resolve the decisions in Phase 0 before stabilizing public contracts.
+current. Resolve remaining implementation choices before stabilizing public contracts.
 
 ## 1. Purpose And Outcomes
 
@@ -45,7 +45,6 @@ Recheck these observations against the target checkout during implementation:
 | Raw argv         | `../CommandIt/src/Adapter/CLI/ArgvInputParser.php`                                                                   | It is a parser, not an application; it can consume a positional after a boolean option as its value. Do not rely on it for the application without an upstream fix and tests.                                                     |
 | Configuration    | `../ConfigureIt/src/Core/ConfigurationBuilder.php`                                                                   | When layers are registered, flat sources are ignored. Explicitly compose and test every layer.                                                                                                                                    |
 | ConfigureItRunit | `../ConfigureItRunit/src/ConfigureItExecutions.php`, its integration test                                            | It instruments configuration resolution, not the entire command. Pass the callback reporter to `builder->build($reporter)->resolve()`; the helper's example suggesting `resolve($reporter)` is inconsistent with the current API. |
-| DeriveItRunit    | `../DeriveItRunit/src/DeriveItExecutions.php`, `RunItDerivationEventSink.php`                                        | This bridge is specifically for DeriveIt derivations, with derivation semantics and names. It is not a generic RunIt command adapter.                                                                                             |
 | Config trust     | `../ConfigureIt/src/Adapter/PhpLoader.php`                                                                           | PHP configuration is executed. Analysed code and trusted executable configuration are distinct boundaries; default to non-executable data.                                                                                        |
 | RunIt            | `../RunIt/README.md`                                                                                                 | Default classification, provenance and publication policies can drop artifacts. Delivery and stage-level telemetry cannot be assumed.                                                                                             |
 
@@ -78,17 +77,13 @@ Symfony application --> CommandIt console projection --> same bus / handlers
 - Keep CLI parsing, rendering and exit mapping outside domain handlers. Compose
   factories and ports at the application boundary; provide testable filesystem,
   clock, cancellation and output seams where there is a concrete need.
-- Use CommandIt's definition, registration and dispatch machinery. First prove that
-  its existing Symfony projection can meet the required contract. If not, implement
-  an upstream, reviewed extension or a small package-owned Symfony adapter using the
-  same CommandIt registry/bus. Do not fork business logic or misrepresent a custom
-  adapter as the stock bridge.
+- Use CommandIt's registry and bus. Put generic command, result and Symfony
+  projection capabilities in CommandIt; keep CLI-specific behavior in this package.
+  Use a thin package-owned adapter where appropriate without duplicating logic.
 - Integrate ConfigureIt at the boundary, and ConfigureItRunit for actual configuration
   resolution when RunIt is enabled. Model the whole command execution separately.
-- Use DeriveItRunit only where this package actually invokes DeriveIt for a real
-  derivation, with its event sink connected. First investigate whether an actual
-  derivation use case exists. If not, document the integration as conditional rather
-  than create a fake derivation or add an unused dependency.
+- DeriveIt and DeriveItRunit are not dependencies of this CLI; its commands do
+  not require derivation.
 - External telemetry and format adapters do not leak into DisenchantIt contracts.
   Optional integration packages or composition modules must have explicit dependency
   and failure boundaries.
@@ -117,9 +112,9 @@ Illustrative interface, not a claim about the present Symfony bridge:
 
 ```sh
 vendor/bin/disenchant detect src --format=json
-vendor/bin/disenchant check src --config=disenchant.json --format=sarif
+vendor/bin/disenchant check src --config=disenchant.json --format=json
 vendor/bin/disenchant fix src --min-occurrences=2 --verify-syntax
-vendor/bin/disenchant fix src --dry-run --diff
+vendor/bin/disenchant fix src --dry-run
 vendor/bin/disenchant config:explain --config=disenchant.json
 ```
 
@@ -237,31 +232,30 @@ Proposed JSON configuration, subject to the final schema and adapter capabilitie
    destination directory with restrictive permissions, flush as supported, preserve
    relevant metadata and use same-filesystem atomic rename where supported. Define
    platform-specific behavior and refuse unsafe fallbacks by default.
-7. Multi-file rename is not atomic. Define ordering, a recovery journal/backup policy,
-   cleanup, and an explicit partial-commit result listing affected paths if a rename,
-   rollback or interruption fails. Never claim rollback is infallible or overwrite a
-   concurrent edit during recovery. Evaluate whether initial release should restrict
-   SemConv writes until the recovery design is proven.
+7. Multi-file replacement is not atomic. Define write ordering and report detected
+   failures and known partial application, including affected paths. Do not perform
+   automatic rollback. After interruption, users can inspect and restore files with
+   version control, taking care with pre-existing changes. Journaling and automatic
+   recovery are not release requirements.
 
 Check, detect and dry-run must not create source, registry, lock, backup or staging
 files in the target tree; if syntax verification needs temporary files, use a private
 temporary area, clean up and document that it is not literally zero filesystem IO.
 No changes to analyzed source can be considered verified until preview/fix parity,
-lint and idempotency tests pass. Expose diffs only by explicit request because they
-can contain secrets; cap their size and avoid claiming a redacted diff is applyable.
+lint and idempotency tests pass. A diff view is a future option, not an initial-release
+requirement.
 
 ## 8. Reporting, Security And Operations
 
 - Define a versioned, vendor-neutral result: command status, counts, findings, planned
-  changes, bounded diagnostics, verification and partial-write/recovery status.
+  changes, bounded diagnostics, verification and partial-write status.
   Assign stable diagnostic codes; avoid source snippets, literal values and absolute
   paths by default. Provide explicit opt-in for sensitive detail, with warnings.
-- Text is concise and terminal-aware; JSON has a published schema, deterministic
-  ordering and valid output even on errors; SARIF needs real rule identifiers,
-  locations where available, severity and schema validation. Do not rebrand the
-  current execution-artifact recorder as a complete findings SARIF exporter. Document
-  absent locations rather than synthesize them.
-- Stream or bound findings, diagnostic sizes, file sizes, counts and telemetry buffers.
+- Provide concise human-readable text and structured JSON. Document absent locations
+  rather than synthesizing them. SARIF and diff views are future options, not initial
+  release requirements.
+- Make practical report and recorder limits configurable; choose initial defaults
+  during implementation and adjust them with use. Stream or bound retained data.
   On limits, fail or explicitly mark truncation; never report a complete clean scan.
   Default metric dimensions must not include paths, literal values or identifiers.
 - Wrap a command in a RunIt execution if configured, with bounded activities for
@@ -270,10 +264,10 @@ can contain secrets; cap their size and avoid claiming a redacted diff is applya
   timeouts explicit. Use ConfigureItRunit's bridge for configuration, recognizing
   its current synthetic stage events and retention limitations; do not promise true
   measured scopes without verification or upstream changes.
-- Default to no global providers, no network export and deny-by-default redaction.
-  Separate reporting of publication failures from business results; no telemetry
-  failure may conceal the original exception. Define configurable fail-open/fail-closed
-  behavior and test it. Never use telemetry delivery as proof a scan completed.
+- Default to no global providers or network export. Publication is optional and best
+  effort: failures must not change successful business results or mask original errors.
+  Storage and retention belong to the destination or CI environment. Never use
+  telemetry delivery as proof a scan completed.
 - Document Linux as the actively supported OS and the actual resolved PHP version.
   Treat other environments as unverified until their filesystem semantics are tested.
 
@@ -288,16 +282,14 @@ failed earlier gate into a passing release.
    documentation drift and sibling integration versions. Produce a traceable feature
    matrix including defaults and unsupported controls.
 2. Decide package name/split, command names, outputs, exit codes, schema/versioning,
-   configuration trust, filesystem support and whether DeriveIt is truly needed.
+   configuration trust and filesystem support. DeriveIt is not needed.
 3. Prototype CommandIt's Symfony bridge against exit codes, typed results, array
    inputs, streams and safe errors. Record whether an upstream change or a thin
    custom projection is required. Similarly test ConfigureIt layer precedence.
-4. Write ADRs for package split, optional integrations, execution boundaries and
-   failure guarantees. Identify upstream issues and owners; no public API change or
-   dependency constraint is assumed approved by this plan.
+4. Document consequential package, integration and execution decisions. Identify
+   required upstream changes; the maintainer approves them.
 
-Gate: maintainer accepts the contract and identified prerequisites; each feature
-maps to current behavior or a specific upstream task.
+Gate: each feature maps to current behavior or a specific upstream task.
 
 ### Phase 1: Package Skeleton And Standalone Commands
 
@@ -328,8 +320,8 @@ before any writes. Explain output does not reveal secrets.
 
 1. Connect SDK detection and the minimum necessary factory/configuration extensions;
    honor the feature matrix without changing DisenchantIt semantics.
-2. Build bounded text and JSON reports, and only then a properly validated SARIF
-   projection. Separate ordinary findings from internal execution artifacts.
+2. Build text and structured JSON reports with configurable limits. Separate
+   findings from execution artifacts; SARIF may follow later.
 3. Add source fixtures for strings, numeric contexts, enums, exclusions, naming,
    multiple classes and parsing failures; test deterministic ordering and privacy.
 
@@ -342,7 +334,7 @@ marking incomplete analysis clean.
    writes, including SDK promotion targets and opt-in FQCN behavior. Define a reliable
    change predicate based on final content, not merely candidates or recorder events.
 2. Implement check, fix dry-run and fix from the same plan; add optional syntax
-   verification and guarded per-file commit/recovery. Respect stated exit precedence.
+   verification and guarded per-file replacement. Respect stated exit precedence.
 3. Test golden preview/fix byte parity, no-change behavior, idempotency, original
    exceptions, failed verification, races and interrupted/failed writes.
 
@@ -355,19 +347,19 @@ input, and failures are explicit. Document the limitations of multi-file commits
    preserving existing entries. Ensure check previews both registry and source.
 2. Cover new/existing registry, identical/different-value collisions, alias
    idempotency, scope exclusions, alternate paths and registry/source write conflicts.
-3. Complete supported scope, naming, dictionary and promotion configuration; upstream
-   changes for missing factory controls or namespace filtering require separate review.
-4. Failure-inject each write boundary and document partial commit and recovery. Do not
-   release multi-file fix if recovery behavior cannot be correctly reported.
+3. Complete supported scope, naming, dictionary and promotion configuration. Extend
+   SDK composition for missing controls; namespace filtering remains a feature choice.
+4. Test write failures and document partial application and manual recovery. Multi-file
+   fixes are in scope for the initial release without a journal.
 
 Gate: coverage matrix is complete for supported SDK features; SemConv check/fix parity
 and second-run idempotency pass on representative projects.
 
 ### Phase 6: Execution, Hardening And Release
 
-1. Wire optional RunIt execution and ConfigureItRunit configuration reporting; add
-   DeriveItRunit only for an actual DeriveIt derivation. Verify isolation, parenting,
-   redaction, bounded retention, delivery assumptions and original-error preservation.
+1. Wire optional RunIt execution and ConfigureItRunit configuration reporting.
+   Verify isolation, supported parent/child relationships, configurable limits,
+   best-effort publication and preservation of business results and errors.
 2. Run contract, integration, subprocess, security, concurrency and failure-injection
    suites; validate machine schemas and exercise CI on clean and dirty projects.
 3. Add reproducible large-tree benchmarks and memory limits; report measured results,
@@ -386,8 +378,8 @@ approve the package and any cross-package contract changes.
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Unit/contract   | Schema precedence and absence, command inputs/results, path policies, change predicate, formatting, exit mapping, redaction and limits.                                                       |
 | SDK integration | All supported promotion targets and options, source safety, scope path behavior, existing constants, enum backing exclusion, raw numeric tokens, naming, SemConv merge and collisions.        |
-| CLI subprocess  | Real executable, help/version, argv edge cases, stdout/stderr separation, every exit category, JSON/SARIF schema, no colors in machine output and CI non-interactivity.                       |
-| Filesystem      | Symlink and traversal attacks, permissions, same-directory staging, concurrent edit and substitution, failed rename/cleanup, interruption, partial commit/recovery and metadata preservation. |
+| CLI subprocess  | Real executable, help/version, argv edge cases, stdout/stderr separation, every exit category, JSON schema, no colors in machine output and CI non-interactivity.                       |
+| Filesystem      | Symlink and traversal attacks, permissions, same-directory staging, concurrent edit and substitution, failed rename/cleanup, interruption, partial application and metadata preservation. |
 | Preview         | Detect/check/dry-run never modify target tree; check and fix plans match; unchanged outputs stay byte-identical; second fix/check clean.                                                      |
 | Security        | Config injection, executable config opt-in, include policy, path escape, secret-bearing literals/config, report/telemetry redaction, bounded output and subprocess timeout.                   |
 | Resilience      | Parse and lint failures, malformed registry, publication failures, cancellation, resource exhaustion and report write errors preserve correct status and original failure.                    |
@@ -395,26 +387,38 @@ approve the package and any cross-package contract changes.
 | Quality         | Codeception suites, PHPStan, PHPArkitect, coding style, mutation testing and security audit via actual package scripts; document missing tools or failures.                                   |
 
 Acceptance requires no source execution/autoloading, no silent skips or truncation,
-no unapproved API breaks, check/fix parity, a documented partial-failure contract,
+documented API compatibility decisions, check/fix parity, a documented partial-failure contract,
 deterministic safe reports, and a tested installation and CI example. Full project
 test suites are consumer-owned and separate from syntax verification.
 
-## 11. Open Decisions And Dependencies
+## 11. Decisions And Remaining Choices
 
-1. Is a Symfony-free install required? This determines whether to split packages.
-   -> No, the package can have a hard dependency on symfony/console
-2. Is DeriveIt used by a concrete command or only desired as an ecosystem integration?
-   If no derivation exists, keep the bridge conditional and avoid misleading telemetry.
-3. Which DisenchantIt options need upstream composition/API changes, and who approves
-   them? Namespace scope is currently not implemented.
-4. Should multi-file SemConv fix wait for a journal/recovery implementation, or ship
-   later than read-only support? Atomic per-file rename is not an atomic batch.
-5. What exact source-detail opt-ins, report limits, supported formats and retention
-   policies satisfy the intended CI/security environment?
-6. Can CommandIt accept the required projection/result extensions upstream, or should
-   this package own a thin Symfony projection? Agree before stabilizing CLI syntax.
-7. Which RunIt parent/child and publication policies are supported by the actual
-   versions, and what delivery guarantees are acceptable? Test rather than assume.
+1. **Package:** A Symfony-free installation is not required. The command package
+   may depend directly on `symfony/console`.
+2. **DeriveIt:** Neither DeriveIt nor DeriveItRunit is needed for this CLI.
+3. **SDK composition:** The CLI is a downstream consumer and may drive additions
+   to DisenchantIt. Expose supported scope controls through the SDK composition API;
+   the maintainer approves required package changes. Namespace filtering is not
+   implemented and remains a separate feature decision. Do not expose it as working
+   until implemented and tested.
+4. **Multi-file SemConv fixes:** Include them in the initial release. Prepare and
+   validate proposed changes before writing; report detected failures and known
+   partial application. Per-file replacement is sufficient. Batch atomicity,
+   journaling and automated rollback/recovery are out of scope; users can inspect
+   and restore affected files with version control, mindful of pre-existing changes.
+5. **Reports:** Default reports contain available finding metadata, not literal
+   values or source snippets; allow explicit source-detail opt-in where supported.
+   Make practical limits configurable, with initial defaults informed by use. Provide
+   human-readable output and structured JSON. Diff views and SARIF may come later.
+   The configured destination or CI environment owns storage and retention.
+6. **CommandIt:** Put generic command, result and Symfony projection improvements in
+   CommandIt. Keep DisenchantIt-specific CLI behavior in this package and domain
+   behavior in DisenchantIt. Use a thin package-owned adapter where appropriate.
+7. **RunIt:** Integrate from the outset with optional observation. Test supported
+   command/configuration parent-child relationships against the resolved versions.
+   Artifact publication is best effort; durable delivery is not required, and
+   publication failure must not change the business result or mask its error.
 
-These are implementation gates, not reasons to broaden DisenchantIt core's
-dependencies or weaken its source-text and architectural invariants.
+Remaining choices include namespace filtering, exact configurable limits and defaults,
+and final command names and exit codes. Keep DisenchantIt core independent of RunIt
+and console frameworks, and preserve its source-text safety invariant.
