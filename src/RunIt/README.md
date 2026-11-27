@@ -1,3 +1,10 @@
+
+---
+<p align="center">
+<img src="images/RunIt-Indigo_Bass_Solo.png" alt="RunIt-Indigo_Bass_Solo" style="width:25%;"/>
+</p>
+
+---
 # RunIt
 
 > **The execution model and runtime backbone for the ItPack ecosystem.**
