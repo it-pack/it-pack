@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\CloudEvents;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
+use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventPublisher;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventsBridgeConfig;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
@@ -17,10 +18,11 @@ use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
 use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
-use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Throwable;
 
 /**
  * M10.5 / M10 acceptance — CloudEvent publisher dispatches occurrences only.
@@ -44,9 +46,13 @@ final class CloudEventPublisherTest extends Unit
 
         self::assertInstanceOf(CloudEvent::class, $captured);
         self::assertSame('occ-1', $captured->id);
-        self::assertSame('exec-1', $captured->extensions['executionid']);
+        self::assertSame('exec-1', $captured->extensions[CloudEventExtensionKey::ExecutionId->value]);
     }
 
+    /**
+     * @throws Throwable
+     * @throws InvalidValueExceptionInterface
+     */
     public function testPublishesOccurrenceWithActivityIdIncludesActivityExtension(): void
     {
         $captured = null;
@@ -58,13 +64,21 @@ final class CloudEventPublisherTest extends Unit
         );
 
         $publisher->publish(
-            RunItArtifactFactory::occurrence('occ-1', 'exec-1', 'itpack.event.v1', activityId: 'act-1'),
+            RunItArtifactFactory::occurrence(
+                'occ-1',
+                'exec-1',
+                'itpack.event.v1',
+                activityId: 'act-1'
+            ),
         );
 
         self::assertInstanceOf(CloudEvent::class, $captured);
-        self::assertSame('act-1', $captured->extensions['activityid']);
+        self::assertSame('act-1', $captured->extensions[CloudEventExtensionKey::ActivityId->value]);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testIgnoresNonOccurrenceArtifacts(): void
     {
         $calls = 0;
@@ -75,11 +89,22 @@ final class CloudEventPublisherTest extends Unit
             }),
         );
 
-        $nonOccurrence = RunItArtifactFactory::execution('exec-1', 'import', 'queue.consumer.process', 'succeeded');
-        self::assertInstanceOf(ExecutionArtifactInterface::class, $nonOccurrence);
+        $nonOccurrence = RunItArtifactFactory::execution(
+            'exec-1',
+            'import',
+            'queue.consumer.process',
+            'succeeded'
+        );
 
         $publisher->publish($nonOccurrence);
-        $publisher->publish(new ClassifiedArtifact(['id' => 'exec-1'], 'execution'));
+        $publisher->publish(
+            new ClassifiedArtifact(
+                [
+                'id' => 'exec-1',
+            ],
+                'execution'
+            )
+        );
         $publisher->publish(new RedactedArtifact(['id' => 'measurement-1'], 'measurement'));
 
         self::assertSame(0, $calls);
@@ -103,6 +128,10 @@ final class CloudEventPublisherTest extends Unit
         self::assertTrue($captured->extensions['redacted']);
     }
 
+    /**
+     * @throws Throwable
+     * @throws InvalidValueExceptionInterface
+     */
     public function testClassifiedOccurrenceUsesNormalMappingWithoutLeakingRedactedData(): void
     {
         $captured = null;
@@ -125,6 +154,10 @@ final class CloudEventPublisherTest extends Unit
         self::assertTrue($captured->extensions['redacted']);
     }
 
+    /**
+     * @throws InvalidValueExceptionInterface
+     * @throws Throwable
+     */
     public function testBuildsFromBridgeConfig(): void
     {
         $captured = null;
@@ -173,6 +206,10 @@ final class CloudEventPublisherTest extends Unit
         self::assertSame('occ-3', $captured->id);
     }
 
+    /**
+     * @throws Throwable
+     * @throws InvalidValueExceptionInterface
+     */
     public function testRedactedOccurrenceProducesVisibleSuppressedDelivery(): void
     {
         $captured = null;

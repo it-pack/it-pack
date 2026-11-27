@@ -3,9 +3,8 @@
 RunIt's core has a deliberately tiny runtime footprint. The execution model, the
 application runtime, the ports, and the dependency-free first-party adapters
 (Null, Memory, Callback, Fiber, Common) require **no** vendor integration packages.
-Every external standard — OpenTelemetry, CloudEvents, PSR, Swoole, OpenSwoole — is
-opt-in: a consumer installs only the packages for the integrations it actually
-wires.
+Use of adapters is opt-in, but the RunIt package directly requires the CloudEvents
+SDK and OpenTelemetry semantic conventions even when those adapters are not wired.
 
 This page is the consolidated view. Each integration guide repeats the
 integration-specific packages under its own "Required optional packages" heading.
@@ -15,12 +14,15 @@ integration-specific packages under its own "Required optional packages" heading
 ```json
 "require": {
     "php": "^8.4",
-    "just-bases/php-obs-base": "^1.0"
+    "ext-mbstring": "*",
+    "cloudevents/sdk-php": "^1.2",
+    "just-bases/php-obs-base": "^1.0",
+    "open-telemetry/sem-conv": "^1.45"
 }
 ```
 
-`php-obs-base` is the shared ItPack base package (value-object and QA primitives).
-It is the only mandatory runtime dependency beyond PHP itself.
+`php-obs-base` is the shared ItPack base package. Consult `composer.json` for
+the authoritative direct dependency constraints and Composer for transitives.
 
 ## Suggested (opt-in) packages
 
@@ -36,7 +38,6 @@ matching adapter; omitting it leaves RunIt fully usable.
 | `psr/http-server-handler` | PSR-15 execution middleware | PSR |
 | `open-telemetry/api` | OpenTelemetry mapping (traces, metrics, logs) | OpenTelemetry |
 | `open-telemetry/sdk` | OpenTelemetry SDK / real exporters | OpenTelemetry |
-| `cloudevents/sdk-php` | CloudEvents helper SDK (bridge is SDK-free) | CloudEvents |
 | `ext-swoole` | Swoole coroutine context storage and server middleware | Swoole |
 | `ext-openswoole` | OpenSwoole coroutine context storage and server middleware | Swoole |
 
@@ -55,7 +56,8 @@ application.
 
 Because PHP lazy-loads classes, an adapter only fails if it is actually
 instantiated. The rest of the library works whether or not any PSR, OpenTelemetry,
-CloudEvents, Swoole, or OpenSwoole package is present.
+Swoole, or OpenSwoole optional package is present. The CloudEvents SDK and
+OpenTelemetry semantic conventions remain package dependencies regardless of use.
 
 ## Installation patterns
 
@@ -65,7 +67,7 @@ Install only what you wire:
 # OpenTelemetry, with a real exporter
 composer require open-telemetry/api open-telemetry/sdk
 
-# CloudEvents over HTTP (no CloudEvents SDK needed for mapping)
+# CloudEvents over HTTP (SDK already installed with RunIt)
 composer require psr/http-client psr/http-factory
 composer require symfony/http-client nyholm/psr7   # a concrete client
 
@@ -86,7 +88,7 @@ any vendor bootstrap and lets a consumer enable only the signals it needs.
 ## Related
 
 - [`opentelemetry.md`](opentelemetry.md) — required optional packages and provider responsibility.
-- [`cloudevents.md`](cloudevents.md) — SDK-free mapping; HTTP delivery packages.
+- [`cloudevents.md`](cloudevents.md) — SDK-backed mapping and HTTP delivery packages.
 - [`psr.md`](psr.md) — PSR interface packages per adapter.
 - [`swoole.md`](swoole.md) — Swoole / OpenSwoole extension versions.
 - [`compatibility-matrix.md`](compatibility-matrix.md) — version and capability matrix.

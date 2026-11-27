@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -52,6 +53,9 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
  */
 final class RunItArtifactFactory
 {
+    /**
+     * @throws InvalidValueExceptionInterface
+     */
     public static function execution(
         string $id,
         string $name,
@@ -62,13 +66,18 @@ final class RunItArtifactFactory
         $definition = ExecutionDefinition::create(
             ExecutionName::fromString($name),
             ExecutionKind::fromString($kind),
-            $parentId !== null ? ExecutionId::fromString($parentId) : null,
+            $parentId !== null
+                ? ExecutionId::fromString($parentId)
+                : null,
         );
 
         $execution = Execution::start(ExecutionId::fromString($id), $definition, Instant::of(1_000));
 
         return match ($status) {
-            'succeeded' => $execution->complete(ExecutionSuccess::create(), Instant::of(2_000)),
+            'succeeded' => $execution->complete(
+                ExecutionSuccess::create(),
+                Instant::of(2_000)
+            ),
             'failed' => $execution->complete(
                 ExecutionFailure::of(
                     ExecutionStatus::Failed,
@@ -86,6 +95,9 @@ final class RunItArtifactFactory
         };
     }
 
+    /**
+     * @throws InvalidValueExceptionInterface
+     */
     public static function activity(
         string $id,
         string $executionId,
@@ -140,6 +152,7 @@ final class RunItArtifactFactory
 
     /**
      * @param array<string, array<int|string, int|float|string|bool|null>|bool|float|int|string|null> $attributes
+     * @throws InvalidValueExceptionInterface
      */
     public static function counter(
         string $executionId,
@@ -246,6 +259,7 @@ final class RunItArtifactFactory
      * @param mixed $data
      * @param string|null $activityId
      * @return OccurrenceInterface
+     * @throws InvalidValueExceptionInterface
      */
     public static function occurrence(
         string  $id,
@@ -266,7 +280,13 @@ final class RunItArtifactFactory
     }
 
     /**
+     * @param string $id
+     * @param string $executionId
      * @param mixed $payload
+     * @param string|null $activityId
+     * @param string $type
+     * @return SnapshotInterface
+     * @throws InvalidValueExceptionInterface
      */
     public static function snapshot(
         string  $id,

@@ -98,7 +98,9 @@ final class DefaultExecutionRunnerFailureTest extends Unit
     public function testThrowableMapperFailureUsesFallbackDescription(): void
     {
         $throwableMapper = $this->createMock(ThrowableMapperInterface::class);
-        $throwableMapper->method('describe')->willThrowException(new RuntimeException('mapper failure'));
+        $throwableMapper->method('describe')
+            ->willThrowException(new RuntimeException('mapper failure'))
+        ;
         $reported = 0;
         $kit = new RunItTestKit(
             onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
@@ -131,7 +133,9 @@ final class DefaultExecutionRunnerFailureTest extends Unit
     public function testSnapshotFactoryFailureIsReportedAndResultPreserved(): void
     {
         $snapshotFactory = $this->createMock(ExecutionSnapshotFactoryInterface::class);
-        $snapshotFactory->method('terminal')->willThrowException(new RuntimeException('snapshot failure'));
+        $snapshotFactory->method('terminal')
+            ->willThrowException(new RuntimeException('snapshot failure'))
+        ;
         $reported = 0;
         $kit = new RunItTestKit(
             onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
@@ -265,12 +269,27 @@ final class DefaultExecutionRunnerFailureTest extends Unit
         );
 
         if ($scenario === 'business') {
-            self::assertSame(2, $reported, 'terminal publication and detach failures must both be reported');
+            self::assertSame(
+                2,
+                $reported,
+                'terminal publication and detach failures must both be reported'
+            );
         } elseif ($scenario === 'detach') {
-            self::assertSame(1, $reported, 'detach failure must reach the health callback');
+            self::assertSame(
+                1,
+                $reported,
+                'detach failure must reach the health callback'
+            );
         } else {
-            self::assertTrue(in_array($failure, $reportedFailures, true), 'start/terminal publication failure must be reported');
-            self::assertNull($kit->storage->current(), 'previous context must be restored after normal detach');
+            self::assertContains(
+                $failure,
+                $reportedFailures,
+                'start/terminal publication failure must be reported'
+            );
+            self::assertNull(
+                $kit->storage->current(),
+                'previous context must be restored after normal detach'
+            );
         }
     }
 

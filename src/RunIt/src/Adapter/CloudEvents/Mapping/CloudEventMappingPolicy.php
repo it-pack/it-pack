@@ -30,6 +30,7 @@ final readonly class CloudEventMappingPolicy
     public function __construct(
         public string $specVersion = CloudEvent::SPEC_VERSION_1_0,
         public int $maxSerializedBytes = self::DEFAULT_MAX_SERIALIZED_BYTES,
+        public bool $allowLegacyFallback = false,
     ) {
     }
 

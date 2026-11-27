@@ -25,6 +25,7 @@
     "require": {
         "php": "^8.4",
         "ext-mbstring": "*",
+        "cloudevents/sdk-php": "^1.2",
         "just-bases/php-obs-base": "^1.0",
         "open-telemetry/sem-conv": "^1.45"
     },
@@ -55,7 +56,6 @@
         "ext-openswoole": "OpenSwoole coroutine execution adapter",
         "ext-opentelemetry": "OpenTelemetry Extension",
         "ext-swoole": "Swoole coroutine execution adapter",
-        "cloudevents/sdk-php": "CloudEvents occurrence mapping",
         "open-telemetry/api": "OpenTelemetry mapping",
         "open-telemetry/sdk": "OpenTelemetry SDK/export support",
         "psr/clock": "PSR-20 clock   integration",

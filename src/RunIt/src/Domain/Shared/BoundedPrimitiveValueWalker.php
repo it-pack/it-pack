@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Domain\Shared;
 
 use Closure;
 use ItPack\RunIt\Contract\Behavior\Domain\BoundedPrimitiveValueWalkerInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 
 /**
@@ -29,7 +30,7 @@ final readonly class BoundedPrimitiveValueWalker implements BoundedPrimitiveValu
      * @param Closure(int $count, int $maximum): RunItExceptionInterface  $oversizedArray raised when a nested array exceeds the entry bound (rule-set dependent)
      */
     public function __construct(
-        private SecurityLimits $limits,
+        private SecurityLimitsInterface $limits,
         private Closure $valueTooLong,
         private Closure $valueTooDeep,
         private Closure $unsupportedValue,

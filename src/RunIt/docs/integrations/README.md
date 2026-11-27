@@ -2,7 +2,7 @@
 
 RunIt models execution with its own vendor-neutral vocabulary. The integrations
 below translate that vocabulary to and from external standards and runtimes. The
-core has no mandatory external dependency: every integration is opt-in (see
+adapter use is opt-in, although some dependencies are mandatory (see
 [`optional-dependencies.md`](optional-dependencies.md)).
 
 ## Guides
@@ -10,7 +10,7 @@ core has no mandatory external dependency: every integration is opt-in (see
 - [OpenTelemetry](opentelemetry.md) — map executions, activities, measurements, and
   observations to OpenTelemetry signals.
 - [CloudEvents](cloudevents.md) — map occurrences to and from CloudEvents 1.0
-  (SDK-free).
+  using the official SDK.
 - [PSR interoperability](psr.md) — PSR-3, PSR-14, PSR-15, PSR-18, PSR-20, and PSR-7
   adapters.
 - [Fibers](fibers.md) — per-Fiber scope isolation and a Fiber execution engine.

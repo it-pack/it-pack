@@ -29,7 +29,7 @@ final readonly class SecurityLimits implements SecurityLimitsInterface
      * {@see \ItPack\RunIt\Domain\Context\ExecutionContext::MAX_ENTRIES} so the two
      * entry ceilings cannot drift apart silently.
      */
-    public const int DEFAULT_MAX_ATTRIBUTE_COUNT = 64;
+    public const int DEFAULT_MAX_ATTRIBUTE_COUNT = SecurityLimitsInterface::DEFAULT_MAX_ATTRIBUTE_COUNT;
 
     public function __construct(
         public int $maxAttributeCount = self::DEFAULT_MAX_ATTRIBUTE_COUNT,

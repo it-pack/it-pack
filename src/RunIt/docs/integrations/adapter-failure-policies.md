@@ -47,8 +47,9 @@ so a failed export cannot recurse.
 
 `Psr18CloudEventSink` performs a single best-effort `POST` with
 `application/cloudevents+json`. It does **not** retry, buffer, or add durable
-delivery. A failed request throws and is handled by the surrounding publication
-failure policy. Delivery is **at-most-once** by default; stronger guarantees are the
+delivery. Client exceptions propagate to the surrounding publication failure policy;
+HTTP 4xx and 5xx response statuses are not treated as failures. Delivery is
+**at-most-once** by default; stronger guarantees are the
 transport's responsibility. Oversized events fail closed at serialization time
 (`CloudEventMappingPolicy::$maxSerializedBytes`).
 

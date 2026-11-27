@@ -28,6 +28,7 @@ use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
@@ -99,7 +100,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly HashCalculatorInterface $hashCalculator,
         private readonly ?SnapshotStoreInterface $snapshotStore = null,
         private readonly ?Closure $onSnapshotStoreFailure = null,
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private readonly SecurityLimitsInterface $limits = new SecurityLimits(),
         ?Closure $currentActivityId = null,
         private readonly ProvenanceAuthority $authority = new ProvenanceAuthority(),
         private readonly ?ContextStorageInterface $contextStorage = null,

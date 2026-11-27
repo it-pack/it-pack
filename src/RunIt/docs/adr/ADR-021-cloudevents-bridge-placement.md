@@ -1,45 +1,33 @@
 # ADR-021: CloudEvents bridge placement
 
-**Status:** Accepted
+**Status:** Accepted, revised for the official SDK migration
 
-**Context**
+## Context
 
-Milestone M10 introduces a CloudEvents integration that maps RunIt occurrences to
-and from the CloudEvents 1.0 envelope. ADR-016 defines the criteria under which
-an integration moves to a dedicated bridge package: it requires a non-core
-dependency, has an independently useful release cadence, or imposes a distinct
-compatibility surface. ADR-020 placed the OpenTelemetry bridge in the root package
-for the same reasons the PSR adapters (M8) live under `src/Adapter/Psr`.
+The original M10 decision kept the CloudEvents bridge in RunIt and implemented
+structured JSON without the official SDK. The migration replaces that SDK-free
+decision: generic CloudEvents envelope handling belongs in `cloudevents/sdk-php`,
+while RunIt retains its occurrence semantics, security controls and public ports.
 
-CloudEvents is a specification, not a mandatory library. The structured JSON
-representation is a small, stable envelope (a handful of string attributes plus an
-open extension map), and `cloudevents/sdk-php` is listed only under `suggest`.
-Pulling in that SDK would couple the bridge to a specific library's evolving API
-for little benefit, and it would introduce a non-core dependency into the root
-package contrary to ADR-010 (core has no mandatory external integration).
+## Decision
 
-**Decision**
+The bridge remains in `src/Adapter/CloudEvents` and `it-pack/run-it` directly
+requires `cloudevents/sdk-php` at `^1.2`. This is a package dependency even when an
+application does not use the bridge. Domain and application code remain independent
+of the CloudEvents SDK; existing RunIt event, mapper, serializer and sink contracts
+remain the integration boundary. No global CloudEvents provider is configured.
 
-The CloudEvents bridge remains in the root `it-pack/run-it` package under
-`src/Adapter/CloudEvents` and is intentionally **SDK-free**. It implements the
-CloudEvents structured JSON representation directly: a self-contained immutable
-`CloudEvent` value object, dedicated mapper, serializer, and sink contracts. The
-bridge depends only on `Contract`, `Domain`, `Behavior`, and `Common`; it never
-imports `cloudevents/sdk-php` and never configures any global CloudEvents provider.
+SDK validation is the default. A transitional opt-in legacy path handles a whole
+event when it cannot be represented by the SDK; it does not waive size or security
+limits and may emit non-conformant CloudEvents. Independently constructed mappers
+and serializers require independent configuration.
 
-`cloudevents/sdk-php` stays a `suggest` entry for consumers who already use it and
-wish to interoperate; the bridge does not require it. The bridge will be split into
-a dedicated `it-pack/run-it-cloudevents` package only if a second, conflicting
-CloudEvents implementation appears or if its release cadence diverges from the core.
+## Consequences
 
-**Consequences**
-
-- `src/Adapter/CloudEvents` must not introduce a dependency on `cloudevents/sdk-php`
-  (or any CloudEvents library) into the domain, application, SDK, or the bridge
-  source.
-- The bridge must never configure a global CloudEvents provider; delivery targets
-  are injected through `CloudEventsBridgeConfig` as `CloudEventSinkInterface`.
-- The core remains usable without any CloudEvents dependency; only occurrences are
-  mapped, and the `CloudEventPublisher` ignores every other artifact type.
-- Consumers who want HTTP delivery supply a PSR-18 client and factory; the bridge
-  ships `Psr18CloudEventSink` but imposes no retry or durable-delivery guarantee.
+- Composer resolution and supply-chain review now include the CloudEvents SDK.
+- Strict validation and structured JSON differences are compatibility-sensitive;
+  review consumer data and migrations before release.
+- Only occurrences are mapped; other artifacts are ignored by the publisher.
+- HTTP delivery uses an injected PSR-18 client and factories. The thin RunIt
+  transport retains custom serializer support and existing failure semantics;
+  it does not provide retries or durable delivery.

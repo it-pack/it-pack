@@ -1,9 +1,9 @@
 # Recipe: CloudEvents
 
-Publish RunIt occurrences as CloudEvents using `CloudEventPublisher`. The bridge is
-SDK-free: it implements the CloudEvents 1.0 structured JSON representation directly,
-so no `cloudevents/sdk-php` dependency is required for mapping or serialization. Only
-HTTP delivery needs a PSR-18 client. See
+Publish RunIt occurrences as CloudEvents using `CloudEventPublisher`. RunIt directly
+requires `cloudevents/sdk-php`; HTTP delivery additionally needs a PSR-18 client and
+factories. Strict SDK validation is the default; independently configured serializers
+need their own policy. See
 [`../integrations/cloudevents.md`](../integrations/cloudevents.md).
 
 ```php
@@ -56,5 +56,6 @@ $runtime->run(
 
 Only occurrences are mapped to CloudEvents; executions, activities, measurements, and
 observations are exported through the other bridges. Delivery is at-most-once; a
-failed `Psr18CloudEventSink` POST is handled by the surrounding publication failure
-policy. See [`../integrations/adapter-failure-policies.md`](../integrations/adapter-failure-policies.md).
+client exception is handled by the surrounding publication failure policy. The sink
+does not treat HTTP 4xx or 5xx responses as failures. See
+[`../integrations/adapter-failure-policies.md`](../integrations/adapter-failure-policies.md).

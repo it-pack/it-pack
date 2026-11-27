@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Common;
 
 use Closure;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Exception\SerializationException;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
@@ -35,7 +36,7 @@ use WeakMap;
 final readonly class JsonSnapshotSerializer implements SerializerInterface
 {
     public function __construct(
-        private SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimitsInterface $limits = new SecurityLimits(),
     ) {
     }
 
@@ -43,8 +44,12 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
     {
         $this->assertSafe($data, 1);
 
-        /** @var positive-int $maxDepth */
         $maxDepth = $this->limits->maxSerializationDepth;
+        if ($maxDepth <= 0) {
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: maximum serialization depth must be positive.'
+            );
+        }
 
         try {
             $encoded = json_encode(

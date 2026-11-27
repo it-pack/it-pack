@@ -1,11 +1,9 @@
 # Integration compatibility matrix
 
 This matrix records, for each RunIt integration, the package(s) it needs, the
-minimum versions, and the capability it provides. All integrations are optional: the
-core requires only `php ^8.4` and `just-bases/php-obs-base`. In RunIt's own
-`composer.json` the integration packages are listed under `require-dev` (to build and
-test the adapters in-tree) and under `suggest` (to advertise them to consumers);
-a consuming application adds the ones it wires to its own `require`.
+minimum versions, and the capability it provides. Adapter use is optional, but
+RunIt directly requires the CloudEvents SDK and OpenTelemetry semantic conventions.
+Other integration dependencies may need to be installed by the application.
 
 See [`optional-dependencies.md`](optional-dependencies.md) for installation patterns
 and [`adapter-failure-policies.md`](adapter-failure-policies.md) for failure
@@ -16,14 +14,17 @@ behaviour.
 | Requirement | Version | Notes |
 |---|---|---|
 | PHP | `^8.4` | Core runtime requirement. |
-| `just-bases/php-obs-base` | `^1.0` | Shared ItPack base (value-object / QA primitives). Only mandatory runtime dep beyond PHP. |
+| `ext-mbstring` | `*` | Required PHP extension. |
+| `just-bases/php-obs-base` | `^1.0` | Shared ItPack base. |
+| `cloudevents/sdk-php` | `^1.2` | CloudEvents SDK, required regardless of adapter use. |
+| `open-telemetry/sem-conv` | `^1.45` | OpenTelemetry semantic conventions. |
 
 ## Adapters and bridges
 
 | Integration | Required runtime packages | Optional packages | Minimum versions | Capability |
 |---|---|---|---|---|
 | OpenTelemetry | `open-telemetry/api` | `open-telemetry/sdk` | api `^1.9`, sdk `^1.0` | Map executions/activities → spans, measurements → metrics, observations → logs. SDK-free mapping; SDK only for real export. |
-| CloudEvents | none (SDK-free) | `cloudevents/sdk-php`; `psr/http-client` + `psr/http-factory` for HTTP delivery | api n/a; PSR-18 client per app | Map occurrences ↔ CloudEvents 1.0 structured JSON; optional PSR-18 delivery (at-most-once). |
+| CloudEvents | `cloudevents/sdk-php` | `psr/http-client` + `psr/http-factory` and implementations for HTTP delivery | SDK `^1.2`; PSR-18 client per app | Map occurrences ↔ CloudEvents 1.0 structured JSON; optional PSR-18 delivery (at-most-once). |
 | PSR-3 | `psr/log` | — | `^3.0` | Observation → log record; execution-aware logger decorator; log → observation bridge. |
 | PSR-14 | `psr/event-dispatcher` | — | `^1.0` | Occurrence → PSR-14 event dispatch; inbound event → occurrence. |
 | PSR-20 | `psr/clock` | — | `^1.0` | `Psr20Clock` implements `MonotonicClockInterface` (wall + monotonic kept separate). |

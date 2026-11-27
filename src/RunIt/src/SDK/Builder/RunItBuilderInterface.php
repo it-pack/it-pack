@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -116,7 +117,7 @@ interface RunItBuilderInterface
      * activity-depth gate. Replaces the conservative {@see SecurityLimits::default()}; limits are
      * never widened silently at any later stage.
      */
-    public function withSecurityLimits(SecurityLimits $limits): RunItBuilderInterface;
+    public function withSecurityLimits(SecurityLimitsInterface $limits): RunItBuilderInterface;
 
     /**
      * Receives internal publication failures (adapter faults, terminal-publication faults, or

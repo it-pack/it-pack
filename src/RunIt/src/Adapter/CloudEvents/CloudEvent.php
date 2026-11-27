@@ -31,8 +31,6 @@ final readonly class CloudEvent implements CloudEventInterface
 {
     public const string SPEC_VERSION_1_0 = '1.0';
 
-    public const string SPEC_VERSION_KEY = 'specversion';
-
     private const string TIME_PATTERN = '/^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/';
 
     private const string EXTENSION_KEY_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
@@ -70,17 +68,15 @@ final readonly class CloudEvent implements CloudEventInterface
         string $specVersion = self::SPEC_VERSION_1_0,
     ): self {
         self::assertRequiredFieldsNonEmpty([
-            [$specVersion, self::SPEC_VERSION_KEY],
-            [$id, 'id'],
-            [$source, 'source'],
-            [$type, 'type'],
+            [$specVersion, CloudEventAttributeKey::SpecVersion->value],
+            [$id, CloudEventAttributeKey::Id->value],
+            [$source, CloudEventAttributeKey::Source->value],
+            [$type, CloudEventAttributeKey::Type->value],
         ]);
 
         if ($time !== null && preg_match(self::TIME_PATTERN, $time) !== 1) {
             throw InvalidCloudEventException::malformedTime($time);
         }
-
-        $normalizedExtensions = self::validateAndNormalizeExtensions($extensions, $data);
 
         return new self(
             $specVersion,
@@ -92,7 +88,10 @@ final readonly class CloudEvent implements CloudEventInterface
             $time,
             $dataContentType,
             $dataSchema,
-            $normalizedExtensions,
+            self::validateAndNormalizeExtensions(
+                $extensions,
+                $data
+            ),
         );
     }
 
@@ -119,11 +118,11 @@ final readonly class CloudEvent implements CloudEventInterface
      */
     private static function validateAndNormalizeExtensions(array $extensions, mixed $data): array
     {
+        $normalizedExtensions = [];
+
         try {
             $validator = new ContextValueValidator();
             $validator->assertSupportedValue($data);
-
-            $normalizedExtensions = [];
             foreach ($extensions as $key => $value) {
                 if (preg_match(self::EXTENSION_KEY_PATTERN, $key) !== 1) {
                     throw InvalidCloudEventException::unsupportedExtensionKey($key);
@@ -169,30 +168,30 @@ final readonly class CloudEvent implements CloudEventInterface
     public function toArray(): array
     {
         $event = [
-            self::SPEC_VERSION_KEY => $this->specVersion,
-            'id' => $this->id,
-            'source' => $this->source,
-            'type' => $this->type,
+            CloudEventAttributeKey::SpecVersion->value => $this->specVersion,
+            CloudEventAttributeKey::Id->value => $this->id,
+            CloudEventAttributeKey::Source->value => $this->source,
+            CloudEventAttributeKey::Type->value => $this->type,
         ];
 
         if ($this->subject !== null) {
-            $event['subject'] = $this->subject;
+            $event[CloudEventAttributeKey::Subject->value] = $this->subject;
         }
 
         if ($this->time !== null) {
-            $event['time'] = $this->time;
+            $event[CloudEventAttributeKey::Time->value] = $this->time;
         }
 
         if ($this->dataContentType !== null) {
-            $event['datacontenttype'] = $this->dataContentType;
+            $event[CloudEventAttributeKey::DataContentType->value] = $this->dataContentType;
         }
 
         if ($this->dataSchema !== null) {
-            $event['dataschema'] = $this->dataSchema;
+            $event[CloudEventAttributeKey::DataSchema->value] = $this->dataSchema;
         }
 
         if ($this->data !== null) {
-            $event['data'] = $this->data;
+            $event[CloudEventAttributeKey::Data->value] = $this->data;
         }
 
         foreach ($this->extensions as $key => $value) {

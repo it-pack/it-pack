@@ -15,7 +15,7 @@ use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
-use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
+use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
@@ -58,13 +58,17 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
     {
         if ($artifact instanceof OccurrenceInterface) {
             $event = $this->mapper->map($artifact, $this->policy);
+            if ($artifact instanceof RedactedArtifactInterface && !$this->policy->allowLegacyFallback
+                && array_key_exists('redacted', $event->extensions)) {
+                throw new InvalidCloudEventException('CloudEvent redacted extension is reserved.');
+            }
             $this->sink->send($artifact instanceof RedactedArtifactInterface
                 ? $event->withExtensions(['redacted' => true]) : $event);
 
             return;
         }
 
-        if (($artifact instanceof RedactedArtifactInterface || $artifact instanceof TrustedArtifactProjectionInterface)
+        if (($artifact instanceof RedactedArtifactInterface)
             && $artifact->artifactType() === ArtifactType::OCCURRENCE) {
             $this->sink->send($this->mapRedacted($artifact));
 

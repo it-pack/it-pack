@@ -212,7 +212,8 @@ overridden deliberately; see `docs/QA.md` and the `Security` section of
 
 ## External adapters
 
-OpenTelemetry, CloudEvents, PSR, Swoole, and OpenSwoole are optional adapters. Core
-code never configures global providers or selects an exporter, and it must not
-introduce a mandatory adapter dependency (ADR-006, ADR-010). Run
+OpenTelemetry, CloudEvents, PSR, Swoole, and OpenSwoole adapters are opt-in, but
+the package directly requires the CloudEvents SDK and OpenTelemetry semantic
+conventions. Domain and application code remain independent of adapter SDKs and
+never configure global providers or select an exporter. Run
 `composer audit` and the project quality checks before release.

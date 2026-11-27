@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -197,7 +198,7 @@ final class ClassifyingArtifactPublisher implements
     public function __construct(
         private readonly ArtifactPublisherInterface $inner,
         private readonly ?InternalHealthReporterInterface $health = null,
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private readonly SecurityLimitsInterface $limits = new SecurityLimits(),
     ) {
     }
 

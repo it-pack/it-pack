@@ -35,6 +35,7 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\SecurityLimitsInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
@@ -103,7 +104,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         private ?ExecutionFactoryInterface $executionFactory = null,
         private ?ExecutionLifecycleCoordinatorInterface $coordinator = null,
         private ?ExecutionSnapshotFactoryInterface $snapshotFactory = null,
-        private ?SecurityLimits $limits = null,
+        private ?SecurityLimitsInterface $limits = null,
         private ?Closure $onPublicationFailure = null,
         private ?Closure $onSnapshotStoreFailure = null,
         private ?PublisherStackFactoryInterface $publisherStackFactory = null,
@@ -288,7 +289,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSecurityLimits(SecurityLimits $limits): self
+    public function withSecurityLimits(SecurityLimitsInterface $limits): self
     {
         $clone = clone $this;
         $clone->limits = $limits;
@@ -483,7 +484,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $this->publisherStackFactory ?? new PublisherStackFactory();
     }
 
-    private function resolveLimits(): SecurityLimits
+    private function resolveLimits(): SecurityLimitsInterface
     {
         return $this->limits ?? new SecurityLimits();
     }
