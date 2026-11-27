@@ -1,3 +1,11 @@
+
+---
+<p align="center">
+<img src="images/The_It_Pack-Berlin_Textile_Funk.png" alt="The_It_Pack-Berlin_Textile_Funk" style="width:80%;"/>
+</p>
+
+---
+
 # it-pack — Execution is the root domain
 
 > A family of PHP libraries that model **execution itself**, so observability,
