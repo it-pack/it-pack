@@ -145,6 +145,16 @@ final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerial
                     }
                 }
             });
+            // An absent data member and an explicit null data member represent the
+            // same CloudEvent; normalize both before the lossless comparison.
+            $roundTrip[CloudEventAttributeKey::Data->value] ??= null;
+            $fields[CloudEventAttributeKey::Data->value] ??= null;
+
+            $this->assertTimestampsMatchByInstant($roundTrip, $fields);
+
+            unset($roundTrip[CloudEventAttributeKey::Time->value]);
+            unset($fields[CloudEventAttributeKey::Time->value]);
+
             ksort($roundTrip);
             ksort($fields);
             if ($roundTrip !== $fields) {
@@ -167,6 +177,34 @@ final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerial
         }
 
         throw new InvalidCloudEventException('CloudEvent cannot be represented losslessly by the SDK.', 0, $failure);
+    }
+
+    /**
+     * Compare two field arrays' timestamps by instant rather than by string,
+     * since the SDK may normalize offset representations (e.g. +00:00 to Z)
+     * without changing the represented instant. Throws ValueError when the
+     * instants differ or only one side has a time member.
+     *
+     * @param array<array-key, mixed> $roundTrip
+     * @param array<array-key, mixed> $fields
+     */
+    private function assertTimestampsMatchByInstant(array $roundTrip, array $fields): void
+    {
+        $roundTripTime = $roundTrip[CloudEventAttributeKey::Time->value] ?? null;
+        $fieldsTime = $fields[CloudEventAttributeKey::Time->value] ?? null;
+        if ($roundTripTime === null && $fieldsTime === null) {
+            return;
+        }
+        if ($roundTripTime === null || $fieldsTime === null) {
+            throw new ValueError('SDK conversion would change the CloudEvent.');
+        }
+        assert(is_string($roundTripTime));
+        assert(is_string($fieldsTime));
+        $roundTripInstant = new DateTimeImmutable($roundTripTime)->getTimestamp();
+        $fieldsInstant = new DateTimeImmutable($fieldsTime)->getTimestamp();
+        if ($roundTripInstant !== $fieldsInstant) {
+            throw new ValueError('SDK conversion would change the CloudEvent.');
+        }
     }
 
     /**

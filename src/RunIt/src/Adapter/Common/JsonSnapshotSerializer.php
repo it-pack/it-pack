@@ -44,8 +44,12 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
     {
         $this->assertSafe($data, 1);
 
-        /** @var positive-int $maxDepth */
         $maxDepth = $this->limits->maxSerializationDepth;
+        if ($maxDepth <= 0) {
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: maximum serialization depth must be positive.'
+            );
+        }
 
         try {
             $encoded = json_encode(

@@ -79,6 +79,54 @@ final class CloudEventJsonSerializerTest extends Unit
         self::assertSame(['value' => 1.0, 'nested' => [-2.0, 1.5]], $event->data);
     }
 
+    public function testRoundTripAbsentDataAndNullDataAreEquivalent(): void
+    {
+        $absent = $this->serializer->serialize(
+            CloudEvent::create('id', '/source', 'example', null, null, null, null, null),
+        );
+        $absentDecoded = $this->serializer->deserialize($absent);
+        self::assertNull($absentDecoded->data);
+
+        $explicitNull = $this->serializer->serialize(
+            CloudEvent::create('id', '/source', 'example', null, 'subject', '2026-08-20T14:05:47Z', null, null),
+        );
+        $explicitNullDecoded = $this->serializer->deserialize($explicitNull);
+        self::assertNull($explicitNullDecoded->data);
+
+        // An envelope without a data member must round-trip without a lossy-conversion error.
+        $withoutData = '{"specversion":"1.0","id":"no-data","source":"/s","type":"t.example"}';
+        $this->serializer->deserialize($withoutData);
+    }
+
+    public function testRoundTripNumericOffsetTimestamp(): void
+    {
+        $json = $this->serializer->serialize(
+            CloudEvent::create(
+                'id',
+                '/source',
+                'example',
+                ['ok' => true],
+                null,
+                '2026-08-20T14:05:47+05:30',
+                null,
+                null,
+            ),
+        );
+        $decoded = $this->serializer->deserialize($json);
+        // The SDK may normalize the offset to UTC; the instant must be preserved.
+        assert(is_string($decoded->time));
+        self::assertSame(
+            new \DateTimeImmutable('2026-08-20T14:05:47+05:30')->getTimestamp(),
+            new \DateTimeImmutable($decoded->time)->getTimestamp()
+        );
+
+        $withZ = $this->serializer->serialize(
+            CloudEvent::create('id', '/source', 'example', null, null, '2026-08-20T14:05:47Z', null, null),
+        );
+        $decodedZ = $this->serializer->deserialize($withZ);
+        self::assertSame('2026-08-20T14:05:47Z', $decodedZ->time);
+    }
+
     public function testStillRejectsLossyDataConversion(): void
     {
         $this->expectException(InvalidCloudEventException::class);
