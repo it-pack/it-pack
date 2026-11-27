@@ -41,6 +41,8 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
 {
     use InstantClockBehavior;
 
+    private const int DEFAULT_SCHEMA_VERSION = 1;
+
     /**
      * The capture resolver returns context validity, activity ID, and its verified export ID.
      * Invalid captures discard both IDs; a missing resolver uses the legacy raw ID only.
@@ -72,7 +74,7 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         SnapshotTypeInterface $type,
         mixed $payload,
         ?SnapshotClassificationInterface $classification = null,
-        int $schemaVersion = 1,
+        int $schemaVersion = self::DEFAULT_SCHEMA_VERSION,
         ?AttributeCollectionInterface $attributes = null,
     ): SnapshotInterface {
         [$activityId, $activityExportId, $valid] = $this->activity();
