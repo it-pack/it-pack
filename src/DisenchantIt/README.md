@@ -1,10 +1,16 @@
+
+---
+<p align="center">
+<img src="images/DisenchantIt-Vibraphonist-in-Indigo-Brass.png" alt="DisenchantIt-Vibraphonist-in-Indigo-Brass" style="width:25%;"/>
+</p>
+
+---
 # DisenchantIt
 
 > A library and SDK to find and replace magic scalar values in PHP.
 > Finds and replaces magic scalar values in PHP code with constants or enums.
 
 ---
-
 ## Purpose
 
 DisenchantIt helps you turn *magic* scalar values — most often bare string literals
