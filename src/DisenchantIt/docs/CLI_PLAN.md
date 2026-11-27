@@ -234,8 +234,12 @@ Proposed JSON configuration, subject to the final schema and adapter capabilitie
    platform-specific behavior and refuse unsafe fallbacks by default.
 7. Multi-file replacement is not atomic. Define write ordering and report detected
    failures and known partial application, including affected paths. Do not perform
-   automatic rollback. After interruption, users can inspect and restore files with
-   version control, taking care with pre-existing changes. Journaling and automatic
+   automatic rollback. Before fixing, users who need to restore the exact pre-fix
+   state should create a checkpoint of every affected file, including uncommitted,
+   untracked and ignored files: commit or stash tracked and untracked changes as
+   appropriate, and separately back up ignored files (or use a full file backup).
+   Inspect the working tree and checkpoint before restoring, to avoid overwriting
+   pre-existing work. A clean tracked tree is not required; journaling and automatic
    recovery are not release requirements.
 
 Check, detect and dry-run must not create source, registry, lock, backup or staging
@@ -266,8 +270,10 @@ requirement.
   measured scopes without verification or upstream changes.
 - Default to no global providers or network export. Publication is optional and best
   effort: failures must not change successful business results or mask original errors.
-  Storage and retention belong to the destination or CI environment. Never use
-  telemetry delivery as proof a scan completed.
+  Route publication failures through RunIt's configurable health reporting and its
+  fallback path; guard against reporter failure and re-entry. Health reporting can
+  be disabled when configured. Storage and retention belong to the destination or CI
+  environment. Never use telemetry delivery as proof a scan completed.
 - Document Linux as the actively supported OS and the actual resolved PHP version.
   Treat other environments as unverified until their filesystem semantics are tested.
 
@@ -359,7 +365,8 @@ and second-run idempotency pass on representative projects.
 
 1. Wire optional RunIt execution and ConfigureItRunit configuration reporting.
    Verify isolation, supported parent/child relationships, configurable limits,
-   best-effort publication and preservation of business results and errors.
+   best-effort publication, health/fallback reporting (including reporter failure and
+   re-entry), and preservation of business results and original errors.
 2. Run contract, integration, subprocess, security, concurrency and failure-injection
    suites; validate machine schemas and exercise CI on clean and dirty projects.
 3. Add reproducible large-tree benchmarks and memory limits; report measured results,
@@ -404,8 +411,9 @@ test suites are consumer-owned and separate from syntax verification.
 4. **Multi-file SemConv fixes:** Include them in the initial release. Prepare and
    validate proposed changes before writing; report detected failures and known
    partial application. Per-file replacement is sufficient. Batch atomicity,
-   journaling and automated rollback/recovery are out of scope; users can inspect
-   and restore affected files with version control, mindful of pre-existing changes.
+   journaling and automated rollback/recovery are out of scope. For exact manual
+   recovery, users should checkpoint affected files before a fix, including tracked,
+   untracked and ignored files, as described in section 7.
 5. **Reports:** Default reports contain available finding metadata, not literal
    values or source snippets; allow explicit source-detail opt-in where supported.
    Make practical limits configurable, with initial defaults informed by use. Provide
@@ -417,7 +425,8 @@ test suites are consumer-owned and separate from syntax verification.
 7. **RunIt:** Integrate from the outset with optional observation. Test supported
    command/configuration parent-child relationships against the resolved versions.
    Artifact publication is best effort; durable delivery is not required, and
-   publication failure must not change the business result or mask its error.
+   publication failure must not change the business result or mask its error. Use
+   configurable health reporting and its fallback path, and test reporter failures.
 
 Remaining choices include namespace filtering, exact configurable limits and defaults,
 and final command names and exit codes. Keep DisenchantIt core independent of RunIt
