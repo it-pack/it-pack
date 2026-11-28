@@ -6,6 +6,7 @@ namespace ItPack\HashIt\Factory;
 
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
+use ItPack\HashIt\URNBuilder;
 
 /**
  * The single place in the package that may instantiate {@see Hash} (a
@@ -17,8 +18,13 @@ use ItPack\HashIt\HashAlgorithm;
  * Layer: Core (per {@see deptrac.yaml} — the `Factory` namespace is not
  * excluded from the Core regex).
  */
-final class HashFactory
+final readonly class HashFactory
 {
+    public function __construct(
+        private URNBuilder $urnBuilder = new URNBuilder(),
+    ) {
+    }
+
     public function create(
         string $value,
         string|HashAlgorithm $algorithm,
@@ -28,6 +34,7 @@ final class HashFactory
             $value,
             $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm,
             $binary,
+            $this->urnBuilder
         );
     }
 }

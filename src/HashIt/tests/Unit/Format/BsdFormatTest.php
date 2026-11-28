@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt\Test\Unit\Format;
+namespace Tests\Unit\Format;
 
 use ItPack\HashIt\Contract\ManifestFormatInterface;
 use ItPack\HashIt\Factory\HashFactory;
@@ -37,9 +37,9 @@ final class BsdFormatTest extends TestCase
 
     public function testRoundTripSha512(): void
     {
-        $manifest = new HashManifest(HashAlgorithm::SHA512)
-            ->with('a.txt', Hash::create(hash('sha512', 'alpha'), 'sha512'))
-        ;
+        $manifest = hash('sha512', 'alpha')
+                |> (static fn ($x) => Hash::create($x, 'sha512'))
+                |> (static fn ($x) => new HashManifest(HashAlgorithm::SHA512)->with('a.txt', $x));
 
         $text = $this->format()->serialize($manifest);
         $parsed = $this->format()->parse($text);

@@ -1,4 +1,4 @@
-<?php  //[STAMP] edfc28d1d303bfcd595a935f7e70a39a
+<?php  //[STAMP] 26861850c3368706eb4edbb30d534131
 // phpcs:ignoreFile
 namespace Tests\Support\_generated;
 
@@ -129,7 +129,7 @@ trait UnitTesterActions
      * [!] Method is generated. Documentation taken from corresponding module.
      *
      * Asserts that an array has a specified key.
-     * @param array<mixed>|ArrayAccess<mixed, mixed> $array
+     * @param array<mixed>|\ArrayAccess<mixed, mixed> $array
      * @see \Codeception\Module\AbstractAsserts::assertArrayHasKey()
      */
     public function assertArrayHasKey(string|int $key, \ArrayAccess|array $array, string $message = ""): void {
@@ -141,7 +141,7 @@ trait UnitTesterActions
      * [!] Method is generated. Documentation taken from corresponding module.
      *
      * Asserts that an array does not have a specified key.
-     * @param array<mixed>|ArrayAccess<mixed, mixed> $array
+     * @param array<mixed>|\ArrayAccess<mixed, mixed> $array
      * @see \Codeception\Module\AbstractAsserts::assertArrayNotHasKey()
      */
     public function assertArrayNotHasKey(string|int $key, \ArrayAccess|array $array, string $message = ""): void {

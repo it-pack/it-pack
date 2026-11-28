@@ -16,22 +16,35 @@ use ItPack\HashIt\HashManifest;
  * `SHA256 (file.txt) = <hex>`. The algorithm is carried in the prefix, so any
  * supported algorithm round-trips (not just SHA-256).
  */
-final class BsdFormat implements ManifestFormatInterface
+final readonly class BsdFormat implements ManifestFormatInterface
 {
     public function __construct(
-        private HashFactory $hashFactory,
+        private HashFactory     $hashFactory,
         private ManifestFactory $manifestFactory,
     ) {
     }
 
     public function serialize(HashManifest $manifest): string
     {
-        $lines = [];
-        foreach ($manifest->entries() as $path => $hash) {
-            $lines[] = strtoupper($manifest->algorithm()->value) . ' (' . $path . ') = ' . $hash->value();
-        }
-
-        return implode("\n", $lines) . "\n";
+        return implode(
+            "\n",
+            array_map(
+                fn ($path, $hash) => sprintf(
+                    '%s (%s) = %s',
+                    strtoupper(
+                        $manifest
+                            ->algorithm()
+                            ->value
+                    ),
+                    $path,
+                    $hash->value()
+                ),
+                array_keys(
+                    $manifest->entries()
+                ),
+                $manifest->entries()
+            )
+        ) . "\n";
     }
 
     public function parse(string $text): HashManifest
@@ -55,7 +68,12 @@ final class BsdFormat implements ManifestFormatInterface
             if ($manifest === null) {
                 $manifest = $this->manifestFactory->createManifest($algorithm);
             }
-            $manifest = $manifest->with($m[2], $this->hashFactory->create(strtolower($m[3]), $algorithm->value));
+            $manifest = $m[3]
+                    |> strtolower(...)
+                    |> (fn ($x) => $this->hashFactory
+                        ->create($x, $algorithm->value))
+                    |> (static fn ($x) => $manifest
+                        ->with($m[2], $x));
         }
 
         if ($manifest === null) {

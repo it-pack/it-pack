@@ -10,6 +10,7 @@ final readonly class Hash implements Contract\HashInterface
         private string $value,
         private string $algorithm,
         private bool $binary = false,
+        private URNBuilder $urnBuilder = new URNBuilder(),
     ) {
     }
 
@@ -54,8 +55,6 @@ final readonly class Hash implements Contract\HashInterface
 
     public function toUrn(): string
     {
-        $hex = $this->binary ? bin2hex($this->value) : $this->value;
-
-        return sprintf('urn:hashit:%s:%s', $this->algorithm, $hex);
+        return $this->urnBuilder->withHash($this)->build();
     }
 }
