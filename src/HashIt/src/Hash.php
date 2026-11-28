@@ -6,18 +6,12 @@ namespace ItPack\HashIt;
 
 final readonly class Hash implements Contract\HashInterface
 {
-    private string $urn;
-
     public function __construct(
         private string $value,
         private string $algorithm,
         private bool $binary = false,
-        URNBuilder $urnBuilder = new URNBuilder(),
+        private URNBuilder $urnBuilder = new URNBuilder(),
     ) {
-        $this->urn = $urnBuilder
-            ->withHash($this)
-            ->build()
-        ;
     }
 
     public function __toString(): string
@@ -61,6 +55,6 @@ final readonly class Hash implements Contract\HashInterface
 
     public function toUrn(): string
     {
-        return $this->urn;
+        return $this->urnBuilder->withHash($this)->build();
     }
 }

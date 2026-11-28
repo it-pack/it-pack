@@ -27,7 +27,7 @@ final readonly class BsdFormat implements ManifestFormatInterface
     public function serialize(HashManifest $manifest): string
     {
         return implode(
-            PHP_EOL,
+            "\n",
             array_map(
                 fn ($path, $hash) => sprintf(
                     '%s (%s) = %s',
@@ -44,7 +44,7 @@ final readonly class BsdFormat implements ManifestFormatInterface
                 ),
                 $manifest->entries()
             )
-        ) . PHP_EOL;
+        ) . "\n";
     }
 
     public function parse(string $text): HashManifest
@@ -88,7 +88,7 @@ final readonly class BsdFormat implements ManifestFormatInterface
      */
     private function lines(string $text): iterable
     {
-        foreach (explode(PHP_EOL, rtrim($text, PHP_EOL)) as $line) {
+        foreach (explode("\n", rtrim($text, "\n")) as $line) {
             if ($line === '') {
                 continue;
             }

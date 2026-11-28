@@ -12,23 +12,22 @@ final readonly class URNBuilder implements URNBuilderInterface
 {
     private const string SCHEME = 'urn';
     private const string NAMESPACE_IDENTIFIER = 'hashit';
-
-    public ?HashAlgorithm $algorithm;
+    public ?string $algorithm;
 
     public function __construct(
         public ?string $hex = null,
         HashAlgorithm|string $algorithm = HashAlgorithm::SHA3_256,
     ) {
         $this->algorithm = $algorithm instanceof HashAlgorithm
-        ? $algorithm
-        : HashAlgorithm::from($algorithm);
+            ? $algorithm->value
+            : $algorithm;
     }
 
     public static function fromHash(HashInterface $hash): self
     {
         return new self(
             $hash->binary() ? bin2hex($hash->value()) : $hash->value(),
-            HashAlgorithm::from($hash->algorithm()),
+            $hash->algorithm(),
         );
     }
 
@@ -44,8 +43,9 @@ final readonly class URNBuilder implements URNBuilderInterface
 
     public function withAlgorithm(HashAlgorithm|string $algorithm): self
     {
-        return new self($algorithm, $this->algorithm);
+        return new self($this->hex, $algorithm);
     }
+
     public function build(): string
     {
         if ($this->hex === null) {
@@ -58,7 +58,7 @@ final readonly class URNBuilder implements URNBuilderInterface
             '%s:%s:%s:%s',
             self::SCHEME,
             self::NAMESPACE_IDENTIFIER,
-            $this->algorithm->value,
+            $this->algorithm ?? HashAlgorithm::default()->value,
             $this->hex,
         );
     }
