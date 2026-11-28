@@ -32,3 +32,5 @@ var/
 # OS
 Thumbs.db
 /phpstan-errors.txt
+
+/tests/Support/_generated/

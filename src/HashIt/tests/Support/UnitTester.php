@@ -21,7 +21,7 @@ namespace Tests\Support;
  */
 class UnitTester extends \Codeception\Actor
 {
-    use _generated\UnitTesterActions;
+    use \ItPack\var\UnitTesterActions;
 
     /**
      * Define custom actions here
